@@ -797,10 +797,10 @@ const MEL=[2,-1,3,2,1,-1,0,-1,2,-1,4,3,2,-1,-1,-1,3,-1,4,5,4,-1,3,-1,2,3,2,1,0,-
 /* orchestral-style score: string pad, low bass, harp arpeggio, a slow lead and a soft drum, all through the hall reverb */
 const PROG=[[38,50,54,57],[33,49,52,57],[35,50,54,59],[31,50,55,59],[38,50,54,57],[31,47,50,55],[40,52,55,59],[33,49,52,57]];
 const LEAD=[[78,0,0,81,0,0,76,0],[76,0,0,0,73,0,0,0],[78,0,0,74,0,0,71,0],[71,0,74,0,0,79,0,0],[81,0,0,78,0,0,74,0],[79,0,0,0,83,0,81,0],[79,0,0,76,0,0,71,0],[76,0,0,0,0,73,0,0]];
-function strings(n,t,dur,vol){
+function strings(n,t,dur,vol,att){
   const g=AC.createGain(),lp=AC.createBiquadFilter();lp.type='lowpass';lp.Q.value=.3;
   lp.frequency.setValueAtTime(420,t);lp.frequency.linearRampToValueAtTime(1500,t+dur*.55);lp.frequency.linearRampToValueAtTime(520,t+dur+1.2);
-  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+1.4);g.gain.setValueAtTime(vol,t+dur-.2);g.gain.linearRampToValueAtTime(0,t+dur+1.8);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+(att||1.4));g.gain.setValueAtTime(vol,t+dur-.2);g.gain.linearRampToValueAtTime(0,t+dur+1.8);
   for(const d of[-8,7]){const o=AC.createOscillator();o.type='sawtooth';o.frequency.value=mt(n);o.detune.value=d;o.connect(lp);o.start(t);o.stop(t+dur+1.9);}
   lp.connect(g);g.connect(mBus);
 }
@@ -817,21 +817,23 @@ function drum(t,vol){
   const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.setValueAtTime(92,t);o.frequency.exponentialRampToValueAtTime(36,t+.55);
   g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0006,t+1.5);o.connect(g);g.connect(mBus);o.start(t);o.stop(t+1.6);
 }
+/* the original tune (same melody, chords and tempo), played by the orchestral instruments */
 function music(){
   if(!AC||AC.state!=='running')return;
   if(mNext<AC.currentTime)mNext=AC.currentTime+.05;
   while(mNext<AC.currentTime+.3){
-    const t=mNext,st=mStep%8,bar=(mStep>>3)%8,pass=(mStep>>6)%4,c=PROG[bar];
+    const t=mNext,st=mStep%32,s8=st%8,ph=mStep>>5,pass=ph%4,ch=CH[(mStep>>3)&3];
     if(musicOn){
-      if(st===0){
-        lowBass(c[0],t,4,.2);strings(c[1],t,4,.03);strings(c[2],t,4,.026);strings(c[3],t,4,.026);
-        if(pass>0)strings(c[2]+12,t,4,.012);
-        if(pass>1&&bar%2===0)drum(t,.3);if(pass>1&&bar===7)drum(t+3,.2);
+      if(s8===0){
+        lowBass(ch[0]-12,t,2.32,.2);strings(ch[0]+12,t,2.32,.03,.7);strings(ch[1],t,2.32,.026,.7);strings(ch[2],t,2.32,.026,.7);
+        if(pass>0)strings(ch[2]+12,t,2.32,.011,.9);
+        if(pass>1&&(st===0||st===16))drum(t,.28);
       }
-      if(st%2===1||st===6)harp(c[1+(st*2+bar)%3]+12,t,.035,1.6);
-      const m=LEAD[bar][st];if(m&&pass!==0)harp(pass===3?m-12:m,t,.085,3);
+      if(s8===4)harp(ch[0]+7,t,.04,1.6);
+      if(st%2===1)harp(ch[1+((st>>1)&1)],t,.03,1.3);
+      const m=MEL[st];if(m>=0&&(ph&1?st%4!==3:true)){harp(PENTA[m],t,.09,2.4);if(pass===3)harp(PENTA[m]-12,t,.04,2.4);}
     }
-    mNext+=.5;mStep++;
+    mNext+=.29;mStep++;
   }
 }
 let lastTick=0;
