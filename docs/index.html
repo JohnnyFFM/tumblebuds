@@ -2044,7 +2044,7 @@ function resize(){
   z=clamp(z,minZ,maxZ);clampCam();
 }
 function setLow(v){if(lowQ===v)return;lowQ=v;sun.shadow.mapSize.set(v?1024:2048,v?1024:2048);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null;}}
-function applyGfx(){rscale=CFG.gfx==='low'?1:Math.min(window.devicePixelRatio||1,window.innerWidth<700?1.5:2);setLow(CFG.gfx==='low');ft=.016;fc=0;resize();}
+function applyGfx(){rscale=CFG.gfx==='low'?1:Math.min(window.devicePixelRatio||1,window.innerWidth<700?1.5:2);setLow(CFG.gfx==='low');ft=.016;fc=0;resize();PQ.r0=rscale;PQ.lv=0;PQ.t=0;PQ.fx=1;PQ.wait=12;}
 function defaultZoom(){return clamp(Math.min(vh/430,vw/300),minZ,2.2);}
 function camHi(){return H-vh/z+40/z;}
 function clampCam(){
@@ -2069,8 +2069,112 @@ function cineEval(k){
   cineP.set(crom(a.p[0],b.p[0],c.p[0],d.p[0],t),crom(a.p[1],b.p[1],c.p[1],d.p[1],t),crom(a.p[2],b.p[2],c.p[2],d.p[2],t));
   cineL.set(crom(a.l[0],b.l[0],c.l[0],d.l[0],t),crom(a.l[1],b.l[1],c.l[1],d.l[1],t),crom(a.l[2],b.l[2],c.l[2],d.l[2],t));
 }
-function endCine(){if(!cine)return;cine=null;sCx=null;introT=.25;$('card').classList.remove('show');if(mode==='play'){$('hud').hidden=false;resize();toast(tr(16));}}
+function endCine(){if(!cine)return;camCut();cine=null;sCx=null;introT=.25;$('card').classList.remove('show');if(mode==='play'){$('hud').hidden=false;resize();toast(tr(16));}}
 function skipIntro(){if(cine&&cine.t>.7&&!cine.hold)endCine();}
+/* ---------- camera feel, camera moments, smart quality (lab switches cam*, perfAuto) ----------
+   camFeel: a flicked drag glides on and brakes softly at the level edges; two fingers pan as well as zoom.
+   camMoments: a short push-in towards the goal when the last needed Bud is home, a slow drift to the goal on the win screen.
+   camFlyIn: softer easing, a slight bank and the play camera's breathing blended in, and no cut when the fly-in ends or is skipped.
+   camFollow (off until switched on): keeps the Bud that got the last order in the picture until the player drags.
+   None of these writes camX/camY/z while a finger is down. Hooks: camStep (frame), camMom/camPre/camFly (render), camCut (endCine). */
+LABDEF.camFeel='Camera inertia';LABDEF.camMoments='Camera moments';LABDEF.camFlyIn='Fly-in polish';LABDEF.camFollow='Follow ordered Bud';LABDEF.perfAuto='Smart quality';
+if(!SAVE.lab||SAVE.lab.camFollow==null)(SAVE.lab=SAVE.lab||{}).camFollow=0;
+const CAMF={vx:0,vy:0,on:false,id:-1,lx:0,ly:0,lt:0,pm:false,px:0,py:0,mom:0,momT:0,win:0,sv:0,fol:null,roll:0,lpx:0,bl:0,bp:V3(0,0,0),bt:V3(0,0,0),bd:0};
+{const e0=FX.ev;FX.ev=(n,c)=>{if(n==='assign')CAMF.fol=c;e0(n,c);};}
+function camStep(dt){
+  const C=CAMF;
+  if(C.on){
+    if(ptrs.size||mode!=='play'||cine||!lab('camFeel'))C.on=false;
+    else{
+      const ww=vw/z,lo=-30-topPad/z,hi=camHi();
+      if(ww<W){const d=Math.max(0,C.vx<0?camX:W-ww-camX)*7;if(Math.abs(C.vx)>d)C.vx=C.vx<0?-d:d;}else C.vx=0;
+      if(hi>lo){const d=Math.max(0,C.vy<0?camY-lo:hi-camY)*7;if(Math.abs(C.vy)>d)C.vy=C.vy<0?-d:d;}else C.vy=0;
+      camX+=C.vx*dt;camY+=C.vy*dt;clampCam();const f=Math.exp(-dt*4);C.vx*=f;C.vy*=f;
+      if(Math.hypot(C.vx,C.vy)<10/z)C.on=false;
+    }
+  }
+  /* moments */
+  const mo=lab('camMoments')&&!ptrs.size&&!RMQ.matches;
+  if(mode==='play'){if(mo&&NEED>0&&G.saved>=NEED&&C.sv<NEED&&!cine)C.momT=1.9;C.sv=G.saved;}
+  if(C.momT>0){C.momT-=dt;const q=1-Math.max(0,C.momT)/1.9,a=clamp(q/.22,0,1),b=clamp((1-q)/.45,0,1);C.mom=mo?a*a*(3-2*a)*b*b*(3-2*b):C.mom*Math.exp(-dt*10);if(!mo)C.momT=0;}else if(C.mom>0){C.mom*=Math.exp(-dt*10);if(C.mom<.002)C.mom=0;}
+  if(mo&&mode==='end'&&G.saved>=NEED)C.win+=(1-C.win)*(1-Math.exp(-dt*.55));else if(C.win>0){C.win*=Math.exp(-dt*(mode==='end'?9:40));if(C.win<.002)C.win=0;}
+  /* follow the Bud with the latest order: only nudges the view when that Bud nears the edge of the picture */
+  if(C.fol){
+    const c=C.fol;
+    if(mode!=='play'||c.gone||c.st==='exit'||!lab('camFollow'))C.fol=null;
+    else if(!ptrs.size&&!cine&&!C.on&&!paused){
+      const ww=vw/z,wh=vh/z,k=1-Math.exp(-dt*2.6),tp=topPad/z;let tx=camX,ty=camY;
+      if(c.x<camX+ww*.24)tx=c.x-ww*.24;else if(c.x>camX+ww*.76)tx=c.x-ww*.76;
+      if(c.y-20<camY+tp+wh*.12)ty=c.y-20-tp-wh*.12;else if(c.y>camY+wh*.72)ty=c.y-wh*.72;
+      if(tx!==camX||ty!==camY){camX+=(tx-camX)*k;camY+=(ty-camY)*k;clampCam();}
+    }
+  }
+  if(C.bl>0)C.bl=Math.max(0,C.bl-dt*1.8);
+  perfHud();
+}
+/* render hooks. camMom: the pose for a moment (never changes camX/camY/z); camFly: the fly-in with a softer curve; camPre: blend out of a cut, bank */
+function camMom(){
+  const C=CAMF,w=C.win*C.win*(3-2*C.win),ww=vw/sZ,wh=vh/sZ,b=.4*C.mom+.75*w,lx=ww*(.2*C.mom+.5*w),ly=wh*(.14*C.mom+.3*w);
+  return gamePose(sCx+clamp((EXIT.x-sCx)*b,-lx,lx),sCy+clamp((EXIT.y-34-sCy)*b,-ly,ly),sZ*(1+.13*C.mom+.1*w),cam.position,camTarget);
+}
+function camFly(k,t,dt){
+  const C=CAMF,e=lerp(k*k*(3-2*k),k*k*k*(k*(k*6-15)+10),.65),w=clamp((k-.72)/.28,0,1),ws=w*w*(3-2*w);
+  cineEval(e);cam.position.copy(cineP);camTarget.copy(cineL);const d=cineP.distanceTo(cineL);
+  const vx=dt>0?(cineP.x-C.lpx)/dt:0;C.lpx=cineP.x;if(cine.t>.1)C.roll+=(clamp(-vx*.00022,-.055,.055)*(1-ws)-C.roll)*Math.min(1,dt*2.5);else C.roll=0;
+  cam.position.x+=Math.sin(t*.21)*d*.014*ws;cam.position.y+=Math.sin(t*.17)*d*.006*ws;
+  return d;
+}
+function camCut(){const C=CAMF;if(lab('camFlyIn')&&!RMQ.matches){C.bl=1;C.bp.copy(cam.position);C.bt.copy(camTarget);}}
+function camPre(dt){
+  const C=CAMF;
+  if(C.bl>0&&!cine&&mode==='play'){const q=C.bl*C.bl*(3-2*C.bl);cam.position.lerp(C.bp,q);camTarget.lerp(C.bt,q);}
+  if(cine&&lab('camFlyIn'))cam.up.set(Math.sin(C.roll),Math.cos(C.roll),0);else if(C.roll){C.roll*=Math.exp(-dt*6);if(Math.abs(C.roll)<.0005)C.roll=0;cam.up.set(Math.sin(C.roll),Math.cos(C.roll),0);}
+}
+/* input for camFeel: these listeners run after the main ones in the input section, which have already moved the camera */
+function camInput(){
+  const C=CAMF;
+  cv.addEventListener('pointerdown',e=>{if(mode!=='play')return;C.on=false;
+    if(ptrs.size===1){C.id=e.pointerId;C.lx=e.clientX;C.ly=e.clientY;C.lt=performance.now();C.vx=C.vy=0;C.pm=false;}
+    else if(ptrs.size===2){const [a,b]=[...ptrs.values()];C.px=(a.x+b.x)/2;C.py=(a.y+b.y)/2;C.id=-1;}});
+  cv.addEventListener('pointermove',e=>{if(mode!=='play')return;
+    if(ptrs.size===1&&e.pointerId===C.id){const p=ptrs.get(C.id);if(!p||!p.moved)return;
+      const dx=e.clientX-C.lx,dy=e.clientY-C.ly,now=performance.now(),el=Math.max(4,now-C.lt)/1000;C.lx=e.clientX;C.ly=e.clientY;C.lt=now;C.fol=null;
+      if(!C.pm){C.pm=true;return;}
+      const wx=CFG.view===3?(dy*1.4-dx*.5)/z:-dx/z,wy=CFG.view===3?0:-dy/z;C.vx=lerp(C.vx,wx/el,.5);C.vy=lerp(C.vy,wy/el,.5);
+    }else if(ptrs.size===2&&pinch){const [a,b]=[...ptrs.values()],mx=(a.x+b.x)/2,my=(a.y+b.y)/2;C.fol=null;
+      if(lab('camFeel')&&CFG.view!==3){camX-=(mx-C.px)/z;camY-=(my-C.py)/z;clampCam();}C.px=mx;C.py=my;}});
+  const up=e=>{if(e.pointerId!==C.id)return;C.id=-1;
+    if(mode==='play'&&e.type==='pointerup'&&C.pm&&!ptrs.size&&!cine&&lab('camFeel')&&!RMQ.matches&&performance.now()-C.lt<70){
+      const s=Math.hypot(C.vx,C.vy),mx=2600/z;if(s>90/z){if(s>mx){C.vx*=mx/s;C.vy*=mx/s;}C.on=true;}}};
+  cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+  cv.addEventListener('wheel',()=>{C.on=false;},{passive:true});mini.addEventListener('pointerdown',()=>{C.on=false;C.fol=null;});window.addEventListener('keydown',()=>{C.on=false;});
+}
+/* smart quality (graphics on Auto): one step down when frames run long, and back up again after a calm stretch; a step up that fails makes the next try wait twice as long.
+   steps: everything -> without flare and streaks -> lower resolution in quarters down to 1 -> low quality. ?perf in the address shows the state. */
+const PQ={lv:0,t:0,wait:12,upAt:-99,fx:1,el:null,n:0,r0:1};
+function perfLadder(){const r0=PQ.r0,L=[[r0,0,1],[r0,0,0]];for(let r=r0-.25;r>=.999;r-=.25)L.push([Math.max(1,r),0,0]);L.push([1,1,0]);return L;}
+function perfSet(lv){
+  const L=perfLadder();PQ.lv=lv=clamp(lv,0,L.length-1);const s=L[lv];PQ.fx=s[2];setLow(!!s[1]);
+  if(rscale!==s[0]){rscale=s[0];resize();}
+}
+function perfStep(dt){
+  if(CFG.gfx!=='auto'||document.hidden||MOVIE.on){PQ.t=0;fc=0;return;}
+  PQ.t+=dt;if(++fc<90)return;fc=0;
+  if(ft>.0245&&PQ.t>1.5){const n=perfLadder().length-1;if(PQ.lv<n){if(T-PQ.upAt<10)PQ.wait=Math.min(180,PQ.wait*2);perfSet(PQ.lv+1);}PQ.t=0;ft=.016;}
+  else if(ft<.0178&&PQ.lv>0&&PQ.t>PQ.wait){perfSet(PQ.lv-1);PQ.upAt=T;PQ.t=0;ft=.016;}
+}
+function perfHud(){
+  if(PQ.el===null){PQ.el=false;if(/[?&]perf\b/.test(location.search)){const d=PQ.el=document.createElement('div');d.style.cssText='position:fixed;left:6px;bottom:6px;z-index:99;font:11px/1.3 monospace;color:#fff;background:rgba(0,0,0,.6);padding:3px 6px;border-radius:6px;pointer-events:none;white-space:pre';document.body.append(d);}}
+  if(!PQ.el||++PQ.n%20)return;
+  PQ.el.textContent=(ft*1000).toFixed(1)+' ms  '+(1/ft).toFixed(0)+' fps\n'+cv.width+'x'+cv.height+'  scale '+rscale.toFixed(2)+'\n'+(CFG.gfx==='auto'?(lab('perfAuto')?'smart':'auto'):CFG.gfx)+'  step '+PQ.lv+(lowQ?'  low':'')+(PQ.fx?'':'  no extras')+'  retry '+PQ.wait+'s';
+}
+/* one frame with the whole level in view, drawn while the screen is still covered, so that shaders and buffers are ready before play starts */
+function lookWarm(){
+  if(!lab('perfAuto')||!RTS.refl||!R)return;
+  const d=clamp(2100/(2*FOVT*Math.min(cam.aspect,2)),2600,8000);
+  cam.position.set(W/2,300,d);cam.up.set(0,1,0);cam.lookAt(W/2,-260,0);cam.updateMatrixWorld();cam.matrixWorldInverse.copy(cam.matrixWorld).invert();
+  flushDirty();R.shadowMap.needsUpdate=true;R.setRenderTarget(RTS.refl);R.render(scene,cam);R.setRenderTarget(RTS.l);R.render(lightScene,cam);R.setRenderTarget(null);
+}
 
 /* ---------- environment ---------- */
 function setTod(v){tod=clamp(v,0,1);sunset=Math.max(0,1-Math.abs(tod-.5)*2.2);const d=clamp((tod-.55)/.45,0,1);dusk=d*d*(3-2*d);}
@@ -3101,6 +3205,7 @@ function startGame(quick){
   Object.assign(VP,VIEWS[0]);setFov(38);
   const sg=EXIT.x<HATCH.x?-1:1;
   resize();z=defaultZoom();centerOn(HATCH.x+60*sg,HATCH.y+70);
+  lookWarm();
   if(quick){cine=null;sCx=null;introT=.5;$('card').classList.remove('show');toast(tr(16));syncHud(true);return;}
   const gp=V3(0,0,0),gk=V3(0,0,0),ex=EXIT.x,ey=-EXIT.y,mx=(HATCH.x+EXIT.x)/2,my=-(HATCH.y+EXIT.y)/2;gamePose(camX+vw/z/2,camY+vh/z/2,z,gp,gk);
   cine={t:0,dur:9.5,hold:false,keys:[
@@ -4403,11 +4508,13 @@ function mkRT(w,h,depth,srgb){
   if(srgb)t.texture.encoding=T3.sRGBEncoding;return t;
 }
 function makeRTs(w,h){
+  if(RTS.scene&&RTS.scene.width===w&&RTS.scene.height===h&&lab('perfAuto')){PA.mat.uniforms.uScale.value=PN.mat.uniforms.uScale.value=h/(2*FOVT);PL.mat.uniforms.uScale.value=RTS.a.height/(2*FOVT);return;}
   for(const k in RTS)RTS[k].dispose();
   const qw=Math.max(2,Math.ceil(w/4)),qh=Math.max(2,Math.ceil(h/4)),hw=Math.max(2,Math.ceil(w/2)),hh=Math.max(2,Math.ceil(h/2));
   RTS.scene=mkRT(w,h,2,true);RTS.refl=mkRT(hw,hh,1,true);RTS.fin=mkRT(w,h,0);RTS.ao=mkRT(hw,hh,0);RTS.ao2=mkRT(hw,hh,0);
   for(const k of['a','b','r','c','f','g','l'])RTS[k]=mkRT(qw,qh,0);
   PA.mat.uniforms.uScale.value=PN.mat.uniforms.uScale.value=h/(2*FOVT);PL.mat.uniforms.uScale.value=qh/(2*FOVT);
+  lookRTs(w,h);
 }
 const LZ='float lz(float d){float zn=d*2.-1.;return 180000./(9010.-zn*8990.);}';
 function SM(fs,un){const u={};for(const k of un)u[k]={value:null};return new T3.ShaderMaterial({uniforms:u,depthTest:false,depthWrite:false,extensions:{derivatives:true},vertexShader:'varying vec2 v;void main(){v=uv;gl_Position=vec4(position.xy,0.,1.);}',fragmentShader:'varying vec2 v;float hash(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}\n'+fs});}
@@ -4466,6 +4573,7 @@ function env(){
 function fsPass(mat,rt){fsMesh.material=mat;R.setRenderTarget(rt);R.render(fsScene,fsCam);}
 function blurP(src,dst,dx,dy){const u=PM.blur.uniforms;u.tS.value=src.texture;u.uDir.value.set(dx,dy);fsPass(PM.blur,dst);}
 function post(t,focus){
+  if(lookAny()){lookPost(t,focus);return;}
   const e=env(),S=RTS.scene,a=RTS.a,b=RTS.b,r=RTS.r,c=RTS.c,f=RTS.f,g=RTS.g;let u;
   if(!lowQ){u=PM.ao.uniforms;u.tD.value=S.depthTexture;u.uAsp.value=vw/vh;u.uFt.value=FOVT;fsPass(PM.ao,RTS.ao);blurP(RTS.ao,RTS.ao2,1/RTS.ao.width,0);blurP(RTS.ao2,RTS.ao,0,1/RTS.ao.height);}
   u=PM.bright.uniforms;u.tS.value=S.texture;u.tL.value=RTS.l.texture;u.uPx.value.set(1/S.width,1/S.height);u.uThr.value=e.thr;u.uLCol.value.set(e.lcol[0],e.lcol[1],e.lcol[2]);fsPass(PM.bright,a);
@@ -4480,6 +4588,170 @@ function post(t,focus){
   u.uRayCol.value.set(e.rcol[0],e.rcol[1],e.rcol[2]);u.uTint.value.set(e.tint[0],e.tint[1],e.tint[2]);if(TC.tint)u.uTint.value.multiply(_v.set(TC.tint[0],TC.tint[1],TC.tint[2]));if(btK>0)u.uTint.value.multiply(_v.set(1-.2*btK,1-.07*btK,1+.12*btK));u.uLCol.value.set(e.lcol[0],e.lcol[1],e.lcol[2]);
   u.uBloom.value=e.bloom;u.uRay.value=e.ray*vis;u.uFlash.value=flash;u.uFocus.value=focus;u.uNB.value=cine||mode==='title'||CFG.view===3?0:1;fsPass(PM.comp,RTS.fin);
   u=PM.fxaa.uniforms;u.tS.value=RTS.fin.texture;u.uPx.value.set(1/S.width,1/S.height);u.uBars.value=bars;u.uT.value=t%1000;fsPass(PM.fxaa,null);
+}
+/* ---------- look: the final picture, graded and focused like a film (lab switches look*) ----------
+   post() hands over to lookPost() as soon as one look switch is on; with all of them off the passes and shaders above run untouched.
+   lookPost runs the same pass order with its own materials (PM.bright2, PM.rpre2, PM.comp2, PM.fxaa2 ...); every part falls back to the
+   original maths when its own switch is off. The extra targets are tiny (1/8 and 1/16 of the frame, a quarter-size mask, 2x2 for the sun). */
+LABDEF.lookGrade='Colour grading';LABDEF.lookTilt='Tilt-shift focus';LABDEF.lookBloom='Soft bloom & streaks';LABDEF.lookRays='Light shafts per world';
+LABDEF.lookFlare='Sun flare';LABDEF.lookXray='Hidden-Bud outline';LABDEF.lookSharp='Crisp edges, fine grain';
+/* the grade of each world by day. g: gain, l: lift, gm: gamma, sh/hi: colour pushed into shadows/highlights, s: saturation, c: contrast,
+   v: vignette, ao: ambient occlusion, sk: how strongly warm yellows (the Buds) are kept out of the tinting, t: how soft the far distance gets (1 if left out) */
+const LOOKG={
+ beach:{g:[1.02,1,.965],l:[0,.004,.014],gm:.97,sh:[-.014,.004,.024],hi:[.024,.01,-.022],s:1.07,c:.3,v:.34,ao:.8,sk:.5},
+ sea:{g:[.87,1,1.07],l:[0,.014,.04],gm:.98,sh:[-.034,0,.046],hi:[.012,.014,-.008],s:1.05,c:.3,v:.4,ao:.8,sk:.9},
+ desert:{g:[1.03,1,.95],l:[.006,0,.01],gm:.98,sh:[-.004,-.006,.026],hi:[.03,.012,-.03],s:1.04,c:.32,v:.36,ao:.85,sk:.5},
+ hills:{g:[1.01,1,.97],l:[0,.004,.01],gm:.96,sh:[-.012,.002,.02],hi:[.02,.012,-.02],s:1.06,c:.3,v:.36,ao:.9,sk:.5},
+ snow:{g:[.985,1,1.02],l:[0,.006,.018],gm:1,sh:[-.02,0,.034],hi:[.018,.008,-.012],s:1.05,c:.26,v:.3,ao:.6,sk:.7,t:.85},
+ moon:{g:[.98,.99,1.04],l:[.002,.002,.01],gm:.95,sh:[-.006,-.004,.022],hi:[.014,.006,-.006],s:1.04,c:.34,v:.42,ao:.75,sk:.8,t:.6},
+ home:{g:[1.02,1,.97],l:[0,.004,.012],gm:.96,sh:[-.012,0,.024],hi:[.026,.012,-.024],s:1.07,c:.3,v:.36,ao:.9,sk:.5}};
+/* light shafts of each world: strength, how tightly they hug the sun, 1 = underwater shafts falling from the surface */
+const LOOKR={beach:[1,10,0],sea:[1.7,2.4,1],desert:[1.15,9,0],hills:[1,10,0],snow:[.8,8,0],moon:[0,10,0],home:[1.2,9,0]};
+const LOOK={nE:0,fE:0,tk:0,xr:null};
+function lookFx(){return !lowQ&&(PQ.fx||CFG.gfx!=='auto'||!lab('perfAuto'));}
+function lookAny(){return lab('lookGrade')||lab('lookTilt')||lab('lookBloom')||lab('lookRays')||lab('lookFlare')||lab('lookXray')||lab('lookSharp');}
+function lookInit(){
+  PM.bright2=SM('uniform sampler2D tS,tL;uniform vec2 uPx;uniform float uThr,uKnee;uniform vec3 uLCol,uWarm;vec3 s(vec2 o){vec2 q=v+o*uPx;return texture2D(tS,q).rgb*(1.+uLCol*texture2D(tL,q).r);}void main(){vec3 c=(s(vec2(-1.,-1.))+s(vec2(1.,-1.))+s(vec2(-1.,1.))+s(vec2(1.,1.)))*.25;float l=max(c.r,max(c.g,c.b)),so=clamp(l-uThr+uKnee,0.,2.*uKnee);so=so*so/(4.*uKnee+.0001);gl_FragColor=vec4(c*uWarm*clamp(max(so,l-uThr)*2.2,0.,1.4),1.);}',['tS','tL','uPx','uThr','uKnee','uLCol','uWarm']);
+  PM.streak=SM('uniform sampler2D tS;uniform vec2 uDir;uniform float uThr;vec3 s(float o){return max(texture2D(tS,v+uDir*o).rgb-uThr,0.);}void main(){vec3 c=s(0.)*.2+(s(1.)+s(-1.))*.17+(s(2.)+s(-2.))*.12+(s(3.)+s(-3.))*.07+(s(4.)+s(-4.))*.04;gl_FragColor=vec4(c,1.);}',['tS','uDir','uThr']);
+  PM.rpre2=SM('uniform sampler2D tD;uniform vec2 uSun;uniform float uAsp,uTight,uMode,uT;\n'+LZ+'\nvoid main(){float dp=texture2D(tD,v).x;vec2 d=(v-uSun)*vec2(uAsp,1.);float m=step(.99995,dp)*exp(-dot(d,d)*uTight);if(uMode>.5){float an=atan(d.x,-d.y);m=smoothstep(500.,1900.,lz(dp))*exp(-dot(d,d)*uTight)*smoothstep(.3,.95,.5+.5*sin(an*31.+uT*.35)*sin(an*13.-uT*.22))*1.6;}gl_FragColor=vec4(vec3(m),1.);}',['tD','uSun','uAsp','uTight','uMode','uT']);
+  PM.focc=SM('uniform sampler2D tD;uniform vec2 uSun;uniform float uAsp;void main(){float a=0.;for(int i=0;i<3;i++)for(int j=0;j<3;j++)a+=step(.99995,texture2D(tD,uSun+vec2(float(i)-1.,(float(j)-1.)*uAsp)*.012).x);gl_FragColor=vec4(vec3(a/9.),.2);}',['tD','uSun','uAsp']);
+  PM.focc.transparent=true;
+  /* bloom scales, the streak and the sun flare are summed at quarter size */
+  PM.bcomb=SM(['uniform sampler2D tS,tH,tI,tK,tO,tX;uniform vec4 uW;uniform vec3 uFC;uniform vec2 uSun;uniform float uFl,uAsp,uXr;',
+   'float gh(float k,float r){vec2 d=(v-(uSun+(vec2(.5)-uSun)*k))*vec2(uAsp,1.);return smoothstep(r,r*.25,length(d));}',
+   'void main(){vec3 c=texture2D(tS,v).rgb*uW.x+texture2D(tH,v).rgb*uW.y+texture2D(tI,v).rgb*uW.z+texture2D(tK,v).rgb*uW.w*vec3(1.,.9,.78);',
+   ' if(uFl>0.){float o=texture2D(tO,vec2(.5)).r*uFl;vec2 d=(v-uSun)*vec2(uAsp,1.);float r=length(d);',
+   '  vec3 f=uFC*(exp(-r*r*26.)*.24+exp(-r*5.)*.08);',
+   '  f+=vec3(1.,.82,.5)*gh(.55,.05)*.2+vec3(.55,.85,1.)*gh(1.3,.085)*.14+vec3(.95,.62,1.)*gh(1.75,.14)*.1+vec3(.6,1.,.75)*gh(.85,.022)*.22;',
+   '  f+=uFC*smoothstep(.03,0.,abs(r-.36))*.07*smoothstep(1.,.2,length(v-.5)*2.);',
+   '  c+=f*o;}',
+   ' gl_FragColor=vec4(c,uXr>0.?texture2D(tX,v).r:0.);}'].join('\n'),['tS','tH','tI','tK','tO','tX','uW','uFC','uSun','uFl','uAsp','uXr']);
+  PM.bcomb.uniforms.uW.value=new T3.Vector4(1,0,0,0);
+  PM.comp2=SM(['uniform sampler2D tS,tD,tB,tR,tF,tL,tA,tG;uniform vec3 uRayCol,uTint,uLCol,uGain,uLift,uShC,uHiC;uniform vec4 uTS;uniform vec2 uVR;',
+   'uniform float uBloom,uRay,uFlash,uFocus,uAO,uNB,uTilt,uTK,uTF,uGr,uGam,uSat,uCon,uVig,uSkin,uXr;',LZ,
+   'void main(){',
+   ' vec2 c2=v-.5;float r2=dot(c2,c2);vec2 ca=c2*r2*.006;',
+   ' float dz=lz(texture2D(tD,v).x);',
+   ' float coc=clamp(smoothstep(uFocus+280.,uFocus+2400.,dz)*.7+smoothstep(uFocus*.9-60.,uFocus*.8-140.,dz)*uNB,0.,1.);',
+   ' if(uTilt>.5)coc=clamp(smoothstep(uTS.z,uTS.z+uTS.w,dz)*uTF+smoothstep(uTS.x,uTS.x-uTS.y,dz)*uNB*uTK,0.,1.)*(dz>8950.?.45:1.);',
+   ' vec3 col=vec3(texture2D(tS,v+ca).r,texture2D(tS,v).g,texture2D(tS,v-ca).b);',
+   ' col*=mix(1.,texture2D(tA,v).r,uAO);',
+   ' if(uTilt>.5){vec3 b1=texture2D(tF,v).rgb;col=coc<.5?mix(col,b1,coc*2.):mix(b1,texture2D(tG,v).rgb,coc*2.-1.);}else col=mix(col,texture2D(tG,v).rgb,coc);',
+   ' float L=texture2D(tL,v).r;col+=col*uLCol*L+uLCol*L*.05;',
+   ' vec4 bl=texture2D(tB,v);col+=bl.rgb*uBloom;',
+   ' col+=uRayCol*texture2D(tR,v).r*uRay;',
+   ' vec3 lu=vec3(.299,.587,.114);',
+   ' if(uXr>0.){float xb=bl.a,rim=clamp(xb*(1.-xb)*4.4,0.,1.),lx=dot(col,lu);',
+   '  col=mix(col,vec3(1.,.95,.74),xb*.2*uXr);col=mix(col,mix(vec3(1.,.95,.66),vec3(1.,.68,.2),smoothstep(.6,.9,lx)),rim*.8*uXr);}',
+   ' if(uGr>.5){',
+   '  col=max(col*uTint+uFlash,0.);',
+   '  float mx=max(col.r,max(col.g,col.b)),mn=min(col.r,min(col.g,col.b));',
+   '  float warm=clamp((col.r-col.b)*2.6,0.,1.)*clamp((col.g-col.b)*3.2,0.,1.)*smoothstep(.2,.5,(mx-mn)/(mx+.001));',
+   '  vec3 g=pow(max(col*uGain+uLift*(1.-min(col,1.)),0.),vec3(uGam));',
+   '  float lg=clamp(dot(g,lu),0.,1.);g+=uShC*(1.-lg)*(1.-lg)+uHiC*lg*lg;',
+   '  g=mix(g,col,warm*uSkin);',
+   '  g=max(g,0.);g=mix(g,min(.8+.2235*(1.-exp(-(g-.8)*5.)),1.),step(.8,g));',
+   '  g=mix(g,g*g*(3.-2.*g),uCon);',
+   '  lg=dot(g,lu);col=clamp(mix(vec3(lg),g,uSat*(1.+.12*warm)),0.,1.);',
+   '  col*=mix(1.-uVig,1.,smoothstep(uVR.y,uVR.x,length(c2)));',
+   ' }else{',
+   '  col=clamp(col*uTint+uFlash,0.,1.);',
+   '  col=mix(col,col*col*(3.-2.*col),.34);',
+   '  float l=dot(col,lu);col=mix(vec3(l),col,.98);',
+   '  col*=mix(.55,1.,smoothstep(.88,.28,length(c2)));}',
+   ' gl_FragColor=vec4(col,1.);}'].join('\n'),['tS','tD','tB','tR','tF','tL','tA','tG','uRayCol','uTint','uLCol','uGain','uLift','uShC','uHiC','uTS','uVR','uBloom','uRay','uFlash','uFocus','uAO','uNB','uTilt','uTK','uTF','uGr','uGam','uSat','uCon','uVig','uSkin','uXr']);
+  PM.fxaa2=SM(['uniform sampler2D tS;uniform vec2 uPx;uniform float uBars,uT;',
+   'void main(){',
+   ' vec3 lu=vec3(.299,.587,.114);',
+   ' vec3 nw=texture2D(tS,v+vec2(-1.,-1.)*uPx).rgb,ne=texture2D(tS,v+vec2(1.,-1.)*uPx).rgb,sw=texture2D(tS,v+vec2(-1.,1.)*uPx).rgb,se=texture2D(tS,v+uPx).rgb,m=texture2D(tS,v).rgb;',
+   ' float lnw=dot(nw,lu),lne=dot(ne,lu),lsw=dot(sw,lu),lse=dot(se,lu),lm=dot(m,lu);',
+   ' float lmin=min(lm,min(min(lnw,lne),min(lsw,lse))),lmax=max(lm,max(max(lnw,lne),max(lsw,lse)));',
+   ' vec2 dir=vec2(-((lnw+lne)-(lsw+lse)),((lnw+lsw)-(lne+lse)));',
+   ' float rd=max((lnw+lne+lsw+lse)*.03125,.0078125),rm=1./(min(abs(dir.x),abs(dir.y))+rd);',
+   ' dir=min(vec2(8.),max(vec2(-8.),dir*rm))*uPx;',
+   ' vec3 A=.5*(texture2D(tS,v+dir*(1./3.-.5)).rgb+texture2D(tS,v+dir*(2./3.-.5)).rgb);',
+   ' vec3 B=A*.5+.25*(texture2D(tS,v-dir*.5).rgb+texture2D(tS,v+dir*.5).rgb);',
+   ' float lb=dot(B,lu);vec3 col=(lb<lmin||lb>lmax)?A:B;',
+   ' col+=clamp(col-(nw+ne+sw+se)*.25,-.07,.07)*.55;',
+   ' float l=clamp(dot(col,lu),0.,1.);vec2 gp=v/uPx+fract(uT)*91.7;',
+   ' col+=(hash(gp)+hash(gp+17.3)-1.)*mix(.009,.02,l*(1.-l)*4.);',
+   ' if(abs(v.y-.5)>.5-uBars)col=vec3(0.);',
+   ' gl_FragColor=vec4(col,1.);}'].join('\n'),['tS','uPx','uBars','uT']);
+  for(const k of['uPx','uSun','uDir','uVR'])for(const p in PM)if(PM[p].uniforms[k]&&!PM[p].uniforms[k].value)PM[p].uniforms[k].value=new T3.Vector2();
+  for(const k of['uRayCol','uTint','uLCol','uGain','uLift','uShC','uHiC','uWarm','uFC'])for(const p in PM)if(PM[p].uniforms[k]&&!PM[p].uniforms[k].value)PM[p].uniforms[k].value=V3(1,1,1);
+  PM.comp2.uniforms.uTS.value=new T3.Vector4(0,1,0,1);
+  /* hidden Buds: their bodies are drawn again into a small mask wherever the scene depth says something stands in front of them */
+  LOOK.xr=new T3.ShaderMaterial({uniforms:{tD:{value:null},uPx:{value:new T3.Vector2()}},vertexShader:'void main(){gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+   fragmentShader:'uniform sampler2D tD;uniform vec2 uPx;\n'+LZ+'\nvoid main(){if(lz(gl_FragCoord.z)<lz(texture2D(tD,gl_FragCoord.xy*uPx).x)+9.)discard;gl_FragColor=vec4(1.);}'});
+}
+function lookRTs(w,h){
+  const qw=Math.max(2,Math.ceil(w/4)),qh=Math.max(2,Math.ceil(h/4)),ew=Math.max(2,Math.ceil(w/8)),eh=Math.max(2,Math.ceil(h/8)),sw=Math.max(2,Math.ceil(w/16)),sh=Math.max(2,Math.ceil(h/16));
+  RTS.h=mkRT(ew,eh,0);RTS.h2=mkRT(ew,eh,0);RTS.k=mkRT(ew,eh,0);RTS.i=mkRT(sw,sh,0);RTS.i2=mkRT(sw,sh,0);RTS.x=mkRT(qw,qh,0);RTS.x2=mkRT(qw,qh,0);RTS.f2=mkRT(qw,qh,0);RTS.o=mkRT(2,2,0);
+}
+function lookXr(){
+  const x=RTS.x,u=LOOK.xr.uniforms;u.tD.value=RTS.scene.depthTexture;u.uPx.value.set(1/x.width,1/x.height);
+  cam.layers.set(1);scene.overrideMaterial=LOOK.xr;R.setRenderTarget(x);R.render(scene,cam);scene.overrideMaterial=null;cam.layers.set(0);
+  blurP(x,RTS.x2,1.15/x.width,0);blurP(RTS.x2,x,0,1.15/x.height);
+}
+function downP(src,dst){const u=PM.down.uniforms;u.tS.value=src.texture;u.uPx.value.set(1/src.width,1/src.height);fsPass(PM.down,dst);}
+function lookPost(t,focus){
+  const e=env(),S=RTS.scene,a=RTS.a,b=RTS.b,r=RTS.r,c=RTS.c,f=RTS.f,g=RTS.g,K=LOOKG[TC.k]?TC.k:'hills',gr=lab('lookGrade'),Q=LOOKG[K],port=vw<vh,asp=vw/vh;let u;
+  if(!lowQ){u=PM.ao.uniforms;u.tD.value=S.depthTexture;u.uAsp.value=asp;u.uFt.value=FOVT;fsPass(PM.ao,RTS.ao);blurP(RTS.ao,RTS.ao2,1/RTS.ao.width,0);blurP(RTS.ao2,RTS.ao,0,1/RTS.ao.height);}
+  /* bloom: soft knee, three scales, a restrained horizontal streak on the very brightest points */
+  const blm=lab('lookBloom'),W4=PM.bcomb.uniforms.uW.value;let stk=0;
+  if(blm){
+    u=PM.bright2.uniforms;u.tS.value=S.texture;u.tL.value=RTS.l.texture;u.uPx.value.set(1/S.width,1/S.height);u.uThr.value=e.thr+.02;u.uKnee.value=.1;u.uLCol.value.set(e.lcol[0],e.lcol[1],e.lcol[2]);u.uWarm.value.set(1.04,1,.93);fsPass(PM.bright2,a);
+    blurP(a,b,1/a.width,0);blurP(b,a,0,1/a.height);
+    const h=RTS.h,i=RTS.i;downP(a,h);blurP(h,RTS.h2,1.2/h.width,0);blurP(RTS.h2,h,0,1.2/h.height);
+    downP(h,i);blurP(i,RTS.i2,1.2/i.width,0);blurP(RTS.i2,i,0,1.2/i.height);
+    if(lookFx()){stk=.5;u=PM.streak.uniforms;u.tS.value=h.texture;u.uDir.value.set(1.6/h.width,0);u.uThr.value=.32;fsPass(PM.streak,RTS.h2);u.tS.value=RTS.h2.texture;u.uDir.value.set(4.5/h.width,0);u.uThr.value=0;fsPass(PM.streak,RTS.k);}
+    W4.set(.36,.27,.2,stk);
+  }else{
+    u=PM.bright.uniforms;u.tS.value=S.texture;u.tL.value=RTS.l.texture;u.uPx.value.set(1/S.width,1/S.height);u.uThr.value=e.thr;u.uLCol.value.set(e.lcol[0],e.lcol[1],e.lcol[2]);fsPass(PM.bright,a);
+    blurP(a,b,1/a.width,0);blurP(b,a,0,1/a.height);blurP(a,b,2.4/a.width,0);blurP(b,a,0,2.4/a.height);
+    W4.set(1,0,0,0);
+  }
+  u=PM.down.uniforms;u.tS.value=S.texture;u.uPx.value.set(1/S.width,1/S.height);fsPass(PM.down,f);
+  blurP(f,g,1.2/f.width,0);blurP(g,f,0,1.2/f.height);{const bs=lab('lookTilt')?1.4:2.2;blurP(f,g,bs/f.width,0);blurP(g,RTS.f2,0,bs/f.height);}   /* f: lightly blurred, f2: fully blurred */
+  /* light shafts, tuned per world; the passes are skipped when they would add nothing */
+  _v.copy(cam.position).addScaledVector(sunDir,5000).project(cam);const vis=_v.z<1?1:0,sx0=_v.x*.5+.5,sy0=_v.y*.5+.5;
+  let ray=e.ray*vis,sx=sx0,sy=sy0;const lr=lab('lookRays'),q=LOOKR[TC.k]||LOOKR.hills;
+  if(lr){ray=e.ray*q[0]*(q[2]?1:vis);if(q[2]){sx=.56+Math.sin(t*.045)*.12;sy=1.22;}}
+  if(ray>0){
+    if(lr){u=PM.rpre2.uniforms;u.uTight.value=q[1];u.uMode.value=q[2];u.uT.value=t%1000;}else u=PM.rpre.uniforms;
+    u.tD.value=S.depthTexture;u.uSun.value.set(sx,sy);u.uAsp.value=asp;fsPass(lr?PM.rpre2:PM.rpre,c);
+    u=PM.rays.uniforms;u.tS.value=c.texture;u.uSun.value.set(sx,sy);fsPass(PM.rays,r);
+    blurP(r,c,1.3/r.width,0);blurP(c,r,0,1.3/r.height);
+  }
+  /* sun flare: only while the sun itself is in the picture and not behind something (a 2x2 target remembers how visible it is, eased over a few frames) */
+  let fl=0;
+  if(lab('lookFlare')&&lookFx()&&vis&&mode!=='title'){
+    const ed=Math.min(sx0,1-sx0,sy0,1-sy0);fl=clamp((ed+.06)/.1,0,1)*(1-clamp((tod-.66)/.16,0,1))*(.55+.45*sunset);
+    if(fl>0){u=PM.focc.uniforms;u.tD.value=S.depthTexture;u.uSun.value.set(sx0,sy0);u.uAsp.value=asp;const ac=R.autoClear;R.autoClear=false;fsPass(PM.focc,RTS.o);R.autoClear=ac;}
+  }
+  let tb=a;const xr=lab('lookXray')&&mode!=='title';
+  if(blm||fl>0||xr){u=PM.bcomb.uniforms;u.tX.value=RTS.x.texture;u.uXr.value=xr?1:0;u.tS.value=a.texture;u.tH.value=RTS.h.texture;u.tI.value=RTS.i.texture;u.tK.value=RTS.k.texture;u.tO.value=RTS.o.texture;u.uSun.value.set(sx0,sy0);u.uAsp.value=asp;u.uFl.value=fl/Math.max(.05,e.bloom);u.uFC.value.set(e.rcol[0],e.rcol[1],e.rcol[2]);fsPass(PM.bcomb,b);tb=b;}
+  u=PM.comp2.uniforms;u.tS.value=S.texture;u.tD.value=S.depthTexture;u.tB.value=tb.texture;u.tR.value=r.texture;u.tF.value=f.texture;u.tL.value=RTS.l.texture;u.tA.value=RTS.ao.texture;u.tG.value=RTS.f2.texture;
+  u.uAO.value=lowQ?0:gr?Q.ao:.9;u.uXr.value=xr?1:0;
+  u.uRayCol.value.set(e.rcol[0],e.rcol[1],e.rcol[2]);if(lr&&q[2])u.uRayCol.value.set(.62,.95,.9);
+  u.uTint.value.set(e.tint[0],e.tint[1],e.tint[2]);if(TC.tint&&!gr)u.uTint.value.multiply(_v.set(TC.tint[0],TC.tint[1],TC.tint[2]));if(btK>0)u.uTint.value.multiply(_v.set(1-.2*btK,1-.07*btK,1+.12*btK));u.uLCol.value.set(e.lcol[0],e.lcol[1],e.lcol[2]);
+  u.uBloom.value=e.bloom;u.uRay.value=ray;u.uFlash.value=flash;u.uFocus.value=focus;const nb=cine||mode==='title'||CFG.view===3?0:1;u.uNB.value=nb;
+  /* tilt-shift: a sharp band that always holds the whole play strip, soft in front and behind; the miniature look fades as the camera closes in */
+  if(lab('lookTilt')){
+    const zz=sZ||z,wh=vh/zz,ww=vw/zz,tk=mode==='title'?.5:clamp((1.75-zz)/.6,0,1)*clamp((VP.k-.3)/.5,0,1),m=150+wh*.5*(VP.p+.12)+ww*.5*Math.min(.9,Math.abs(VP.s)+Math.abs(VP.y)*.5+.06);
+    const nE=Math.max(40,focus-m),fE=focus+m+140,kk=.2;
+    LOOK.nE=Math.min(nE,LOOK.nE+(nE-LOOK.nE)*kk);LOOK.fE=Math.max(fE,LOOK.fE+(fE-LOOK.fE)*kk);LOOK.tk+=(tk-LOOK.tk)*kk;
+    u.uTilt.value=1;u.uTS.value.set(LOOK.nE,focus*.16+50,LOOK.fE,lerp(2600,focus*1.6+700,LOOK.tk));u.uTK.value=LOOK.tk;u.uTF.value=lerp(.7,.86,LOOK.tk)*(Q.t||1)*(port?.78:1);
+  }else u.uTilt.value=0;
+  if(gr){
+    const ss=sunset,dk=dusk;
+    u.uGr.value=1;u.uGain.value.set(Q.g[0],Q.g[1],Q.g[2]);u.uLift.value.set(Q.l[0],Q.l[1]+.004*dk,Q.l[2]+.014*dk);u.uGam.value=Q.gm;
+    u.uShC.value.set(Q.sh[0]-.008*ss-.01*dk,Q.sh[1]-.006*ss,Q.sh[2]+.024*ss+.03*dk);u.uHiC.value.set(Q.hi[0]+.028*ss,Q.hi[1]+.006*ss,Q.hi[2]-.03*ss);
+    u.uSat.value=Q.s*(1+.06*ss-.03*dk);u.uCon.value=Q.c*(1-.2*dk);u.uSkin.value=Math.min(1,Q.sk+.3*dk);
+    u.uVig.value=Q.v*(port?.6:1)*(1-.3*dk);u.uVR.value.set(port?.36:.3,port?.96:.9);
+  }else u.uGr.value=0;
+  fsPass(PM.comp2,RTS.fin);
+  const fx=lab('lookSharp')?PM.fxaa2:PM.fxaa;u=fx.uniforms;u.tS.value=RTS.fin.texture;u.uPx.value.set(1/S.width,1/S.height);u.uBars.value=bars;u.uT.value=t%1000;fsPass(fx,null);
 }
 
 /* ---------- render ---------- */
@@ -4500,18 +4772,19 @@ function render(t,dt){
   flushDirty();
   {const tv=(cine||mode==='title')?VIEWS[0]:VIEWS[CFG.view]||VIEWS[0],k=1-Math.exp(-dt*4);for(const q in VP)VP[q]+=(tv[q]-VP[q])*k;if(Math.abs(cam.fov-VP.f)>.02)setFov(VP.f);}
   let dist;
-  if(cine){const k=clamp(cine.t/cine.dur,0,1);cineEval(k*k*(3-2*k));cam.position.copy(cineP);camTarget.copy(cineL);dist=cineP.distanceTo(cineL);}
+  if(cine){const k=clamp(cine.t/cine.dur,0,1);cineEval(k*k*(3-2*k));cam.position.copy(cineP);camTarget.copy(cineL);dist=cineP.distanceTo(cineL);if(lab('camFlyIn'))dist=camFly(k,t,dt);}
   else if(mode==='title'){const a=t*.07;cam.position.set(800+Math.sin(a)*600,-150+Math.sin(t*.05)*40,800+Math.cos(a)*150);camTarget.set(800+Math.sin(a)*250,-300,bz(800+Math.sin(a)*250));dist=cam.position.distanceTo(camTarget);}
   else{
     let cxw=camX+vw/z/2,cyw=camY+vh/z/2;const k=1-Math.exp(-dt*(CFG.view===3?5:16));
     if(CFG.view===3){cyw=clamp(topAvg(cxw+40,40)-34,60,WATER_Y-60);}
     if(sCx==null){sCx=cxw;sCy=cyw;sZ=z;}else{sCx+=(cxw-sCx)*k;sCy+=(cyw-sCy)*k;sZ+=(z-sZ)*k;}
     dist=gamePose(sCx,sCy,sZ,cam.position,camTarget);
+    if(CAMF.mom>0||CAMF.win>0)dist=camMom();
     {const w=clamp((1-VP.k)/.8,0,1);if(w>.01){let hi=1e9;for(let q=0;q<=8;q++)hi=Math.min(hi,top0[clamp(Math.round(lerp(cam.position.x-30,sCx,q/8)),0,W-1)]);const ty=Math.max(cam.position.y,-hi+30);trailY=trailY==null?ty:trailY+(ty-trailY)*(1-Math.exp(-dt*3));cam.position.y=lerp(cam.position.y,Math.max(cam.position.y,trailY),w);}else trailY=null;}
     cam.position.x+=Math.sin(t*.21)*dist*.014;cam.position.y+=Math.sin(t*.17)*dist*.006;
     if(shake>0){cam.position.x+=(Math.random()-.5)*shake;cam.position.y+=(Math.random()-.5)*shake;}
   }
-  cam.up.set(0,1,0);cam.lookAt(camTarget);cam.updateMatrixWorld();cam.matrixWorldInverse.copy(cam.matrixWorld).invert();
+  cam.up.set(0,1,0);camPre(dt);cam.lookAt(camTarget);cam.updateMatrixWorld();cam.matrixWorldInverse.copy(cam.matrixWorld).invert();
   updEnv(t);sky.position.copy(cam.position);scene.fog.near=dist+(TC.fog?TC.fog[0]:300);scene.fog.far=dist+(TC.fog?TC.fog[1]:4600);
   for(const o of buds3)o.g.visible=false;
   for(const c of G.buds){const o=buds3[c.id];if(o)animBud(o,c);}
@@ -4541,7 +4814,7 @@ function render(t,dt){
     water.material.uniforms.tRefl.value=RTS.refl.texture;
   }
   R.setRenderTarget(RTS.scene);R.render(scene,cam);
-  if(mode!=='title'){const ac=R.autoClear;R.autoClear=false;cam.layers.set(1);scene.overrideMaterial=xrMat;R.render(scene,cam);scene.overrideMaterial=null;cam.layers.set(0);R.autoClear=ac;}
+  if(mode!=='title'&&lab('lookXray'))lookXr();else if(mode!=='title'){const ac=R.autoClear;R.autoClear=false;cam.layers.set(1);scene.overrideMaterial=xrMat;R.render(scene,cam);scene.overrideMaterial=null;cam.layers.set(0);R.autoClear=ac;}
   R.setRenderTarget(RTS.l);R.render(lightScene,cam);
   post(t,dist);
 }
@@ -4551,7 +4824,7 @@ let last=0,acc=0,iconT=0,ft=.016,fc=0,mc=0;
 function frame(ms){
   requestAnimationFrame(frame);
   const now=ms/1000,dt=Math.min(.05,now-last||0);last=now;T+=dt;
-  ft=ft*.96+dt*.04;if(++fc>150){fc=0;if(CFG.gfx==='auto'&&ft>.027){if(rscale>1){rscale=Math.max(1,rscale-.5);ft=.016;resize();}else setLow(true);}}
+  ft=ft*.96+dt*.04;if(lab('perfAuto'))perfStep(dt);else if(++fc>150){fc=0;if(CFG.gfx==='auto'&&ft>.027){if(rscale>1){rscale=Math.max(1,rscale-.5);ft=.016;resize();}else setLow(true);}}
   {const tq=LEVELS[LVL].tod||TC.tod;setTod(lerp(tq[0],tq[1],mode==='play'||mode==='end'?clamp(G.tick/(170*60),0,1):.5-.5*Math.cos(T*TAU/50)));}
   let bt=0;
   if(cine){if(!cine.hold)cine.t+=dt;bt=(vw>vh?.105:.035)*clamp(Math.min(cine.t/.6,(cine.dur-cine.t)/1),0,1);if(cine.t>=cine.dur)endCine();}
@@ -4569,13 +4842,14 @@ function frame(ms){
   if(Math.random()<dt*2)P(EXIT.x+(Math.random()-.5)*50,EXIT.y-20-Math.random()*60,(Math.random()-.5)*.2,-.25,70,2.2,'#fff3a0','star');
   if(LEVELS[LVL].e==='house'&&Math.random()<dt*5)P(EXIT.x-22,EXIT.y-88,.04+Math.random()*.12,-.3-Math.random()*.1,200,3+Math.random()*3,'#cfc8c0','dot',-.0006,-34);
   {const dv=TC.dv||1;if(Math.random()<dt*(TC.dn||1.6))P(camX+Math.random()*vw/z*1.2,dv<0?camY+vh/z+6:camY-6,-.25-Math.random()*.4,dv*(.3+Math.random()*.3),520,1.2+Math.random()*1,TC.drift[Math.random()<.5?0:1],'petal',.0004*dv);}
+  camStep(dt);
   if(MOVIE.on)MOVIE.render(T,dt);else if(mode==='map')renderMap(T,dt);else render(T,dt);
   iconT+=dt;if(iconT>.05&&mode==='play'){iconT=0;drawSkillIcons(T);}
 }
 
 /* ---------- boot ---------- */
 /* build.js raises the last number and stamps the time on every build */
-const VERSION='0.4.22',BUILT='2026-11-11 12:46 UTC';
+const VERSION='0.4.23',BUILT='2026-11-11 14:12 UTC';
 document.querySelectorAll('.verT').forEach(e=>{e.textContent='DEMO · v'+VERSION+(BUILT?' · '+BUILT:'');});
 'TUMBLEBUDS'.split('').forEach((ch,i)=>{const s=document.createElement('span');s.textContent=ch;s.style.animationDelay=(i*.09)+'s';$('logo').append(s);});
 if(/[?&]all\b/.test(location.search))SAVE.all=1;
@@ -4589,7 +4863,7 @@ cv.addEventListener('webglcontextlost',e=>e.preventDefault());
 initEnv();initTerrain();initWorld();initProps();
 {const hm=location.hash.match(/^#lv(\d+)/);loadLevel(hm?clamp(+hm[1]-1,0,NLV-1):curLevel());}
 PA=mkPts(true,scene);PN=mkPts(false,scene);PL=mkPts(true,lightScene);
-initPost();paintMap();applyGfx();z=defaultZoom();clampCam();drawSkillIcons(0);
+initPost();lookInit();camInput();paintMap();applyGfx();z=defaultZoom();clampCam();drawSkillIcons(0);
 requestAnimationFrame(frame);
 if(location.hash==='#play'||/^#lv/.test(location.hash))startGame(/^#lv/.test(location.hash));
 if(location.hash==='#map')openMap();
