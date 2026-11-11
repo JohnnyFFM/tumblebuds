@@ -1954,6 +1954,7 @@ function buildMap(){
       'if(vWp.y<0.){float ca=vnoise(vWp.xz*.22+3.)*vnoise(vWp.xz*.31-5.);c0+=vec3(.2,.34,.3)*smoothstep(.2,.4,ca)*.5;}',
       'diffuseColor.rgb=c0;tH=n1*2.2+n2*.6+n3*.25+rip*.4*(1.-stp)*warm+led*stp*1.3+tuft*.5;'].join(''),1.5,false);
     const m=new T3.Mesh(g,tm);m.receiveShadow=true;sc.add(m);
+    mapCloudShade(tm);
     // the sea: depth comes from a small height map, so the shallows are pale, the deep is blue and foam follows the shore
     const tw=256,th=96,dd=new Uint8Array(tw*th*4);
     for(let j=0;j<th;j++)for(let i=0;i<tw;i++){const h=mapH(-300+i/(tw-1)*2400,-480+j/(th-1)*800),o=(j*tw+i)*4;dd[o]=clamp(-h/60,0,1)*255;dd[o+1]=dd[o+2]=0;dd[o+3]=255;}
@@ -1990,6 +1991,7 @@ function buildMap(){
     MAP.nodes.push({m,sp,cv:cv2,tx});});
   {const dots=[];for(let i=0;i<NLV-1;i++){const a=MAP.pts[i],b=MAP.pts[i+1],n=i===23||i===27?12:i>23?4:Math.max(4,Math.round(Math.hypot(b.x-a.x,b.z-a.z)/15));for(let k=1;k<n;k++){const t=k/n,x=lerp(a.x,b.x,t),zz=lerp(a.z,b.z,t);dots.push([x,i>=23?lerp(a.y,b.y,t)+Math.sin(t*Math.PI)*(i===23||i===27?34:5):Math.max(mapH(x,zz)+1.6,lerp(a.y,b.y,t)-2),zz,i>=23?1.3:1]);}}
     inst(new T3.SphereGeometry(2.3,8,6),dots,new T3.MeshStandardMaterial({color:0xfff6e0,roughness:.6}));}
+  mapDots(sc.children[sc.children.length-1]);
   // scenery of the five worlds
   rs=4242;const L={palm:[],cactus:[],coral:[],kelp:[],pine:[],spine:[],leaf:[],rock:[],cloud:[]};
   const put=(k,x,zz,s,dy)=>{L[k].push([x,mapH(x,zz)+(dy||0)-.5,zz,s,rnd()*6]);};
@@ -2011,14 +2013,17 @@ function buildMap(){
     const dot=c=>part(sph(6,4),c,M(0,0,0,1.6,1.1,1.6));
     inst(dot('#ff9ab8'),bits.a);inst(dot('#ffe27a'),bits.b);inst(dot('#ffffff'),bits.c);inst(part(sph(6,4),'#ffc7b0',M(0,0,0,2.2,.9,1.8)),bits.d);inst(part(sph(6,4),'#fff4e0',M(0,0,0,1.8,.9,2.2)),bits.e);
     inst(merge([part(blobGeo(5,8,6,5,.35),'#ffffff',M(0,6,0,1.25,1,1)),part(sph(8,6),'#3a2c28',M(5.6,7.5,0,2.2,2.2,2)),part(cyl(.7,.7,4,5),'#3a2c28',M(-3,2,2)),part(cyl(.7,.7,4,5),'#3a2c28',M(3,2,2)),part(cyl(.7,.7,4,5),'#3a2c28',M(-3,2,-2)),part(cyl(.7,.7,4,5),'#3a2c28',M(3,2,-2))]),bits.sheep);
+    if(bits.sheep.length)MX.sheep=sc.children[sc.children.length-1];
     // a sandcastle, a crab, sandstone pyramids and two sailing boats
     const hs=mapH(118,-98);add(merge([part(cyl(9,10,8,10),'#e9cf8c',M(0,4,0)),part(cyl(5,5.5,9,10),'#f0d898',M(0,12,0)),part(new T3.ConeGeometry(5.5,6,10),'#e8604a',M(0,19.5,0)),part(cyl(2.4,2.6,10,8),'#e9cf8c',M(-9,5,6)),part(cyl(2.4,2.6,10,8),'#e9cf8c',M(9,5,6)),part(new T3.ConeGeometry(3,4,8),'#e8604a',M(-9,12,6)),part(new T3.ConeGeometry(3,4,8),'#e8604a',M(9,12,6))]),mm,118,hs,-98,.8,.3);
     add(merge([part(sph(10,8),'#e8504a',M(0,4,0,6,3.6,4.6)),part(sph(8,6),'#e8504a',M(-7,5,3,3,2.2,2.2)),part(sph(8,6),'#e8504a',M(7,7.5,3,3,2.2,2.2)),part(sph(6,5),'#ffffff',M(-2,8,2.6,1.2,1.5,1)),part(sph(6,5),'#ffffff',M(2,8,2.6,1.2,1.5,1)),part(sph(5,4),'#33201a',M(-2,8.3,3.4,.6,.7,.5)),part(sph(5,4),'#33201a',M(2,8.3,3.4,.6,.7,.5))]),mm,186,mapH(186,-150),-150,.9,-.4);
     for(const q of[[1010,-215,1.5],[1075,-245,1],[1150,-190,1.2]])add(shade(new T3.ConeGeometry(30,36,4),'#c98f52','#f2d48c',M(0,16,0,1,1,1,0,.6,0)),mm,q[0],mapH(q[0],q[1])-2,q[1],q[2],0);
+    MX.b0=sc.children.length;
     for(const q of[[250,170,.3],[660,210,-.4],[-120,60,1.2]])add(merge([part(sph(10,6),'#b56a3a',M(0,2,0,14,4,5)),part(cyl(.6,.6,26,5),'#7a5c3e',M(0,15,0)),part(new T3.ConeGeometry(11,22,3),'#fff4e0',M(3,16,0,1,1,.12,0,0,0))]),mm,q[0],-1,q[1],1,q[2]);}
   inst(TREE.pine.g(1),L.pine);inst(TREE.spine.g(1),L.spine);inst(TREE.leaf.g(1),L.leaf);
   inst(shade(blobGeo(6,7,5,3,.7),'#8a8478','#c8c0b0'),L.rock,fm);
   const prop=(kind,x,y,zz,s,ry)=>{const gp=goalParts(kind);add(merge(gp.g),mm,x,y,zz,s,ry);add(merge(gp.l),glowMat,x,y,zz,s,ry,0);};
+  MX.p0=sc.children.length;
   prop('blanket',-6,mapH(-6,4),4,.55,.3);prop('boat',372,-2,74,.6,-.5);prop('tent',828,mapH(828,-128),-128,.6,.2);prop('kite',1168,mapH(1168,10),10,.5,0);
   prop('house',1205,mapH(1205,-100),-100,.42,.2);prop('rocket',1530,mapH(1530,-80),-80,.85,0);
   // the moon
@@ -2026,22 +2031,26 @@ function buildMap(){
     for(const q of[[.2,.5,10],[-.6,.2,14],[.7,-.1,9],[-.1,-.5,12],[.5,.75,7],[-.75,-.4,8]]){const th=q[0]*2,ph=1.1-q[1],n=V3(Math.sin(ph)*Math.sin(th),Math.cos(ph),Math.sin(ph)*Math.cos(th));const m=add(part(new T3.CylinderGeometry(1,1,.6,12),'#74748a'),fm,MO.x+n.x*65.6,MO.y+n.y*65.6,MO.z+n.z*65.6,q[2],0,0);m.quaternion.setFromUnitVectors(V3(0,1,0),n);}
     prop('rocket',MO.x+2,MO.y+56,MO.z-34,.5,0);}
   // Buddletop, the floating island
+  MX.i0=sc.children.length;
   {add(shade(new T3.ConeGeometry(96,130,9),'#5a4636','#a88a66',M(0,-69,0,1,1,1,Math.PI,0,0)),fm,IS.x,IS.y,IS.z,1,0);
     add(shade(new T3.CylinderGeometry(100,95,10,18),'#5ea048','#a8dc6a',M(0,-3,0)),fm,IS.x,IS.y,IS.z,1,0);
     prop('tree',IS.x+6,IS.y+1,IS.z-30,.62,0);prop('house',IS.x-62,IS.y+1,IS.z-20,.36,.4);prop('house',IS.x+66,IS.y+1,IS.z-6,.3,-.4);prop('gate',IS.x-74,IS.y+1,IS.z+34,.4,.7);}
+  MX.i1=sc.children.length;
   {const cg=merge([part(blobGeo(16,8,6,1,.3),'#ffffff',M(0,0,0,1.4,.7,1)),part(blobGeo(12,8,6,4,.3),'#ffffff',M(18,-2,3,1.2,.7,1)),part(blobGeo(11,8,6,7,.3),'#f4f8ff',M(-17,-3,-2,1.2,.6,1))]);
     for(let i=0;i<40;i++){const hi=i<26;L.cloud.push([hi?1640+rnd()*700:-200+rnd()*1500,hi?250+rnd()*330:170+rnd()*90,hi?-320+rnd()*420:-420+rnd()*160,1+rnd()*1.6,rnd()*6]);}
     for(let i=0;i<9;i++)L.cloud.push([IS.x-150+rnd()*300,IS.y-90-rnd()*40,IS.z-60+rnd()*140,1.2+rnd(),rnd()*6]);
-    inst(cg,L.cloud,new T3.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true,transparent:true,opacity:.92}));}
+    inst(cg,L.cloud,new T3.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true,transparent:true,opacity:.92}));
+    MX.cloud=sc.children[sc.children.length-1];}
   {const n=500,p=new Float32Array(n*3);for(let i=0;i<n;i++){p[i*3]=600+rnd()*2600;p[i*3+1]=330+rnd()*900;p[i*3+2]=-700-rnd()*500;}
     const g=new T3.BufferGeometry();g.setAttribute('position',new T3.BufferAttribute(p,3));const st=new T3.Points(g,new T3.PointsMaterial({color:0xffffff,size:2.2*dpr,sizeAttenuation:false,fog:false,transparent:true}));st.frustumCulled=false;sc.add(st);MAP.stars=st;}
   // the bud that marks where you are, and the ring around the chosen level
   {const g=MAP.bud=new T3.Group();for(const q of[[BG.body,0,0,0],[BG.eyes,0,11,6.45],[BG.sprout,0,17.3,0],[BG.foot,-3.4,1.8,1],[BG.foot,3.4,1.8,1],[BG.arm,-7.5,8.2,1.5],[BG.arm,7.5,8.2,1.5]]){const m=new T3.Mesh(q[0],budMat);m.position.set(q[1],q[2],q[3]);m.castShadow=true;g.add(m);}g.scale.setScalar(.95);sc.add(g);}
   MAP.ring=new T3.Mesh(new T3.TorusGeometry(15.5,1.5,8,36),new T3.MeshBasicMaterial({color:0xffffff,fog:false}));MAP.ring.rotation.x=-Math.PI/2;sc.add(MAP.ring);
+  mapExtras(sc);
 }
 function drawMapNodes(){
   MAP.nodes.forEach((n,i)=>{
-    const st=SAVE.stars[i]||0,open=unlocked(i),g=n.cv.getContext('2d');
+    const st=SAVE.stars[i]||0,open=unlocked(i)&&i!==MX.hold,g=n.cv.getContext('2d');
     n.m.material.color.set(st?'#ffc93c':open?'#ff7b6b':'#b4aea2');n.m.material.color.convertSRGBToLinear();
     g.clearRect(0,0,128,128);g.lineJoin='round';
     g.beginPath();g.arc(64,50,35,0,TAU);g.fillStyle=st?'#ffc93c':open?'#ff7b6b':'#cfc8b6';g.fill();g.lineWidth=7;g.strokeStyle='#5a3524';g.stroke();
@@ -2050,6 +2059,7 @@ function drawMapNodes(){
     n.tx.needsUpdate=true;
   });
   MAP.ban.forEach((b,i)=>{const g=b.cv.getContext('2d');g.clearRect(0,0,512,128);g.font='400 58px "Lilita One","Arial Rounded MT Bold",sans-serif';g.textAlign='center';g.textBaseline='middle';g.lineJoin='round';g.lineWidth=12;g.strokeStyle='#5a3524';g.strokeText(LT.w[i],256,66,490);g.fillStyle=['#ffe9a6','#bfefff','#ffd08a','#ffffff','#e0d8ff'][i];g.fillText(LT.w[i],256,66,490);b.tx.needsUpdate=true;});
+  mapPaint();
 }
 function selectLevel(i,jump){
   i=clamp(i,0,NLV-1);MAP.sel=i;MAP.st=i;if(jump)MAP.s=i;
@@ -2058,11 +2068,13 @@ function selectLevel(i,jump){
   [...$('mStars').children].forEach((s,q)=>s.classList.toggle('on',q<st));
   $('mapSub').textContent=open?tr(65,LEVELS[i].n,LEVELS[i].need):tr(63,i);
   $('mPlay').disabled=!open;$('mPrev').style.visibility=i>0?'':'hidden';$('mNext').style.visibility=i<NLV-1?'':'hidden';
+  mapSelected(i);
 }
 function openMap(i){
   if(!MAP.scene)buildMap();
   mode='map';show('map');$('hud').hidden=true;drawMapNodes();selectLevel(i==null?curLevel():i,true);
   const c=MAP.pts[curLevel()];MAP.bud.position.copy(c);
+  mapOpened();
 }
 function mapTap(sx,sy){
   let best=-1,bd=52;
@@ -2074,9 +2086,10 @@ function mapTap(sx,sy){
 }
 function renderMap(t,dt){
   const c=MAP.cam,F=MAP.F,asp=vw/vh;
-  MAP.s+=(MAP.st-MAP.s)*(1-Math.exp(-dt*6));
+  if(!mapCamStep(dt))MAP.s+=(MAP.st-MAP.s)*(1-Math.exp(-dt*6));
   {const s=clamp(MAP.s,0,NLV-1),i=Math.min(NLV-2,Math.floor(s));F.lerpVectors(MAP.pts[i],MAP.pts[i+1],s-i);}
-  {const e=1-Math.exp(-dt*8);MAP.zm+=(MAP.zt-MAP.zm)*e;MAP.rot+=(MAP.rt-MAP.rot)*e;}
+  mapRubber(F,dt);
+  if(!MX.cam){const e=1-Math.exp(-dt*8);MAP.zm+=(MAP.zt-MAP.zm)*e;MAP.rot+=(MAP.rt-MAP.rot)*e;}
   /* zoomed far out, the view drifts to the middle of the whole journey */
   const zm=MAP.zm,ov=smst((zm-1.6)/3.4);F.x=lerp(F.x,930,ov);F.y=lerp(F.y,190,ov*.85);F.z=lerp(F.z,-40,ov);
   const fov=asp<1?54:38,d=255*Math.max(1,.95/asp)*zm;if(c.fov!==fov||c.aspect!==asp){c.fov=fov;c.aspect=asp;c.updateProjectionMatrix();}
@@ -2089,8 +2102,153 @@ function renderMap(t,dt){
   MAP.sun.target.position.copy(F);MAP.sun.position.set(F.x-380,F.y+620,F.z+420);
   const sp=MAP.pts[MAP.sel];MAP.ring.position.set(sp.x,sp.y<-3?2.4:sp.y+.8,sp.z);MAP.ring.scale.setScalar(1+Math.sin(t*5)*.07);
   const cp=MAP.pts[curLevel()],b=MAP.bud;b.position.set(cp.x-19,Math.max(cp.y,-1)-1.5+Math.abs(Math.sin(t*3.2))*7,cp.z+7);b.rotation.y=Math.sin(t*.9)*.5;
+  mapLive(t,dt);
   R.shadowMap.needsUpdate=true;R.setRenderTarget(RTS.scene);R.render(MAP.scene,c);
   const u=PM.fxaa.uniforms;u.tS.value=RTS.scene.texture;u.uPx.value.set(1/RTS.scene.width,1/RTS.scene.height);u.uBars.value=0;u.uT.value=t%1000;fsPass(PM.fxaa,null);
+}
+
+/* ---------- polish pass: the world map as a place (lab switches map*) ---------- */
+LABDEF.mapWalk='Map: Bud walks the path';LABDEF.mapStops='Map: flags, path, unlock';LABDEF.mapLife='Map: living scenery';
+LABDEF.mapCam='Map: camera feel';LABDEF.mapBanners='Map: ribbon banners';LABDEF.mapLook='Map: soft vignette';
+const MX={hold:-1,cam:false,sv:0,zv:0,rv:0,rb:0,drag:false,bp:null,bry:0,bmove:0,selT:-9,selI:-1,popT:-9,popI:-1,unT:0,openSel:-1,goT:0,
+  b0:-1,p0:-1,i0:-1,i1:-1,sheep:null,cloud:null,dots:null,dotSeg:null,uCl:null,lifeOn:false,o:null,m4:null,flags:null,here:null,spk:null,glint:null,smoke:null,base:null,cGold:null,cWhite:null,cCoral:null};
+/* mapLife: soft cloud shadows drift over the land (two noise taps added to the land's own shader; strength 0 when the lab is off) */
+function mapCloudShade(tm){
+  MX.uCl={value:V3(0,0,0)};const ob=tm.onBeforeCompile,ck=tm.customProgramCacheKey;
+  tm.customProgramCacheKey=()=>ck()+'cloudshade';
+  tm.onBeforeCompile=sh=>{ob(sh);sh.uniforms.uCl=MX.uCl;
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nuniform vec3 uCl;')
+      .replace('#include <dithering_fragment>','{float cs=vnoise(vWp.xz*.0042+uCl.xy)*.65+vnoise(vWp.xz*.011-uCl.xy*1.7)*.35;gl_FragColor.rgb*=mix(vec3(1.),vec3(.76,.81,.9),uCl.z*smoothstep(.5,.68,cs));}\n#include <dithering_fragment>');};
+}
+/* mapStops: the dots of the path know which leg they belong to, so finished legs can be painted gold */
+function mapDots(m){
+  const seg=[];for(let i=0;i<NLV-1;i++){const a=MAP.pts[i],b=MAP.pts[i+1],n=i===23||i===27?12:i>23?4:Math.max(4,Math.round(Math.hypot(b.x-a.x,b.z-a.z)/15));for(let k=1;k<n;k++)seg.push(i);}
+  if(!m||!m.isInstancedMesh||m.count!==seg.length)return;
+  MX.dots=m;MX.dotSeg=seg;const c=new T3.Color(1,1,1);for(let i=0;i<m.count;i++)m.setColorAt(i,c);
+}
+/* everything the map lab switches need, built once at the end of buildMap: 6 small draw calls, all hidden while their switch is off */
+function mapExtras(sc){
+  MX.o=new T3.Object3D();MX.m4=new T3.Matrix4();MX.cWhite=new T3.Color(1,1,1);
+  {const cr=lin('#fff6e0'),g=lin('#ffc93c'),k=lin('#ff7b6b');MX.cGold=new T3.Color(g.r/cr.r,g.g/cr.g,g.b/cr.b);MX.cCoral=k;MX.cSun=g;}
+  // a pennant for every stop that has been finished
+  {const g=merge([part(cyl(.55,.55,21,6),'#8a5a3c',M(0,10.5,0)),part(sph(8,6),'#fff6e0',M(0,21.5,0,1.1,1.1,1.1)),part(new T3.ConeGeometry(4.2,10,3),'#ffffff',M(5.4,17,0,1,1,.14,0,0,-Math.PI/2))]);
+    const m=MX.flags=new T3.InstancedMesh(g,new T3.MeshStandardMaterial({vertexColors:true,roughness:.7,side:T3.DoubleSide}),NLV);m.castShadow=true;m.frustumCulled=false;m.visible=false;
+    for(let i=0;i<NLV;i++)m.setColorAt(i,MX.cCoral);sc.add(m);}
+  // "you are here": a ring that widens and fades under the Bud's stop
+  {const m=MX.here=new T3.Mesh(new T3.RingGeometry(12.5,15.5,36),new T3.MeshBasicMaterial({color:0xffe27a,transparent:true,opacity:0,depthWrite:false,fog:false}));m.rotation.x=-Math.PI/2;m.renderOrder=3;m.visible=false;sc.add(m);}
+  // sparkles: one set for a stop that has just been unlocked, one for glints of sun on the sea
+  {const cv2=document.createElement('canvas');cv2.width=cv2.height=64;const g=cv2.getContext('2d'),gr=g.createRadialGradient(32,32,0,32,32,30);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.25,'rgba(255,255,255,.55)');gr.addColorStop(1,'rgba(255,255,255,0)');
+    g.fillStyle=gr;g.beginPath();for(let k=0;k<8;k++){const a=k*Math.PI/4,r=k%2?5:31;g.lineTo(32+Math.cos(a)*r,32+Math.sin(a)*r);}g.closePath();g.fill();g.beginPath();g.arc(32,32,7,0,TAU);g.fill();
+    const tx=new T3.CanvasTexture(cv2);
+    const mk=(n,size,dt)=>{const p=new Float32Array(n*3),c=new Float32Array(n*3),ge=new T3.BufferGeometry();ge.setAttribute('position',new T3.BufferAttribute(p,3));ge.setAttribute('color',new T3.BufferAttribute(c,3));
+      const pt=new T3.Points(ge,new T3.PointsMaterial({map:tx,size:size*dpr,sizeAttenuation:false,vertexColors:true,transparent:true,blending:T3.AdditiveBlending,depthWrite:false,depthTest:dt,fog:false}));pt.frustumCulled=false;pt.renderOrder=7;pt.visible=false;sc.add(pt);return pt;};
+    MX.spk=mk(16,20,false);MX.glint=mk(30,15,true);
+    const gp=MX.glint.geometry.attributes.position.array;let n=0;for(let i=0;i<600&&n<30;i++){const x=-260+h2(i,71)*2100,zz=40+h2(i,113)*270;if(mapH(x,zz)<-14){gp[n*3]=x;gp[n*3+1]=1.2;gp[n*3+2]=zz;n++;}}MX.glint.geometry.setDrawRange(0,n);}
+  // steam puffs over the rocket on the mountain
+  {const m=MX.smoke=new T3.InstancedMesh(part(blobGeo(1,7,5,2,.35),'#ffffff'),new T3.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true,transparent:true,opacity:.9}),7);m.frustumCulled=false;m.visible=false;sc.add(m);MX.smokeY=mapH(1530,-80);}
+  // what moves: remember where it rests
+  {const B=MX.base={boat:[],isl:[],sheep:[],cloud:[],nodeY:[],spY:[]},ch=sc.children;
+    if(MX.b0>=0)for(let i=0;i<3;i++)B.boat.push(ch[MX.b0+i]);
+    if(MX.p0>=0){B.boat.push(ch[MX.p0+2],ch[MX.p0+3]);B.kite=[ch[MX.p0+6],ch[MX.p0+7]];}
+    B.boatY=B.boat.map(m=>m.position.y);
+    if(MX.i0>=0)for(let i=MX.i0;i<MX.i1;i++)B.isl.push(ch[i]);B.islY=B.isl.map(m=>m.position.y);
+    for(const k of['sheep','cloud']){const m=MX[k];if(m)for(let i=0;i<m.count;i++){const q=new T3.Matrix4();m.getMatrixAt(i,q);B[k].push(q);}}
+    MAP.nodes.forEach(n=>{B.nodeY.push(n.m.position.y);B.spY.push(n.sp.position.y);});}
+}
+/* called at the end of drawMapNodes: the colours that depend on progress */
+function mapPaint(){
+  const on=lab('mapStops');
+  if(MX.dots){for(let i=0;i<MX.dots.count;i++)MX.dots.setColorAt(i,on&&SAVE.stars[MX.dotSeg[i]]>0?MX.cGold:MX.cWhite);MX.dots.instanceColor.needsUpdate=true;}
+  if(MX.flags){for(let i=0;i<NLV;i++)MX.flags.setColorAt(i,SAVE.stars[i]>=3?MX.cSun:MX.cCoral);MX.flags.instanceColor.needsUpdate=true;}
+  if(lab('mapBanners'))MAP.ban.forEach((b,i)=>{mapBanner(b.cv.getContext('2d'),LT.w[i],['#ffe9a6','#bfefff','#ffd08a','#ffffff','#e0d8ff'][i]);b.tx.needsUpdate=true;});
+}
+/* mapBanners: the world names on a paper ribbon */
+function mapBanner(g,txt,col){
+  g.clearRect(0,0,512,128);g.lineJoin='round';g.font='400 50px "Lilita One","Arial Rounded MT Bold",sans-serif';g.textAlign='center';g.textBaseline='middle';
+  const tw=Math.min(372,g.measureText(txt).width),w=tw+64,x0=256-w/2,x1=256+w/2,INK='#5a3524';
+  for(const s of[-1,1]){const x=s<0?x0:x1;g.beginPath();g.moveTo(x-s*20,38);g.lineTo(x+s*36,38);g.lineTo(x+s*18,74);g.lineTo(x+s*36,110);g.lineTo(x-s*20,110);g.closePath();g.fillStyle=col;g.fill();g.fillStyle='rgba(90,53,36,.28)';g.fill();g.lineWidth=6;g.strokeStyle=INK;g.stroke();
+    g.beginPath();g.moveTo(x,96);g.lineTo(x-s*20,110);g.lineTo(x-s*20,96);g.closePath();g.fillStyle=INK;g.fill();g.stroke();}
+  g.beginPath();g.moveTo(x0+12,18);g.lineTo(x1-12,18);g.quadraticCurveTo(x1,18,x1,30);g.lineTo(x1,84);g.quadraticCurveTo(x1,96,x1-12,96);g.lineTo(x0+12,96);g.quadraticCurveTo(x0,96,x0,84);g.lineTo(x0,30);g.quadraticCurveTo(x0,18,x0+12,18);g.closePath();
+  g.fillStyle=col;g.fill();g.lineWidth=7;g.strokeStyle=INK;g.stroke();
+  g.beginPath();g.moveTo(x0+14,27);g.lineTo(x1-14,27);g.lineWidth=4;g.strokeStyle='rgba(255,255,255,.7)';g.lineCap='round';g.stroke();
+  g.fillStyle=INK;g.fillText(txt,256,59,372);
+}
+/* called at the end of selectLevel and openMap */
+function mapSelected(i){if(i!==MX.selI){MX.selI=i;MX.selT=T;}}
+function mapOpened(){
+  MX.sv=MX.zv=MX.rv=MX.rb=0;MX.openSel=MAP.sel;MX.hold=-1;MX.goT=0;
+  if(!lab('mapStops'))return;
+  /* a stop that opened since the last visit stays grey for a moment, then pops open with sparkles - once (SAVE.mapSeen remembers) */
+  let hi=0;while(hi<NLV-1&&unlocked(hi+1))hi++;
+  if(SAVE.mapSeen==null||hi-SAVE.mapSeen!==1||RMQ.matches){if(SAVE.mapSeen!==hi){SAVE.mapSeen=hi;persist();}return;}
+  SAVE.mapSeen=hi;persist();MX.hold=hi;MX.unT=T+.9;drawMapNodes();
+}
+/* mapCam: springs instead of plain easing (a slight overshoot); returns true when it has moved the camera values itself */
+function mapCamStep(dt){
+  if(!(MX.cam=lab('mapCam')&&!RMQ.matches))return false;
+  const n=dt>.02?2:1,h=dt/n;
+  for(let q=0;q<n;q++){MX.sv+=((MAP.st-MAP.s)*70-MX.sv*13)*h;MAP.s+=MX.sv*h;MX.zv+=((MAP.zt-MAP.zm)*110-MX.zv*15.5)*h;MAP.zm+=MX.zv*h;MX.rv+=((MAP.rt-MAP.rot)*90-MX.rv*15)*h;MAP.rot+=MX.rv*h;}
+  MAP.zm=Math.max(.3,MAP.zm);
+  return true;
+}
+/* mapCam: pulling past the first or last stop stretches the view a little; it springs back on release */
+function mapRubber(F,dt){
+  if(!MX.rb)return;const e=MX.rb<0?0:NLV-2,a=MAP.pts[e],b=MAP.pts[e+1];F.x+=(b.x-a.x)*MX.rb;F.z+=(b.z-a.z)*MX.rb;
+  if(!MX.drag){MX.rb*=Math.exp(-dt*9);if(Math.abs(MX.rb)<.003)MX.rb=0;}
+}
+/* everything on the map that moves on its own; runs once a frame after the Bud and the ring have been placed, before the picture is drawn */
+function mapLive(t,dt){
+  const o=MX.o,B=MX.base,stops=lab('mapStops'),life=lab('mapLife')&&!RMQ.matches,isl=life?Math.sin(t*.7)*2.6:0;
+  /* --- mapLife --- */
+  MX.uCl.value.set(t*.011,t*.0045,life?1:0);
+  if(life||MX.lifeOn){MX.lifeOn=life;
+    for(let i=0;i<B.boat.length;i++){const m=B.boat[i],q=i>3?3:i;m.position.y=B.boatY[i]+(life?Math.sin(t*1.25+q*2.1)*.9:0);m.rotation.z=life?Math.sin(t*1.05+q*1.7)*.07:0;}
+    if(B.kite)for(const m of B.kite)m.rotation.z=life?Math.sin(t*.8)*.07:0;
+    for(let i=0;i<B.isl.length;i++)B.isl[i].position.y=B.islY[i]+isl;
+    for(let i=NLV-2;i<NLV;i++){MAP.nodes[i].m.position.y=B.nodeY[i]+isl;MAP.nodes[i].sp.position.y=B.spY[i]+isl;}
+    if(MX.sheep){const m=MX.sheep;for(let i=0;i<m.count;i++){MX.m4.copy(B.sheep[i]);if(life)MX.m4.elements[13]+=Math.max(0,Math.sin(t*.8+i*2.4)-.84)*26;m.setMatrixAt(i,MX.m4);}m.instanceMatrix.needsUpdate=true;}
+    if(MX.cloud){const m=MX.cloud;for(let i=0;i<m.count;i++){MX.m4.copy(B.cloud[i]);if(life){MX.m4.elements[12]+=Math.sin(t*.045+i*1.9)*46;MX.m4.elements[13]+=Math.sin(t*.3+i)*2.5;}m.setMatrixAt(i,MX.m4);}m.instanceMatrix.needsUpdate=true;}
+    MX.smoke.visible=life;MX.glint.visible=life;
+    if(life){
+      for(let i=0;i<7;i++){const ph=(t*.16+i/7)%1,s=Math.sin(ph*Math.PI)*(5+(i%3)*1.6);o.position.set(1542+ph*36+Math.sin(i*2.3+t*.4)*3,MX.smokeY+4+ph*50,-70-ph*8);o.rotation.set(0,i+t*.2,0);o.scale.setScalar(Math.max(.001,s));o.updateMatrix();MX.smoke.setMatrixAt(i,o.matrix);}
+      MX.smoke.instanceMatrix.needsUpdate=true;
+      const c=MX.glint.geometry.attributes.color,ca=c.array,n=MX.glint.geometry.drawRange.count;for(let i=0;i<n;i++){const v=Math.pow(Math.max(0,Math.sin(t*1.1+i*2.7)),14);ca[i*3]=v;ca[i*3+1]=v;ca[i*3+2]=v*.9;}c.needsUpdate=true;
+    }
+  }
+  /* --- mapBanners: far out the ribbons shrink so that the names do not cover each other --- */
+  if(lab('mapBanners')){const k=Math.min(1,2.75/Math.max(.8,Math.pow(MAP.zm,.8)));if(k<1)for(const b of MAP.ban)b.sp.scale.multiplyScalar(k);}
+  /* --- mapWalk: the Bud hops along the dotted path to the chosen stop (it waits at the last open one if that stop is still closed) --- */
+  const bud=MAP.bud;let home=curLevel();
+  if(lab('mapWalk')){
+    const tg=unlocked(MAP.sel)?MAP.sel:curLevel();if(MX.bp==null||RMQ.matches)MX.bp=tg;
+    const d=tg-MX.bp,ad=Math.abs(d);let dir=0;
+    if(ad>.0005){const v=Math.max(2.3,ad*2.4)*dt;MX.bp=ad<=v?tg:MX.bp+Math.sign(d)*v;dir=Math.sign(d);MX.bmove=Math.min(1,MX.bmove+dt*9);}else MX.bmove=Math.max(0,MX.bmove-dt*4);
+    const i=Math.min(NLV-2,Math.floor(MX.bp)),f=MX.bp-i,a=MAP.pts[i],c=MAP.pts[i+1],x=lerp(a.x,c.x,f),zz=lerp(a.z,c.z,f),m=MX.bmove,rest=1-m;
+    let y=i>=23?lerp(a.y,c.y,f)+Math.sin(f*Math.PI)*(i===23||i===27?34:5):Math.max(mapH(x,zz)+1.6,lerp(a.y,c.y,f)-2);
+    y=Math.max(y,-1)+(MX.bp>NLV-2.5?isl:0);
+    const hop=lerp(Math.abs(Math.sin(t*3.2))*7,Math.abs(Math.sin(MX.bp*Math.PI*3))*8,m);
+    bud.position.set(x-19*rest,y-1.5*rest+hop,zz+7*rest);
+    const want=dir?Math.atan2((c.x-a.x)*dir,(c.z-a.z)*dir):Math.sin(t*.9)*.5;let da=want-MX.bry;da=Math.atan2(Math.sin(da),Math.cos(da));MX.bry+=da*(1-Math.exp(-dt*(dir?14:5)));bud.rotation.y=MX.bry;
+    home=Math.round(MX.bp);
+  }else{MX.bp=null;MX.bmove=0;MX.bry=bud.rotation.y;if(curLevel()>=NLV-2)bud.position.y+=isl;}
+  if(MAP.sel>=NLV-2)MAP.ring.position.y+=isl;
+  /* --- mapStops: flags, the chosen stop bounces, a new stop pops open, "you are here" --- */
+  if(MX.hold>=0&&(t>=MX.unT||!stops)){MX.popI=MX.hold;MX.popT=t;MX.hold=-1;drawMapNodes();if(stops){sfx('ui');buzz(16);MX.goT=t+.55;}}
+  if(MX.goT&&t>=MX.goT){MX.goT=0;if(mode==='map'&&MAP.sel===MX.openSel&&!MX.drag)selectLevel(MX.popI);}
+  const pk=t-MX.popT,sk=t-MX.selT;
+  for(let i=0;i<NLV;i++){const nd=MAP.nodes[i];let s=1;
+    if(stops&&!RMQ.matches){if(i===MX.selI&&sk<.8)s+=.3*Math.exp(-sk*5)*Math.cos(sk*17);if(i===MX.popI&&pk<1.1)s+=.6*Math.exp(-pk*3.5)*Math.cos(pk*13);}
+    if(s!==1||nd.m.scale.x!==1){nd.m.scale.set(s,1+(s-1)*1.8,s);nd.sp.scale.multiplyScalar(s);}}
+  MX.flags.visible=stops;MX.here.visible=stops&&!RMQ.matches;
+  if(stops){
+    for(let i=0;i<NLV;i++){const p=MAP.pts[i],has=SAVE.stars[i]>0;o.position.set(p.x+10.5,(p.y<-3?.9:p.y-1)+(i>=NLV-2?isl:0),p.z-9.5);o.rotation.set(0,.5+Math.sin(t*1.9+i*1.3)*.4,Math.sin(t*1.3+i)*.04);o.scale.setScalar(has?1:.0001);o.updateMatrix();MX.flags.setMatrixAt(i,o.matrix);}
+    MX.flags.instanceMatrix.needsUpdate=true;
+    const p=MAP.pts[home],k=(t*.6)%1,h=MX.here;h.position.set(p.x,(p.y<-3?2.6:p.y+1.4)+(home>=NLV-2?isl:0),p.z);h.scale.setScalar(1+k*1.15);h.material.opacity=.85*(1-k)*(1-k);
+    const sp=MX.spk;sp.visible=pk<1.3;
+    if(sp.visible){const q=MAP.pts[MX.popI],pa=sp.geometry.attributes.position,ca=sp.geometry.attributes.color,e=1-Math.pow(1-clamp(pk/1.3,0,1),2),v=clamp(1.5-pk*1.25,0,1);
+      for(let j=0;j<16;j++){const a=j/16*TAU+j*.37,r=(14+(j%4)*9)*e;pa.array[j*3]=q.x+Math.cos(a)*r;pa.array[j*3+1]=Math.max(q.y,0)+8+e*(18+(j%5)*7)-pk*pk*6;pa.array[j*3+2]=q.z+Math.sin(a)*r;ca.array[j*3]=v;ca.array[j*3+1]=v*.9;ca.array[j*3+2]=v*.55;}
+      pa.needsUpdate=ca.needsUpdate=true;}
+  }else MX.spk.visible=false;
 }
 
 /* ---------- intro and ending movies ---------- */
@@ -2757,6 +2915,23 @@ cv.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')hover=null;});
 cv.addEventListener('wheel',e=>{e.preventDefault();if(mode==='map')MAP.zt=clamp(MAP.zt*Math.exp(e.deltaY*.0015),.45,7);if(mode==='play'){skipIntro();zoomAt(e.clientX,e.clientY,z*Math.exp(-e.deltaY*.0015));}},{passive:false});
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('gesturestart',e=>e.preventDefault());
+/* polish pass, mapCam: flick the map and it glides on, pull past either end and it stretches, two fingers zoom around the spot they hold (these run after the handlers above) */
+{const D={id:-1,x:0,y:0,v:0,t:0,on:false,mx:0,my:0,pz:1};
+  cv.addEventListener('pointerdown',e=>{if(mode!=='map')return;
+    if(ptrs.size===1){D.id=e.pointerId;D.x=e.clientX;D.y=e.clientY;D.v=0;D.t=performance.now();D.on=true;MX.drag=true;}
+    else{D.on=false;if(ptrs.size===2){const [a,b]=[...ptrs.values()];D.mx=(a.x+b.x)/2;D.my=(a.y+b.y)/2;D.pz=MAP.zt;}}});
+  cv.addEventListener('pointermove',e=>{if(mode!=='map'||!lab('mapCam'))return;
+    if(D.on&&e.pointerId===D.id&&ptrs.size===1){const p=ptrs.get(D.id);if(!p)return;
+      const dx=e.clientX-D.x,dy=e.clientY-D.y,now=performance.now(),el=Math.max(4,now-D.t)/1000;D.x=e.clientX;D.y=e.clientY;D.t=now;
+      if(!p.moved||(e.buttons&2)||e.shiftKey)return;
+      const ds=-(dx-dy*.6)/(vw*.2)*Math.max(1,MAP.zm);D.v=lerp(D.v,ds/el,.45);
+      if((MAP.st<=0&&ds<0)||(MAP.st>=NLV-1&&ds>0))MX.rb=clamp(MX.rb+ds*.5*(1-Math.abs(MX.rb)/.8),-.8,.8);else if(MX.rb)MX.rb*=.7;
+    }else if(ptrs.size===2&&pinch){const [a,b]=[...ptrs.values()],mx=(a.x+b.x)/2,my=(a.y+b.y)/2,zn=MAP.zt;
+      MAP.st=clamp(MAP.st-((mx-D.mx)-(my-D.my)*.6)/(vw*.2)*Math.max(1,MAP.zm)+(mx-vw/2)/(vw*.2)*(Math.max(1,D.pz)-Math.max(1,zn)),0,NLV-1);D.mx=mx;D.my=my;D.pz=zn;}});
+  const up=e=>{if(!ptrs.size)MX.drag=false;if(!D.on||e.pointerId!==D.id)return;D.on=false;
+    if(mode==='map'&&e.type==='pointerup'&&lab('mapCam')&&!RMQ.matches&&performance.now()-D.t<90&&Math.abs(D.v)>1.5){const tg=clamp(Math.round(MAP.st+clamp(D.v*.22,-4,4)),0,NLV-1);if(tg!==MAP.sel)selectLevel(tg);}};
+  cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+}
 window.addEventListener('keydown',e=>{
   if(MOVIE.on){if(e.key==='Escape'||e.key===' '||e.key==='Enter'){MOVIE.skip();if(!MOVIE.on)VO.stop();}return;}
   if(mode==='map'&&!$('map').hidden){if(e.key==='ArrowRight')selectLevel(MAP.sel+1);else if(e.key==='ArrowLeft')selectLevel(MAP.sel-1);else if(e.key==='q'||e.key==='Q')MAP.rt-=.5;else if(e.key==='e'||e.key==='E')MAP.rt+=.5;else if(e.key==='+'||e.key==='=')MAP.zt=clamp(MAP.zt/1.35,.45,7);else if(e.key==='-')MAP.zt=clamp(MAP.zt*1.35,.45,7);else if(e.key==='Enter')$('mPlay').click();else if(e.key==='Escape')$('bMapBack').click();return;}
