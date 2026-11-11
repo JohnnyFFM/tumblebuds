@@ -28,7 +28,7 @@ const html = `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="description" content="Tumblebuds - guide twenty sleepy buds home through Honeydew Hollow.">
+<meta name="description" content="Tumblebuds: The Journey Home - help the Buds get home across 20 levels.">
 <meta name="theme-color" content="#1d2a33">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -48,7 +48,7 @@ fs.writeFileSync(path.join(out, 'index.html'), html);
 
 fs.writeFileSync(path.join(out, 'manifest.webmanifest'), JSON.stringify({
   name: 'Tumblebuds', short_name: 'Tumblebuds',
-  description: 'Guide twenty sleepy buds home through Honeydew Hollow.',
+  description: 'Help the Buds find their way home: 20 levels across beach, sea, desert, mountain and stars.',
   start_url: './', scope: './', id: './',
   display: 'fullscreen', display_override: ['fullscreen', 'standalone'],
   orientation: 'any', background_color: '#1d2a33', theme_color: '#1d2a33',
