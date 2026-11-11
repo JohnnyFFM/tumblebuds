@@ -1581,7 +1581,7 @@ function buildMap(){
   for(const q of[[170,95,-150],[570,70,-150],[980,110,-170],[1420,330,-110],[1860,790,-40]]){const cv2=document.createElement('canvas');cv2.width=512;cv2.height=128;const tx=new T3.CanvasTexture(cv2);tx.encoding=T3.sRGBEncoding;
     const sp=new T3.Sprite(new T3.SpriteMaterial({map:tx,depthTest:false,transparent:true,fog:false}));sp.position.set(q[0],q[1],q[2]);sp.renderOrder=6;sc.add(sp);MAP.ban.push({sp,cv:cv2,tx});}
   // where the twenty levels sit
-  const xz=[[30,10],[88,-30],[146,14],[204,-26],[262,20],[322,46],[420,28],[478,-22],[536,26],[594,-24],[652,28],[716,-14],[830,10],[888,-40],[946,8],[1004,-38],[1062,10],[1124,-30],[1238,-18],[1294,-46],[1348,-30],[1400,-60],[1452,-64],[1498,-72]];
+  const xz=[[30,30],[82,-62],[150,-150],[216,-72],[266,10],[330,50],[416,40],[470,-40],[540,-86],[602,-18],[652,46],[726,-10],[820,22],[872,-72],[936,-172],[1012,-92],[1076,12],[1142,-52],[1226,32],[1290,-92],[1350,-190],[1420,-150],[1455,-38],[1498,-72]];
   for(const q of xz)MAP.pts.push(V3(q[0],mapH(q[0],q[1])+3,q[1]));
   const MO=V3(1720,430,-60),IS=V3(1990,640,-30);
   for(const q of[[-45,8],[-16,20],[15,20],[44,8]])MAP.pts.push(V3(MO.x+q[0],MO.y+Math.sqrt(66*66-q[0]*q[0]-q[1]*q[1])+2,MO.z+q[1]));
@@ -1591,7 +1591,7 @@ function buildMap(){
     const cv2=document.createElement('canvas');cv2.width=cv2.height=128;const tx=new T3.CanvasTexture(cv2);tx.encoding=T3.sRGBEncoding;
     const sp=new T3.Sprite(new T3.SpriteMaterial({map:tx,depthTest:false,transparent:true,fog:false}));sp.scale.set(36,36,1);sp.position.copy(p).y+=21;sp.renderOrder=5;sc.add(sp);
     MAP.nodes.push({m,sp,cv:cv2,tx});});
-  {const dots=[];for(let i=0;i<NLV-1;i++){const a=MAP.pts[i],b=MAP.pts[i+1],n=i===23||i===27?12:i>23?4:5;for(let k=1;k<n;k++){const t=k/n,x=lerp(a.x,b.x,t),zz=lerp(a.z,b.z,t);dots.push([x,i>=23?lerp(a.y,b.y,t)+Math.sin(t*Math.PI)*(i===23||i===27?34:5):Math.max(mapH(x,zz)+1.6,lerp(a.y,b.y,t)-2),zz,i>=23?1.3:1]);}}
+  {const dots=[];for(let i=0;i<NLV-1;i++){const a=MAP.pts[i],b=MAP.pts[i+1],n=i===23||i===27?12:i>23?4:Math.max(4,Math.round(Math.hypot(b.x-a.x,b.z-a.z)/15));for(let k=1;k<n;k++){const t=k/n,x=lerp(a.x,b.x,t),zz=lerp(a.z,b.z,t);dots.push([x,i>=23?lerp(a.y,b.y,t)+Math.sin(t*Math.PI)*(i===23||i===27?34:5):Math.max(mapH(x,zz)+1.6,lerp(a.y,b.y,t)-2),zz,i>=23?1.3:1]);}}
     inst(new T3.SphereGeometry(2.3,8,6),dots,new T3.MeshStandardMaterial({color:0xfff6e0,roughness:.6}));}
   // scenery of the five worlds
   rs=4242;const L={palm:[],cactus:[],coral:[],kelp:[],pine:[],spine:[],leaf:[],rock:[],cloud:[]};
@@ -1615,14 +1615,14 @@ function buildMap(){
     inst(dot('#ff9ab8'),bits.a);inst(dot('#ffe27a'),bits.b);inst(dot('#ffffff'),bits.c);inst(part(sph(6,4),'#ffc7b0',M(0,0,0,2.2,.9,1.8)),bits.d);inst(part(sph(6,4),'#fff4e0',M(0,0,0,1.8,.9,2.2)),bits.e);
     inst(merge([part(blobGeo(5,8,6,5,.35),'#ffffff',M(0,6,0,1.25,1,1)),part(sph(8,6),'#3a2c28',M(5.6,7.5,0,2.2,2.2,2)),part(cyl(.7,.7,4,5),'#3a2c28',M(-3,2,2)),part(cyl(.7,.7,4,5),'#3a2c28',M(3,2,2)),part(cyl(.7,.7,4,5),'#3a2c28',M(-3,2,-2)),part(cyl(.7,.7,4,5),'#3a2c28',M(3,2,-2))]),bits.sheep);
     // a sandcastle, a crab, sandstone pyramids and two sailing boats
-    const hs=mapH(118,8);add(merge([part(cyl(9,10,8,10),'#e9cf8c',M(0,4,0)),part(cyl(5,5.5,9,10),'#f0d898',M(0,12,0)),part(new T3.ConeGeometry(5.5,6,10),'#e8604a',M(0,19.5,0)),part(cyl(2.4,2.6,10,8),'#e9cf8c',M(-9,5,6)),part(cyl(2.4,2.6,10,8),'#e9cf8c',M(9,5,6)),part(new T3.ConeGeometry(3,4,8),'#e8604a',M(-9,12,6)),part(new T3.ConeGeometry(3,4,8),'#e8604a',M(9,12,6))]),mm,118,hs,8,.8,.3);
-    add(merge([part(sph(10,8),'#e8504a',M(0,4,0,6,3.6,4.6)),part(sph(8,6),'#e8504a',M(-7,5,3,3,2.2,2.2)),part(sph(8,6),'#e8504a',M(7,7.5,3,3,2.2,2.2)),part(sph(6,5),'#ffffff',M(-2,8,2.6,1.2,1.5,1)),part(sph(6,5),'#ffffff',M(2,8,2.6,1.2,1.5,1)),part(sph(5,4),'#33201a',M(-2,8.3,3.4,.6,.7,.5)),part(sph(5,4),'#33201a',M(2,8.3,3.4,.6,.7,.5))]),mm,176,mapH(176,34),34,.9,-.4);
-    for(const q of[[900,-110,1.5],[960,-140,1],[1080,-120,1.2]])add(shade(new T3.ConeGeometry(30,36,4),'#c98f52','#f2d48c',M(0,16,0,1,1,1,0,.6,0)),mm,q[0],mapH(q[0],q[1])-2,q[1],q[2],0);
+    const hs=mapH(118,-98);add(merge([part(cyl(9,10,8,10),'#e9cf8c',M(0,4,0)),part(cyl(5,5.5,9,10),'#f0d898',M(0,12,0)),part(new T3.ConeGeometry(5.5,6,10),'#e8604a',M(0,19.5,0)),part(cyl(2.4,2.6,10,8),'#e9cf8c',M(-9,5,6)),part(cyl(2.4,2.6,10,8),'#e9cf8c',M(9,5,6)),part(new T3.ConeGeometry(3,4,8),'#e8604a',M(-9,12,6)),part(new T3.ConeGeometry(3,4,8),'#e8604a',M(9,12,6))]),mm,118,hs,-98,.8,.3);
+    add(merge([part(sph(10,8),'#e8504a',M(0,4,0,6,3.6,4.6)),part(sph(8,6),'#e8504a',M(-7,5,3,3,2.2,2.2)),part(sph(8,6),'#e8504a',M(7,7.5,3,3,2.2,2.2)),part(sph(6,5),'#ffffff',M(-2,8,2.6,1.2,1.5,1)),part(sph(6,5),'#ffffff',M(2,8,2.6,1.2,1.5,1)),part(sph(5,4),'#33201a',M(-2,8.3,3.4,.6,.7,.5)),part(sph(5,4),'#33201a',M(2,8.3,3.4,.6,.7,.5))]),mm,186,mapH(186,-150),-150,.9,-.4);
+    for(const q of[[1010,-215,1.5],[1075,-245,1],[1150,-190,1.2]])add(shade(new T3.ConeGeometry(30,36,4),'#c98f52','#f2d48c',M(0,16,0,1,1,1,0,.6,0)),mm,q[0],mapH(q[0],q[1])-2,q[1],q[2],0);
     for(const q of[[250,170,.3],[660,210,-.4],[-120,60,1.2]])add(merge([part(sph(10,6),'#b56a3a',M(0,2,0,14,4,5)),part(cyl(.6,.6,26,5),'#7a5c3e',M(0,15,0)),part(new T3.ConeGeometry(11,22,3),'#fff4e0',M(3,16,0,1,1,.12,0,0,0))]),mm,q[0],-1,q[1],1,q[2]);}
   inst(TREE.pine.g(1),L.pine);inst(TREE.spine.g(1),L.spine);inst(TREE.leaf.g(1),L.leaf);
   inst(shade(blobGeo(6,7,5,3,.7),'#8a8478','#c8c0b0'),L.rock,fm);
   const prop=(kind,x,y,zz,s,ry)=>{const gp=goalParts(kind);add(merge(gp.g),mm,x,y,zz,s,ry);add(merge(gp.l),glowMat,x,y,zz,s,ry,0);};
-  prop('blanket',4,mapH(4,-44),-44,.55,.3);prop('boat',372,-2,74,.6,-.5);prop('tent',878,mapH(878,-50),-50,.6,.2);prop('kite',1168,mapH(1168,10),10,.5,0);
+  prop('blanket',-6,mapH(-6,4),4,.55,.3);prop('boat',372,-2,74,.6,-.5);prop('tent',828,mapH(828,-128),-128,.6,.2);prop('kite',1168,mapH(1168,10),10,.5,0);
   prop('house',1205,mapH(1205,-100),-100,.42,.2);prop('rocket',1530,mapH(1530,-80),-80,.85,0);
   // the moon
   {const mg=new T3.SphereGeometry(66,22,14);add(shade(mg,'#8a8a98','#d8d8e4'),fm,MO.x,MO.y,MO.z,1,0);
@@ -1633,7 +1633,7 @@ function buildMap(){
     add(shade(new T3.CylinderGeometry(100,95,10,18),'#5ea048','#a8dc6a',M(0,-3,0)),fm,IS.x,IS.y,IS.z,1,0);
     prop('tree',IS.x+6,IS.y+1,IS.z-30,.62,0);prop('house',IS.x-62,IS.y+1,IS.z-20,.36,.4);prop('house',IS.x+66,IS.y+1,IS.z-6,.3,-.4);prop('gate',IS.x-74,IS.y+1,IS.z+34,.4,.7);}
   {const cg=merge([part(blobGeo(16,8,6,1,.3),'#ffffff',M(0,0,0,1.4,.7,1)),part(blobGeo(12,8,6,4,.3),'#ffffff',M(18,-2,3,1.2,.7,1)),part(blobGeo(11,8,6,7,.3),'#f4f8ff',M(-17,-3,-2,1.2,.6,1))]);
-    for(let i=0;i<40;i++){const hi=i<26;L.cloud.push([hi?1250+rnd()*1000:-200+rnd()*1500,hi?250+rnd()*330:170+rnd()*90,hi?-320+rnd()*420:-420+rnd()*160,1+rnd()*1.6,rnd()*6]);}
+    for(let i=0;i<40;i++){const hi=i<26;L.cloud.push([hi?1640+rnd()*700:-200+rnd()*1500,hi?250+rnd()*330:170+rnd()*90,hi?-320+rnd()*420:-420+rnd()*160,1+rnd()*1.6,rnd()*6]);}
     for(let i=0;i<9;i++)L.cloud.push([IS.x-150+rnd()*300,IS.y-90-rnd()*40,IS.z-60+rnd()*140,1.2+rnd(),rnd()*6]);
     inst(cg,L.cloud,new T3.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true,transparent:true,opacity:.92}));}
   {const n=500,p=new Float32Array(n*3);for(let i=0;i<n;i++){p[i*3]=600+rnd()*2600;p[i*3+1]=330+rnd()*900;p[i*3+2]=-700-rnd()*500;}
@@ -2019,7 +2019,7 @@ function frame(ms){
 
 /* ---------- boot ---------- */
 /* build.js raises the last number and stamps the time on every build */
-const VERSION='0.4.9',BUILT='2026-11-11 09:32 UTC';
+const VERSION='0.4.10',BUILT='2026-11-11 09:35 UTC';
 document.querySelectorAll('.verT').forEach(e=>{e.textContent='DEMO · v'+VERSION+(BUILT?' · '+BUILT:'');});
 'TUMBLEBUDS'.split('').forEach((ch,i)=>{const s=document.createElement('span');s.textContent=ch;s.style.animationDelay=(i*.09)+'s';$('logo').append(s);});
 if(/[?&]all\b/.test(location.search))SAVE.all=1;
