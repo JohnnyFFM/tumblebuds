@@ -15,10 +15,11 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none}
 body{background:#10181d;color:var(--ink);font-family:var(--body);font-weight:700;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none}
 #cv,#fx{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
 #fx{pointer-events:none}
-@media (display-mode:standalone),(display-mode:fullscreen){
-  html{min-height:calc(100% + env(safe-area-inset-top,0px))}
-  #cv,#hud,.screen,#studio{height:100vh;bottom:auto}
-}
+/* iOS home-screen app: the page is laid out with the wrong height, so the script pins every full-screen layer to the real screen height (--appH) */
+html.iosapp{min-height:calc(100% + env(safe-area-inset-top,0px))}
+.iosapp #cv,.iosapp #hud,.iosapp .screen,.iosapp #studio{height:var(--appH);bottom:auto}
+.iosapp #toast{bottom:auto;top:calc(var(--appH) - 150px - env(safe-area-inset-bottom,0px))}
+.iosapp .foot{bottom:calc(8px + env(safe-area-inset-bottom,0px))}
 #hud > .head{display:flex;flex-direction:column;gap:8px;pointer-events:none}
 #hud .head > *{pointer-events:auto}
 #mini{flex:none;border:3px solid var(--ink);border-radius:12px;box-shadow:0 4px 0 var(--shade);touch-action:none;cursor:pointer}
@@ -856,7 +857,13 @@ FX.ev=(n,c)=>{
 /* ---------- camera / view ---------- */
 let vw=1,vh=1,dpr=1,rscale=Math.min(window.devicePixelRatio||1,window.innerWidth<700?1.5:2),z=1,camX=0,camY=0,minZ=.5,maxZ=3,topPad=60,camAnim=null,bars=0,sCx=null,sCy=0,sZ=1;
 const mini=$('mini'),miniX=mini.getContext('2d'),camTarget=V3(0,0,0);
+function fitApp(){
+  if(!navigator.standalone)return;
+  const a=Math.max(screen.width,screen.height),b=Math.min(screen.width,screen.height),h=window.innerWidth>window.innerHeight?b:a;
+  document.documentElement.classList.add('iosapp');document.documentElement.style.setProperty('--appH',h+'px');
+}
 function resize(){
+  fitApp();
   dpr=Math.min(window.devicePixelRatio||1,rscale);vw=cv.clientWidth||window.innerWidth;vh=cv.clientHeight||window.innerHeight;
   const pw=Math.max(2,Math.round(vw*dpr)),ph=Math.max(2,Math.round(vh*dpr));
   R.setPixelRatio(1);R.setSize(pw,ph,false);cam.aspect=vw/vh;cam.updateProjectionMatrix();makeRTs(pw,ph);
