@@ -282,7 +282,7 @@ html.L-uiTitle #logo span::after{animation:uShine 6.5s linear infinite;animation
 @keyframes uLet{0%{opacity:0;transform:translateY(-70px) rotate(-18deg) scale(.6)}100%{opacity:1;transform:translateY(0) rotate(-2deg)}}
 @keyframes uShine{0%{background-position:150% 0}9%,100%{background-position:-50% 0}}
 /* mapLook: a soft storybook vignette over the 3D map (plain CSS, no render pass) */
-html.L-mapLook #map{background:radial-gradient(ellipse 85% 80% at 50% 46%,rgba(255,246,224,0) 55%,rgba(72,40,24,.3) 100%)}
+html.L-mapLook #map{background:radial-gradient(ellipse 85% 80% at 50% 46%,rgba(255,246,224,0) 50%,rgba(72,40,24,.44) 100%)}
 </style>
 
 <canvas id="cv"></canvas>
@@ -1764,7 +1764,7 @@ function savedFx(){
   if(!s){if(HJ.stars.length>=6){wa(el,POP_K,POP_O);return;}const d=document.createElement('i');d.className='fstar';$('hud').append(d);s={el:d,busy:false};HJ.stars.push(s);}
   _v.set(EXIT.x,-EXIT.y+26,bz(EXIT.x)).project(cam);
   let gx=(_v.x*.5+.5)*vw,gy=(.5-_v.y*.5)*vh;if(_v.z>1){gx=vw-gx;gy=vh+20;}gx=clamp(gx,-20,vw+20);gy=clamp(gy,-20,vh+20);
-  const r=el.getBoundingClientRect(),tx=r.left+r.width/2,ty=r.top+r.height/2,mx=lerp(gx,tx,.45),my=Math.min(gy,ty)-36+Math.abs(gx-tx)*.04;
+  const r=(el.closest('.pill').querySelector('svg')||el).getBoundingClientRect(),tx=r.left+r.width/2,ty=r.top+r.height/2,mx=lerp(gx,tx,.45),my=Math.min(gy,ty)-36+Math.abs(gx-tx)*.04;
   s.busy=true;HJ.fly++;s.el.style.visibility='visible';
   const a=s.el.animate([{transform:'translate('+gx+'px,'+gy+'px) scale(.3) rotate(0deg)',opacity:.2},{transform:'translate('+mx+'px,'+my+'px) scale(1.25) rotate(160deg)',opacity:1,offset:.45},{transform:'translate('+tx+'px,'+ty+'px) scale(.55) rotate(360deg)',opacity:1}],{duration:720,easing:'cubic-bezier(.45,.05,.4,1)'});
   a.onfinish=a.oncancel=()=>{s.busy=false;s.el.style.visibility='hidden';HJ.fly=Math.max(0,HJ.fly-1);el.textContent=Math.max(0,G.saved-HJ.fly);wa(el,POP_K,POP_O);};
@@ -1789,7 +1789,7 @@ function endDress(win,stars){
   for(let i=0;i<stars;i++)setTimeout(()=>{
     if(mode!=='end'||!lab('uiEnd'))return;const s=$('eStars').children[i];buzz(12);
     wa(s,[{transform:'translateY(-80px) scale(2.6) rotate(-60deg)',opacity:0},{transform:'translateY(0) scale(1.3) rotate(10deg)',opacity:1,offset:.7},{transform:'scale(1) rotate(0deg)',opacity:1}],{duration:460,easing:'cubic-bezier(.3,1.2,.5,1)'});
-    setTimeout(()=>{if(e.hidden||!s.animate)return;const r=s.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
+    setTimeout(()=>{if(e.hidden||!s.animate)return;const r=s.parentNode.getBoundingClientRect(),sw=(r.width-16)/3,x=r.left+sw/2+i*(sw+8),y=r.top+r.height/2;
       for(let q=0;q<8;q++){const d=document.createElement('i');d.className='spk';e.append(d);const a=q/8*TAU+i,rr=34+((q*37+i*11)%20);
         d.animate([{transform:'translate('+x+'px,'+y+'px) scale(.2)',opacity:1},{transform:'translate('+(x+Math.cos(a)*rr)+'px,'+(y+Math.sin(a)*rr)+'px) scale(1.5) rotate(90deg)',opacity:1,offset:.5},{transform:'translate('+(x+Math.cos(a)*rr*1.35)+'px,'+(y+Math.sin(a)*rr*1.35+8)+'px) scale(0) rotate(180deg)',opacity:0}],{duration:620,easing:'ease-out'}).onfinish=()=>d.remove();}
     },320);
@@ -2212,7 +2212,7 @@ function mapLive(t,dt){
     if(life){
       for(let i=0;i<7;i++){const ph=(t*.16+i/7)%1,s=Math.sin(ph*Math.PI)*(5+(i%3)*1.6);o.position.set(1542+ph*36+Math.sin(i*2.3+t*.4)*3,MX.smokeY+4+ph*50,-70-ph*8);o.rotation.set(0,i+t*.2,0);o.scale.setScalar(Math.max(.001,s));o.updateMatrix();MX.smoke.setMatrixAt(i,o.matrix);}
       MX.smoke.instanceMatrix.needsUpdate=true;
-      const c=MX.glint.geometry.attributes.color,ca=c.array,n=MX.glint.geometry.drawRange.count;for(let i=0;i<n;i++){const v=Math.pow(Math.max(0,Math.sin(t*1.1+i*2.7)),14);ca[i*3]=v;ca[i*3+1]=v;ca[i*3+2]=v*.9;}c.needsUpdate=true;
+      const c=MX.glint.geometry.attributes.color,ca=c.array,n=MX.glint.geometry.drawRange.count;for(let i=0;i<n;i++){const v=Math.pow(Math.max(0,Math.sin(t*1.1+i*2.7)),9);ca[i*3]=v;ca[i*3+1]=v;ca[i*3+2]=v*.9;}c.needsUpdate=true;
     }
   }
   /* --- mapBanners: far out the ribbons shrink so that the names do not cover each other --- */
