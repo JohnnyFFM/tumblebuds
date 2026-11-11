@@ -1,0 +1,758 @@
+{
+ "en": {
+  "m0": [
+   "High above the clouds is a little place called Buddletop.",
+   "nar"
+  ],
+  "m1": [
+   "This is where the Buds grow.",
+   "nar"
+  ],
+  "m2": [
+   "A little sunshine, a little rain, and...",
+   "nar"
+  ],
+  "m3": [
+   "POP!",
+   "bud"
+  ],
+  "m4": [
+   "Today, the Buds are going on a picnic!",
+   "nar"
+  ],
+  "m5": [
+   "They remembered everything.",
+   "nar"
+  ],
+  "m6": [
+   "Well... almost everything.",
+   "nar"
+  ],
+  "m7": [
+   "Wheeeee!",
+   "bud"
+  ],
+  "m8": [
+   "Oh, Buds. This is a very long way from home.",
+   "nar"
+  ],
+  "m9": [
+   "But there is a way back.",
+   "nar"
+  ],
+  "m10": [
+   "Beyond the sea, across the sand, and up the mountains...",
+   "nar"
+  ],
+  "m11": [
+   "...a rocket is waiting!",
+   "nar"
+  ],
+  "m12": [
+   "They'll need a little help.",
+   "nar"
+  ],
+  "m13": [
+   "Shall we show them the way?",
+   "nar"
+  ],
+  "m14": [
+   "Let's go!",
+   "bud"
+  ],
+  "m16": [
+   "Across the sand, beneath the sea,",
+   "nar"
+  ],
+  "m17": [
+   "over the mountains, and through the stars...",
+   "nar"
+  ],
+  "m18": [
+   "The Buds had found their way home.",
+   "nar"
+  ],
+  "m19": [
+   "And the cake had made it too.",
+   "nar"
+  ],
+  "m20": [
+   "Hello, little Bud!",
+   "bud"
+  ],
+  "m21": [
+   "Tomorrow, there would be more adventures.",
+   "nar"
+  ],
+  "m22": [
+   "But first...",
+   "nar"
+  ],
+  "m23": [
+   "CAKE!",
+   "bud"
+  ],
+  "o0": [
+   "Hello, beach! Let’s get everybody off the balloon.",
+   "nar"
+  ],
+  "o1": [
+   "Someone built a castle right across our path!",
+   "nar"
+  ],
+  "o2": [
+   "The crabs are having a parade. Can we cross their pools?",
+   "nar"
+  ],
+  "o3": [
+   "What a big rock! Who can climb to the top?",
+   "nar"
+  ],
+  "o4": [
+   "Boing! This bouncy pad goes all the way up!",
+   "nar"
+  ],
+  "o5": [
+   "To reach Rocket Mountain, we must cross the sea!",
+   "nar"
+  ],
+  "o6": [
+   "A bubble for you, and a bubble for you!",
+   "nar"
+  ],
+  "o7": [
+   "Blow a bubble and float up, up, up!",
+   "nar"
+  ],
+  "o8": [
+   "This garden has very wiggly plants.",
+   "nar"
+  ],
+  "o9": [
+   "A giant shell is taking a nap in our way.",
+   "nar"
+  ],
+  "o10": [
+   "That gap is deep. Good thing bubbles can fly!",
+   "nar"
+  ],
+  "o11": [
+   "Those big bubbles are going to the surface. Let’s catch a ride!",
+   "nar"
+  ],
+  "o12": [
+   "That mountain is still far away. Follow the camel!",
+   "nar"
+  ],
+  "o13": [
+   "These steps are tall! Fast feet can make it.",
+   "nar"
+  ],
+  "o14": [
+   "These rocks look like giant stacks of pancakes!",
+   "nar"
+  ],
+  "o15": [
+   "Our camel friend knows a cool place for a picnic.",
+   "nar"
+  ],
+  "o16": [
+   "Pop-berries go BOOM — and make handy holes!",
+   "nar"
+  ],
+  "o17": [
+   "These big desert kites can carry us to the mountains!",
+   "nar"
+  ],
+  "o18": [
+   "Up we go! Even the sheep are wearing fluffy coats.",
+   "nar"
+  ],
+  "o19": [
+   "Snow! Let’s make footprints all the way up.",
+   "nar"
+  ],
+  "o20": [
+   "The inventor has tiny rockets for us. Whoosh!",
+   "nar"
+  ],
+  "o21": [
+   "Hello, Buds! Going up? My rocket could use your help!",
+   "nar"
+  ],
+  "o22": [
+   "Bounce up, pop through, and mind the gap!",
+   "nar"
+  ],
+  "o23": [
+   "Find a seat, little Buds. Next stop: the sky!",
+   "nar"
+  ],
+  "o24": [
+   "The rocket needs a rest. Who wants a moon walk?",
+   "nar"
+  ],
+  "o25": [
+   "On the moon, a little bounce goes a long way!",
+   "nar"
+  ],
+  "o26": [
+   "Moon moths grow glowing stars here. Let’s follow their lights!",
+   "nar"
+  ],
+  "o27": [
+   "A climb for you, a bubble for you. Everybody up!",
+   "nar"
+  ],
+  "o28": [
+   "Look! Buddletop! We can see the Home Tree!",
+   "nar"
+  ],
+  "o29": [
+   "The bell is ringing. Let’s bring everybody home!",
+   "nar"
+  ],
+  "e0": [
+   "All together? Off we go!",
+   "nar"
+  ],
+  "e1": [
+   "Thank you for visiting, little knights!",
+   "nar"
+  ],
+  "e2": [
+   "Goodbye, crabs! Lovely sideways walking!",
+   "nar"
+  ],
+  "e3": [
+   "What a view! We can see the whole beach!",
+   "nar"
+  ],
+  "e4": [
+   "Again! Again! … Okay, onward.",
+   "nar"
+  ],
+  "e5": [
+   "Next stop: under the waves!",
+   "nar"
+  ],
+  "e6": [
+   "Walking underwater feels very bouncy!",
+   "nar"
+  ],
+  "e7": [
+   "Pop! Everybody made it to the top.",
+   "nar"
+  ],
+  "e8": [
+   "Wiggle, wiggle. Through we go!",
+   "nar"
+  ],
+  "e9": [
+   "Shhh. Let’s let it sleep.",
+   "nar"
+  ],
+  "e10": [
+   "Floaty, floaty, safe and sound.",
+   "nar"
+  ],
+  "e11": [
+   "Hello again, sunshine!",
+   "nar"
+  ],
+  "e12": [
+   "Does everybody have sand in their socks?",
+   "nar"
+  ],
+  "e13": [
+   "Phew! Even the camel is out of breath.",
+   "nar"
+  ],
+  "e14": [
+   "Now we’re thinking about pancakes.",
+   "nar"
+  ],
+  "e15": [
+   "A drink, a snack, and a little splash!",
+   "nar"
+  ],
+  "e16": [
+   "Boom! That was the loudest snack ever.",
+   "nar"
+  ],
+  "e17": [
+   "Hold on to your picnic hats!",
+   "nar"
+  ],
+  "e18": [
+   "We’re getting closer to the clouds!",
+   "nar"
+  ],
+  "e19": [
+   "Cold toes. Happy Buds.",
+   "nar"
+  ],
+  "e20": [
+   "Best. Flight. Ever.",
+   "nar"
+  ],
+  "e21": [
+   "Lights on. Rocket ready!",
+   "nar"
+  ],
+  "e22": [
+   "Nobody fell in the snow. Almost nobody.",
+   "nar"
+  ],
+  "e23": [
+   "Three… two… one… WHEEEEE!",
+   "nar"
+  ],
+  "e24": [
+   "One small step. One very big bounce!",
+   "nar"
+  ],
+  "e25": [
+   "So high! We nearly touched a star.",
+   "nar"
+  ],
+  "e26": [
+   "Thank you, moon moths. Time to go home!",
+   "nar"
+  ],
+  "e27": [
+   "Up and over. The rocket is waiting!",
+   "nar"
+  ],
+  "e28": [
+   "We’re almost home. Can you hear the bell?",
+   "nar"
+  ],
+  "e29": [
+   "Every Bud is home!",
+   "nar"
+  ],
+  "c_stop": [
+   "Halt",
+   "bud"
+  ],
+  "c_build": [
+   "Bridge",
+   "bud"
+  ],
+  "c_dig": [
+   "Dig",
+   "bud"
+  ],
+  "c_bash": [
+   "Tunnel",
+   "bud"
+  ],
+  "c_float": [
+   "Parasol",
+   "bud"
+  ],
+  "c_tramp": [
+   "Bounce",
+   "bud"
+  ],
+  "c_jet": [
+   "Rocket",
+   "bud"
+  ],
+  "c_run": [
+   "Sprint",
+   "bud"
+  ],
+  "c_bomb": [
+   "Boom",
+   "bud"
+  ],
+  "c_bub": [
+   "Bubble",
+   "bud"
+  ],
+  "c_climb": [
+   "Climb",
+   "bud"
+  ]
+ },
+ "de": {
+  "m0": [
+   "Hoch über den Wolken liegt ein kleiner Ort namens Buddletop.",
+   "nar"
+  ],
+  "m1": [
+   "Hier wachsen die Buds.",
+   "nar"
+  ],
+  "m2": [
+   "Ein bisschen Sonne, ein bisschen Regen, und ...",
+   "nar"
+  ],
+  "m3": [
+   "PLOPP!",
+   "bud"
+  ],
+  "m4": [
+   "Heute machen die Buds ein Picknick!",
+   "nar"
+  ],
+  "m5": [
+   "Sie haben an alles gedacht.",
+   "nar"
+  ],
+  "m6": [
+   "Na ja ... an fast alles.",
+   "nar"
+  ],
+  "m7": [
+   "Juhuuuu!",
+   "bud"
+  ],
+  "m8": [
+   "Oh, Buds. Das ist ganz schön weit weg von zu Hause.",
+   "nar"
+  ],
+  "m9": [
+   "Aber es gibt einen Weg zurück.",
+   "nar"
+  ],
+  "m10": [
+   "Über das Meer, durch den Sand und hinauf in die Berge ...",
+   "nar"
+  ],
+  "m11": [
+   "... dort wartet eine Rakete!",
+   "nar"
+  ],
+  "m12": [
+   "Sie brauchen ein bisschen Hilfe.",
+   "nar"
+  ],
+  "m13": [
+   "Wollen wir ihnen den Weg zeigen?",
+   "nar"
+  ],
+  "m14": [
+   "Los geht's!",
+   "bud"
+  ],
+  "m16": [
+   "Durch den Sand, tief unters Meer,",
+   "nar"
+  ],
+  "m17": [
+   "über die Berge und durch die Sterne ...",
+   "nar"
+  ],
+  "m18": [
+   "Die Buds hatten nach Hause gefunden.",
+   "nar"
+  ],
+  "m19": [
+   "Und der Kuchen hatte es auch geschafft.",
+   "nar"
+  ],
+  "m20": [
+   "Hallo, kleiner Bud!",
+   "bud"
+  ],
+  "m21": [
+   "Morgen würde es neue Abenteuer geben.",
+   "nar"
+  ],
+  "m22": [
+   "Aber zuerst ...",
+   "nar"
+  ],
+  "m23": [
+   "KUCHEN!",
+   "bud"
+  ],
+  "o0": [
+   "Hallo, Strand! Holen wir alle aus dem Ballon.",
+   "nar"
+  ],
+  "o1": [
+   "Jemand hat eine Burg mitten auf unseren Weg gebaut!",
+   "nar"
+  ],
+  "o2": [
+   "Die Krabben machen eine Parade. Kommen wir über ihre Tümpel?",
+   "nar"
+  ],
+  "o3": [
+   "Was für ein großer Felsen! Wer klettert hinauf?",
+   "nar"
+  ],
+  "o4": [
+   "Boing! Mit dem Hüpfkissen geht es ganz nach oben!",
+   "nar"
+  ],
+  "o5": [
+   "Zum Raketenberg müssen wir übers Meer!",
+   "nar"
+  ],
+  "o6": [
+   "Eine Blase für dich, und eine Blase für dich!",
+   "nar"
+  ],
+  "o7": [
+   "Blas eine Blase und schwebe hoch, hoch, hoch!",
+   "nar"
+  ],
+  "o8": [
+   "In diesem Garten wackeln die Pflanzen ganz schön.",
+   "nar"
+  ],
+  "o9": [
+   "Eine riesige Muschel hält ein Nickerchen auf unserem Weg.",
+   "nar"
+  ],
+  "o10": [
+   "Die Lücke ist tief. Gut, dass Blasen fliegen können!",
+   "nar"
+  ],
+  "o11": [
+   "Die großen Blasen steigen nach oben. Wir fahren mit!",
+   "nar"
+  ],
+  "o12": [
+   "Der Berg ist noch weit weg. Folgt dem Kamel!",
+   "nar"
+  ],
+  "o13": [
+   "Die Stufen sind hoch! Schnelle Füße schaffen das.",
+   "nar"
+  ],
+  "o14": [
+   "Diese Felsen sehen aus wie riesige Pfannkuchenstapel!",
+   "nar"
+  ],
+  "o15": [
+   "Unser Kamelfreund kennt einen kühlen Platz fürs Picknick.",
+   "nar"
+  ],
+  "o16": [
+   "Knallbeeren machen BUMM — und praktische Löcher!",
+   "nar"
+  ],
+  "o17": [
+   "Die großen Wüstendrachen tragen uns zu den Bergen!",
+   "nar"
+  ],
+  "o18": [
+   "Auf geht’s! Sogar die Schafe tragen flauschige Mäntel.",
+   "nar"
+  ],
+  "o19": [
+   "Schnee! Wir machen Fußspuren bis ganz nach oben.",
+   "nar"
+  ],
+  "o20": [
+   "Der Erfinder hat kleine Raketen für uns. Wusch!",
+   "nar"
+  ],
+  "o21": [
+   "Hallo, Buds! Nach oben? Meine Rakete braucht eure Hilfe!",
+   "nar"
+  ],
+  "o22": [
+   "Hoch hüpfen, durchknallen und Vorsicht an der Lücke!",
+   "nar"
+  ],
+  "o23": [
+   "Sucht euch einen Platz, kleine Buds. Nächster Halt: Himmel!",
+   "nar"
+  ],
+  "o24": [
+   "Die Rakete braucht eine Pause. Wer will auf dem Mond spazieren?",
+   "nar"
+  ],
+  "o25": [
+   "Auf dem Mond reicht ein kleiner Hüpfer ganz weit!",
+   "nar"
+  ],
+  "o26": [
+   "Mondmotten züchten hier leuchtende Sterne. Folgen wir ihren Lichtern!",
+   "nar"
+  ],
+  "o27": [
+   "Klettern für dich, eine Blase für dich. Alle nach oben!",
+   "nar"
+  ],
+  "o28": [
+   "Schaut! Buddletop! Da ist der Heimatbaum!",
+   "nar"
+  ],
+  "o29": [
+   "Die Glocke läutet. Bringen wir alle nach Hause!",
+   "nar"
+  ],
+  "e0": [
+   "Alle beisammen? Los geht’s!",
+   "nar"
+  ],
+  "e1": [
+   "Danke für den Besuch, kleine Ritter!",
+   "nar"
+  ],
+  "e2": [
+   "Tschüss, Krabben! Schön seitwärts gelaufen!",
+   "nar"
+  ],
+  "e3": [
+   "Was für eine Aussicht! Man sieht den ganzen Strand!",
+   "nar"
+  ],
+  "e4": [
+   "Nochmal! Nochmal! … Na gut, weiter.",
+   "nar"
+  ],
+  "e5": [
+   "Nächster Halt: unter den Wellen!",
+   "nar"
+  ],
+  "e6": [
+   "Unter Wasser läuft es sich ganz hüpfig!",
+   "nar"
+  ],
+  "e7": [
+   "Plopp! Alle sind oben angekommen.",
+   "nar"
+  ],
+  "e8": [
+   "Wackel, wackel. Durch sind wir!",
+   "nar"
+  ],
+  "e9": [
+   "Psst. Lassen wir sie schlafen.",
+   "nar"
+  ],
+  "e10": [
+   "Schwebe, schwebe, heil gelandet.",
+   "nar"
+  ],
+  "e11": [
+   "Hallo, Sonnenschein!",
+   "nar"
+  ],
+  "e12": [
+   "Haben alle Sand in den Socken?",
+   "nar"
+  ],
+  "e13": [
+   "Puh! Sogar das Kamel ist außer Atem.",
+   "nar"
+  ],
+  "e14": [
+   "Jetzt denken wir an Pfannkuchen.",
+   "nar"
+  ],
+  "e15": [
+   "Ein Schluck, ein Happen und ein kleiner Platsch!",
+   "nar"
+  ],
+  "e16": [
+   "Bumm! Das war der lauteste Snack aller Zeiten.",
+   "nar"
+  ],
+  "e17": [
+   "Haltet eure Picknickhüte fest!",
+   "nar"
+  ],
+  "e18": [
+   "Wir kommen den Wolken näher!",
+   "nar"
+  ],
+  "e19": [
+   "Kalte Zehen. Fröhliche Buds.",
+   "nar"
+  ],
+  "e20": [
+   "Bester. Flug. Aller Zeiten.",
+   "nar"
+  ],
+  "e21": [
+   "Licht an. Rakete startklar!",
+   "nar"
+  ],
+  "e22": [
+   "Niemand ist in den Schnee gefallen. Fast niemand.",
+   "nar"
+  ],
+  "e23": [
+   "Drei … zwei … eins … HUIIII!",
+   "nar"
+  ],
+  "e24": [
+   "Ein kleiner Schritt. Ein riesiger Hüpfer!",
+   "nar"
+  ],
+  "e25": [
+   "So hoch! Fast hätten wir einen Stern berührt.",
+   "nar"
+  ],
+  "e26": [
+   "Danke, Mondmotten. Zeit, nach Hause zu fliegen!",
+   "nar"
+  ],
+  "e27": [
+   "Drüber und weiter. Die Rakete wartet!",
+   "nar"
+  ],
+  "e28": [
+   "Fast zu Hause. Hört ihr die Glocke?",
+   "nar"
+  ],
+  "e29": [
+   "Alle Buds sind zu Hause!",
+   "nar"
+  ],
+  "c_stop": [
+   "Halt",
+   "bud"
+  ],
+  "c_build": [
+   "Brücke",
+   "bud"
+  ],
+  "c_dig": [
+   "Graben",
+   "bud"
+  ],
+  "c_bash": [
+   "Tunnel",
+   "bud"
+  ],
+  "c_float": [
+   "Schirm",
+   "bud"
+  ],
+  "c_tramp": [
+   "Hüpfen",
+   "bud"
+  ],
+  "c_jet": [
+   "Rakete",
+   "bud"
+  ],
+  "c_run": [
+   "Sprint",
+   "bud"
+  ],
+  "c_bomb": [
+   "Bumm",
+   "bud"
+  ],
+  "c_bub": [
+   "Blase",
+   "bud"
+  ],
+  "c_climb": [
+   "Klettern",
+   "bud"
+  ]
+ }
+}

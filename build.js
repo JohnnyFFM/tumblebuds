@@ -78,4 +78,11 @@ self.addEventListener('fetch',e=>{
 });
 `);
 fs.writeFileSync(path.join(out, '.nojekyll'), '');
+// spoken lines (made by voice-lines.js + make-voice.py); the game fetches them one by one and the service worker keeps them
+const vsrc = path.join(__dirname, 'voice');
+if (fs.existsSync(vsrc)) for (const l of fs.readdirSync(vsrc)) {
+  const d = path.join(vsrc, l); if (!fs.statSync(d).isDirectory()) continue;
+  fs.mkdirSync(path.join(out, 'voice', l), { recursive: true });
+  for (const f of fs.readdirSync(d)) if (f.endsWith('.mp3')) fs.copyFileSync(path.join(d, f), path.join(out, 'voice', l, f));
+}
 console.log('built docs/ (cache ' + ver + ')');
