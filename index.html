@@ -4605,7 +4605,7 @@ function lookInit(){
    'float gh(float k,float r){vec2 d=(v-(uSun+(vec2(.5)-uSun)*k))*vec2(uAsp,1.);return smoothstep(r,r*.25,length(d));}',
    'void main(){vec3 c=texture2D(tS,v).rgb*uW.x+texture2D(tH,v).rgb*uW.y+texture2D(tI,v).rgb*uW.z+texture2D(tK,v).rgb*uW.w*vec3(1.,.9,.78);',
    ' if(uFl>0.){float o=texture2D(tO,vec2(.5)).r*uFl;vec2 d=(v-uSun)*vec2(uAsp,1.);float r=length(d);',
-   '  vec3 f=uFC*(exp(-r*r*26.)*.5+exp(-r*5.)*.16);',
+   '  vec3 f=uFC*(exp(-r*r*26.)*.24+exp(-r*5.)*.08);',
    '  f+=vec3(1.,.82,.5)*gh(.55,.05)*.2+vec3(.55,.85,1.)*gh(1.3,.085)*.14+vec3(.95,.62,1.)*gh(1.75,.14)*.1+vec3(.6,1.,.75)*gh(.85,.022)*.22;',
    '  f+=uFC*smoothstep(.03,0.,abs(r-.36))*.07*smoothstep(1.,.2,length(v-.5)*2.);',
    '  c+=f*o;}',
@@ -4696,7 +4696,7 @@ function lookPost(t,focus){
     W4.set(1,0,0,0);
   }
   u=PM.down.uniforms;u.tS.value=S.texture;u.uPx.value.set(1/S.width,1/S.height);fsPass(PM.down,f);
-  blurP(f,g,1.2/f.width,0);blurP(g,f,0,1.2/f.height);{const bs=lab('lookTilt')?1.6:2.2;blurP(f,g,bs/f.width,0);blurP(g,RTS.f2,0,bs/f.height);}   /* f: lightly blurred, f2: fully blurred */
+  blurP(f,g,1.2/f.width,0);blurP(g,f,0,1.2/f.height);{const bs=lab('lookTilt')?1.4:2.2;blurP(f,g,bs/f.width,0);blurP(g,RTS.f2,0,bs/f.height);}   /* f: lightly blurred, f2: fully blurred */
   /* light shafts, tuned per world; the passes are skipped when they would add nothing */
   _v.copy(cam.position).addScaledVector(sunDir,5000).project(cam);const vis=_v.z<1?1:0,sx0=_v.x*.5+.5,sy0=_v.y*.5+.5;
   let ray=e.ray*vis,sx=sx0,sy=sy0;const lr=lab('lookRays'),q=LOOKR[TC.k]||LOOKR.hills;
@@ -4725,7 +4725,7 @@ function lookPost(t,focus){
     const zz=sZ||z,wh=vh/zz,ww=vw/zz,tk=mode==='title'?.5:clamp((1.75-zz)/.6,0,1)*clamp((VP.k-.3)/.5,0,1),m=150+wh*.5*(VP.p+.12)+ww*.5*Math.min(.9,Math.abs(VP.s)+Math.abs(VP.y)*.5+.06);
     const nE=Math.max(40,focus-m),fE=focus+m+140,kk=.2;
     LOOK.nE=Math.min(nE,LOOK.nE+(nE-LOOK.nE)*kk);LOOK.fE=Math.max(fE,LOOK.fE+(fE-LOOK.fE)*kk);LOOK.tk+=(tk-LOOK.tk)*kk;
-    u.uTilt.value=1;u.uTS.value.set(LOOK.nE,focus*.16+50,LOOK.fE,lerp(2600,focus*1.6+700,LOOK.tk));u.uTK.value=LOOK.tk;u.uTF.value=lerp(.7,.92,LOOK.tk)*(Q.t||1);
+    u.uTilt.value=1;u.uTS.value.set(LOOK.nE,focus*.16+50,LOOK.fE,lerp(2600,focus*1.6+700,LOOK.tk));u.uTK.value=LOOK.tk;u.uTF.value=lerp(.7,.86,LOOK.tk)*(Q.t||1)*(port?.78:1);
   }else u.uTilt.value=0;
   if(gr){
     const ss=sunset,dk=dusk;
