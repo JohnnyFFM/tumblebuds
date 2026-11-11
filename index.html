@@ -1002,6 +1002,7 @@ function loadWorld(){
   for(const key in sets){const far=key.slice(-1)==='1';instMesh(TREE[key.slice(0,-1)].g(far?1:0),MATS.tree,sets[key],!far);}
   // out-of-focus plants between the camera and the water
   if(TC.reeds){MATS.reed.color.setHex(TC.reeds);const rl=[];for(let x=-160;x<W+160;x+=16+rnd()*40)rl.push({x,y:-(WATER_Y+4),z:64+rnd()*70,r:rnd()*6,s:.8+rnd()*.8});instMesh(bladeGeo(46,1.5,7,'#263f1c','#8fae4e'),MATS.reed,rl);}
+  envWorld();
 }
 function hideScatter(x,y,w,h){
   for(const sc of scat){let ch=false;const a=sc.m.instanceMatrix.array;for(let i=0;i<sc.l.length;i++){const d=sc.l[i];if(d.px>=x-1&&d.px<=x+w&&d.py>=y-2&&d.py<=y+h+1&&a[i*16+15]!==0){a.fill(0,i*16,i*16+16);d.gone=true;ch=true;}}if(ch)sc.m.instanceMatrix.needsUpdate=true;}
@@ -1712,6 +1713,146 @@ function updEnv(t){
   const w=water.material.uniforms,dp=key3(TC.sea[0],TC.sea[1],TC.sea[2]);
   w.uFr.value=TC.fr;w.uT.value=t;w.uDeep.value.set(dp[0],dp[1],dp[2]);w.uSky.value.set(mid[0]/255,mid[1]/255,mid[2]/255);w.uFog.value.set((hor[0]+mid[0])/510,(hor[1]+mid[1])/510,(hor[2]+mid[2])/510);w.uSunCol.value.copy(u.uSunCol.value);w.uReflOn.value=lowQ||!TC.refl?0:1;
   windU.value=t;
+  envUpd(t);
+}
+/* ---------- environment: epic polish pass (lab switches env*) ----------
+   Optional dressing for the world inside a level: water, sky, ground, plants, light. Every effect asks lab('env...') each frame and is
+   driven by a uniform, so with its switch off the shaders take their original path. The sky and the liquid plane keep their original
+   shader as mainOld(). Hooks into older code: envUpd (last line of updEnv) and envWorld (last line of loadWorld). */
+LABDEF.envShore='Shore foam & shallows';LABDEF.envWaves='Waves & sun glitter';LABDEF.envFloes='Drifting ice floes';LABDEF.envLiquid='Sand, cloud & dust seas';
+LABDEF.envClouds='Painted clouds';LABDEF.envSun='Sun corona & moon glow';LABDEF.envStars='Stars & milky way';LABDEF.envAurora='Aurora over the snow';LABDEF.envPlanet='Planet in the moon sky';
+LABDEF.envCaust='Underwater light play';LABDEF.envWet='Wet shoreline rocks';LABDEF.envGlit='Sand & snow glitter';LABDEF.envDetail='Fresh earth & soft shade';LABDEF.envMist='Valley mist & haze';
+LABDEF.envWind='Wind gusts, tree sway';LABDEF.envGlow='Glowing moon crystals';LABDEF.envLight='Painted light & bounce';
+/* per-theme look values of this pass. liq: what the big plane is (0 water, 1 sand sea, 2 cloud sea, 3 moon dust, 4 deep trench);
+   shal: colour of the shallows; wet/glit/caus/glow/sway: strengths; swsp: sway speed; mist: [strength, top height, band height, tint r,g,b] */
+const ENVT={
+ beach:{liq:0,shal:[.3,.82,.76],wet:1,glit:.9,caus:.7,mist:[.3,-380,70,1.1,1.12,1.16],sway:1,swsp:1.3},
+ sea:{liq:4,shal:[0,0,0],wet:0,glit:0,caus:1,mist:[.45,-200,260,.7,.86,1],sway:1.5,swsp:.6},
+ desert:{liq:1,shal:[0,0,0],wet:0,glit:.8,caus:0,mist:[.3,-380,70,1.14,1.04,.9],sway:0,swsp:1},
+ hills:{liq:0,shal:[.2,.56,.5],wet:1,glit:0,caus:.6,mist:[.55,-370,80,1.1,1.14,1.2],sway:1,swsp:1.1},
+ snow:{liq:0,shal:[.56,.84,.9],wet:.7,glit:1,caus:.45,mist:[.6,-365,85,1.14,1.17,1.24],sway:.5,swsp:1,floe:1,aur:1},
+ moon:{liq:3,shal:[0,0,0],wet:0,glit:.4,caus:0,mist:[0,-380,70,1,1,1],sway:0,swsp:1,glow:1,planet:1},
+ home:{liq:2,shal:[0,0,0],wet:0,glit:0,caus:0,mist:[.5,-385,70,1.2,1.2,1.26],sway:1,swsp:1.1}
+};
+const ENV={ok:0,shT:-1,shN:0,bounce:new T3.Color(1,1,1),treeDepth:null},plDir=V3(.5,.2,-.84).normalize();
+const ENVU={uEA:{value:new T3.Vector4()},uEB:{value:new T3.Vector4()},uEC:{value:new T3.Vector4()},uED:{value:new T3.Vector4()},uEMc:{value:V3(1,1,1)},uESc:{value:V3(1,1,1)}};
+function eRep(src,a,b){if(src.indexOf(a)<0)console.warn('env: shader hook not found: '+a);return src.replace(a,b);}
+/* shore map: a small texture over the level and its surroundings. R = distance to the nearest shore (0 at land .. 1 at 90 units and beyond),
+   G = 1 around the play strip. Built on the CPU from the terrain bitmap and the scenery height field, like the world map's sea. */
+const SH={w:512,h:256,x0:-900,z0:-1180,sx:3400,sz:1360,r:90,d:null,bg:null,tex:null,cd:new Float32Array(W),dirty:0,last:0,tick:0};
+function envShoreBg(){   // once per level: how far under the plane the scenery land lies at every texel (follows the land meshes of loadWorld)
+  const w=SH.w,h=SH.h,bg=SH.bg,za=[-44,-50,-60,-76,-100,-135,-180,-235,-300,-365,-426],nz=za.length,wy=-WATER_Y;
+  const fx0=-3000,fz0=-414,fs=50,fnx=153,fnz=59,HF=new Float32Array(fnx*fnz),BZ=new Float32Array(fnx),row=new Float32Array(nz);
+  for(let i=0;i<fnx;i++){BZ[i]=bz(fx0+i*fs);for(let j=0;j<fnz;j++)HF[j*fnx+i]=landY(fx0+i*fs,fz0-j*fs);}
+  for(let i=0;i<w;i++){
+    const X=SH.x0+(i+.5)*SH.sx/w,b=bz(X),fi=clamp((X-fx0)/fs,0,fnx-1.001),i0=fi|0,fu=fi-i0,bf=lerp(BZ[i0],BZ[i0+1],fu);
+    for(let j=0;j<nz;j++)row[j]=landY(X,za[j]);
+    for(let k=0;k<h;k++){
+      const Z=SH.z0+(k+.5)*SH.sz/h,zz=Z-b,zf=Z-bf;let hy=-1e9;
+      if(zz<=za[0]&&zz>=za[nz-1]){let j=0;while(j<nz-2&&zz<za[j+1])j++;hy=lerp(row[j],row[j+1],(za[j]-zz)/(za[j]-za[j+1]));}
+      if(zf<=fz0){const fj=clamp((fz0-zf)/fs,0,fnz-1.001),j0=fj|0,fv=fj-j0,o=j0*fnx+i0;hy=Math.max(hy,lerp(lerp(HF[o],HF[o+1],fu),lerp(HF[o+fnx],HF[o+fnx+1],fu),fv));}
+      bg[k*w+i]=hy<-1e8?1e9:Math.max(0,(wy-hy)*3);
+    }
+  }
+}
+function envShoreFill(){   // fast part, again whenever the Buds dig at the waterline
+  const w=SH.w,h=SH.h,d=SH.d,bg=SH.bg,cd=SH.cd,fl=LEVELS[LVL].fl,lw=!fl&&top0[0]<WATER_Y,rw=!fl&&top0[W-1]<WATER_Y;
+  let q=-1e9;for(let x=0;x<W;x++){if(solid[WATER_Y*W+x])q=x;cd[x]=x-q;}
+  q=1e9;for(let x=W-1;x>=0;x--){if(solid[WATER_Y*W+x])q=x;cd[x]=Math.min(cd[x],q-x);}
+  for(let i=0;i<w;i++){
+    const X=SH.x0+(i+.5)*SH.sx/w,b=bz(X),sl=1/Math.hypot(1,bzd(X)),dx=cd[clamp(Math.round(X),0,W-1)]+(X<0?-X:X>W-1?X-W+1:0),px=clamp((X+140)/100,0,1)*clamp((W+140-X)/100,0,1);
+    for(let k=0;k<h;k++){
+      const zp=SH.z0+(k+.5)*SH.sz/h-b,o=(k*w+i)*4;let f=bg[k*w+i];
+      if(zp>=ZB){f=Math.min(f,Math.hypot(dx,Math.max(zp-ZF,0)*sl));if((X<0&&lw)||(X>W-1&&rw))f=Math.min(f,(zp-ZB)*sl);}
+      d[o]=clamp(f/SH.r,0,1)*255;d[o+1]=px*clamp((zp-ZB+70)/50,0,1)*clamp((ZF+120-zp)/60,0,1)*255;d[o+3]=255;
+    }
+  }
+  SH.tex.needsUpdate=true;
+}
+{const c0=FX.carve;FX.carve=(x,y,w,h)=>{c0(x,y,w,h);if(y+h>=WATER_Y-1&&y<=WATER_Y+1)SH.dirty=1;};}
+/* called at the end of loadWorld: things that are built once per level */
+function envWorld(){
+  if(!SH.tex){SH.d=new Uint8Array(SH.w*SH.h*4);SH.bg=new Float32Array(SH.w*SH.h);SH.tex=new T3.DataTexture(SH.d,SH.w,SH.h,T3.RGBAFormat);SH.tex.magFilter=SH.tex.minFilter=T3.LinearFilter;SH.tex.generateMipmaps=false;}
+  envShoreBg();envShoreFill();SH.dirty=0;
+  {const a=lin(TC.turf[0]),b=lin(TC.land[0]);ENV.bounce.setRGB((a.r+b.r)/2,(a.g+b.g)/2,(a.b+b.b)/2);}
+  if(ENV.treeDepth)for(const o of LG.children)if(o.material===MATS.tree&&o.castShadow)o.customDepthMaterial=ENV.treeDepth;
+}
+/* liquid plane: original shader stays as mainOld(); uEW = (shore, waves, floes, kind) with kind -1 = original, 0 water, 1 sand, 2 cloud, 3 dust, 4 trench */
+const ENV_WATER=['uniform sampler2D tShore;uniform vec4 uShR,uEW;uniform vec3 uShal,uFoam;uniform vec2 uTod;',
+ 'vec2 eShore(vec2 p){return texture2D(tShore,(p-uShR.xy)*uShR.zw).rg;}',
+ 'float efb(vec2 p){return vnoise(p)*.55+vnoise(p*2.1+3.7)*.3+vnoise(p*4.3+9.1)*.15;}',
+ 'float eFog(float dist){return smoothstep(1200.,5200.,dist)*.92;}',
+ 'vec4 eWater(){vec2 p=vW.xz;float dist=length(cameraPosition-vW),fade=1./(1.+dist*.0012);',
+ ' float n1=vnoise(p*.03+vec2(uT*.3,uT*.18)),n2=vnoise(p*.085-vec2(uT*.28,uT*.4)),n3=vnoise(p*.25+uT*.55),n4=vnoise(p*.7-uT*.8);',
+ ' vec2 dn=(vec2(n1-.5,n2-.5)*1.2+vec2(n3-.5,n4-.5)*.6)*fade;vec3 V=normalize(cameraPosition-vW);float glit=0.;',
+ ' if(uEW.y>0.){',   // three crossing swells with analytic slopes: long travelling wave fronts instead of only blobby noise
+ '  float a1=dot(p,vec2(.021,.012))+uT*.55+n1*2.5,a2=dot(p,vec2(-.013,.034))+uT*.72+n2*2.,a3=dot(p,vec2(.06,-.045))-uT*1.1;',
+ '  dn+=(vec2(.87,.5)*cos(a1)*.3+vec2(-.36,.93)*cos(a2)*.22+vec2(.8,-.6)*cos(a3)*.1)*fade;',
+ '  glit=smoothstep(.36,.6,vnoise(p*1.3+vec2(uT*.9,-uT*.6))*vnoise(p*1.9-vec2(uT*.7,uT*.8)+4.))*smoothstep(2600.,500.,dist);}',
+ ' vec3 N=normalize(vec3(dn.x*.6,1.,dn.y*.6));float fr=(pow(1.-max(dot(V,N),0.),4.)*.85+.06)*uFr;',
+ ' vec2 uv=vR.xy/vR.w+dn*.03;vec3 refl=mix(uSky,texture2D(tRefl,uv).rgb,uReflOn),deep=uDeep;float al=.93,foam=0.;',
+ ' if(uEW.x>0.){vec2 s=eShore(p);float sh=1.-smoothstep(0.,.62,s.x),su=s.x*90.,lap=sin(uT*.7+n1*3.)*.5+.5;',   // shallows: lighter, clearer; foam: a noisy rim plus lines that run in to the shore
+ '  deep=mix(uDeep,uShal,sh*.85);al=mix(.93,.5,sh*sh);fr*=1.-.45*sh;',
+ '  float rim=1.-smoothstep(1.+lap*2.,4.5+5.*n3+lap*2.,su);rim*=.65+.35*smoothstep(.3,.6,vnoise(p*.8+uT*.15));',
+ '  float ln=pow(sin(su*.3+uT*.85+n1*5.)*.5+.5,7.)*(1.-smoothstep(5.,38.,su))*smoothstep(.3,.62,vnoise(p*.06+vec2(uT*.03,7.))+n4*.25);',
+ '  foam=clamp(rim+ln*.75,0.,1.);}',
+ ' vec3 col=mix(deep,refl,fr);float sp=max(dot(reflect(-uSun,N),V),0.);col+=uSunCol*pow(sp,160.)*1.6*uFr;',
+ ' col+=uSunCol*glit*pow(sp,40.)*1.3*uFr;',
+ ' col=mix(col,uFoam,foam*.9);al=max(al,foam*.95);',
+ ' return vec4(mix(col,uFog,eFog(dist)),al);}',
+ 'vec4 eSand(){vec2 p=vW.xz;float dist=length(cameraPosition-vW),fd=1./(1.+dist*.0025);vec3 V=normalize(cameraPosition-vW);vec2 L=normalize(uSun.xz+1e-4);',   // slow dunes lit from the sun side, fine wind ripples, sand blowing in streaks, a few grains that flash
+ ' vec2 q=p*.0035+vec2(uT*.0015,0.);float h=efb(q),hl=efb(q+L*.14),lit=clamp(.5+(h-hl)*7.,0.,1.);',
+ ' float rp=sin(p.x*.5+p.y*1.05+vnoise(p*.02)*6.)*.5+.5;',
+ ' vec3 col=uDeep*(.8+.36*lit)*(1.-.12*rp*rp*fd)+uSunCol*.05*smoothstep(.5,.75,h);',
+ ' float st=vnoise(vec2(p.x*.012-uT*.5,p.y*.09))*vnoise(vec2(p.x*.005-uT*.22,p.y*.03+3.));col+=(uSunCol*.5+.5)*smoothstep(.3,.62,st)*.09;',
+ ' float sk=h21(floor(p*.8));col+=uSunCol*step(.985,sk)*max(0.,sin(uT*2.5+sk*60.+dot(V.xz,vec2(9.))))*fd*.45*(1.-uTod.x);',
+ ' col*=1.+.1*(1.-smoothstep(0.,.35,eShore(p).x));',
+ ' col=mix(col,uSky,(pow(1.-max(V.y,0.),4.)*.85+.06)*uFr);',
+ ' return vec4(mix(col,uFog,eFog(dist)),.93);}',
+ 'float eCl(vec2 q){return efb(q)*.65+efb(q*3.1+vec2(-uT*.006,uT*.003))*.35;}',
+ 'vec4 eCloud(){vec2 p=vW.xz;float dist=length(cameraPosition-vW);vec3 V=normalize(cameraPosition-vW);vec2 L=normalize(uSun.xz+1e-4);',   // a billowing cloud deck: one parallax step so the tops lean toward the eye, lit from the sun side
+ ' vec2 q=p*.0032+vec2(uT*.006,uT*.0024);q-=V.xz/max(V.y,.25)*efb(q)*.03;',
+ ' float h=eCl(q),lit=clamp(.5+(h-eCl(q+L*.07))*4.5,0.,1.);',
+ ' vec3 shd=uDeep*mix(vec3(.6,.68,.9),vec3(.74,.55,.68),uTod.y),col=mix(shd,min(uDeep*1.12+.04,vec3(1.)),lit);',
+ ' col=mix(col,shd*.86,smoothstep(.52,.28,h)*.75)+uSunCol*lit*smoothstep(.45,.7,h)*.12*uTod.y;',
+ ' float nr=1.-smoothstep(0.,.5,eShore(p).x),al=mix(.97,.5+.45*smoothstep(.35,.7,h),nr);',
+ ' return vec4(mix(col,uFog,eFog(dist)),al);}',
+ 'vec4 eDust(){vec2 p=vW.xz;float dist=length(cameraPosition-vW),fd=1./(1.+dist*.0025);vec3 V=normalize(cameraPosition-vW);',   // mottled regolith with soft craters and a faint cold shimmer
+ ' float n=efb(p*.006),m=efb(p*.03+5.);vec2 c=p*.0045,ci=floor(c),cf=fract(c)-.5;float hh=h21(ci),on=step(.45,hh);',
+ ' float r=length(cf-(vec2(h21(ci+3.),h21(ci+7.))-.5)*.4),rad=.1+.2*hh;',
+ ' vec3 col=uDeep*(.55+1.3*n)*(.8+.4*m)*(1.-.4*on*smoothstep(rad,rad*.3,r))+uDeep*on*smoothstep(.04,0.,abs(r-rad))*.7;',
+ ' float sk=h21(floor(p*.7));col+=vec3(.6,.75,1.)*step(.988,sk)*(.5+.5*sin(uT*1.7+sk*80.+dot(V.xz,vec2(7.))))*.3*fd;',
+ ' col=mix(col,uSky,(pow(1.-max(V.y,0.),4.)*.85+.06)*uFr);',
+ ' return vec4(mix(col,uFog,eFog(dist)),.93);}',
+ 'vec4 eTrench(){vec2 p=vW.xz;float dist=length(cameraPosition-vW),fd=1./(1.+dist*.0016);',   // the deep: faint webs of light sinking into the dark, a glow along the drop-off
+ ' float a=vnoise(p*.012+vec2(uT*.05,uT*.03)),b=vnoise(p*.021-vec2(uT*.04,uT*.06)+5.),c=pow(1.-min(abs(a-b)*3.,1.),3.);',
+ ' vec3 col=uDeep+vec3(0.,.07,.1)*c*fd+vec3(0.,.03,.06)*vnoise(p*.004+uT*.01)+vec3(.01,.09,.11)*(1.-smoothstep(0.,.7,eShore(p).x));',
+ ' return vec4(mix(col,uFog,eFog(dist)),.93);}',
+ 'vec4 eFloe(vec4 c){vec2 p=vW.xz*.03+vec2(uT*.01,uT*.004)+(vec2(vnoise(vW.xz*.02),vnoise(vW.xz*.02+9.))-.5)*.5,i=floor(p),f=fract(p);float d1=9.,d2=9.,id=0.;',   // ice floes: drifting cells with open leads between them, kept away from the play strip
+ ' for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 g=vec2(float(x),float(y));float d=length(g+vec2(h21(i+g),h21(i+g+17.3))-f);if(d<d1){d2=d1;d1=d;id=h21(i+g+5.1);}else if(d<d2)d2=d;}',
+ ' float e=d2-d1+(vnoise(vW.xz*.15)-.5)*.06,dist=length(cameraPosition-vW);vec2 s=eShore(vW.xz);',
+ ' float on=step(.6,id)*(1.-s.y)*smoothstep(.05,.3,s.x)*smoothstep(3400.,1600.,dist),m=smoothstep(.2+.25*fract(id*7.),.24+.25*fract(id*7.),e)*on;',
+ ' vec3 ice=uFoam*vec3(.84,.94,1.08)*(.8+.2*fract(id*13.))*(.9+.14*vnoise(vW.xz*.3))*(.82+.18*smoothstep(.24,.5,e));ice=mix(ice,uFog,eFog(dist));',
+ ' c.rgb=mix(c.rgb,mix(uShal,uFoam,.3),smoothstep(.1,.24,e)*on*(1.-m)*.45);',
+ ' return vec4(mix(c.rgb,ice,m),max(c.a,m));}',
+ 'void main(){',
+ ' if(uEW.w<0.)mainOld();else if(uEW.w<.5)gl_FragColor=eWater();else if(uEW.w<1.5)gl_FragColor=eSand();else if(uEW.w<2.5)gl_FragColor=eCloud();else if(uEW.w<3.5)gl_FragColor=eDust();else gl_FragColor=eTrench();',
+ ' if(uEW.z>0.)gl_FragColor=eFloe(gl_FragColor);}'].join('\n');
+function envSetup(){
+  ENV.ok=1;
+  const wm=water.material;Object.assign(wm.uniforms,{tShore:{value:SH.tex},uShR:{value:new T3.Vector4(SH.x0,SH.z0,1/SH.sx,1/SH.sz)},uEW:{value:new T3.Vector4(0,0,0,-1)},uShal:{value:V3(0,0,0)},uFoam:{value:V3(1,1,1)},uTod:{value:new T3.Vector2()}});
+  wm.fragmentShader=eRep(wm.fragmentShader,'void main(){','void mainOld(){')+'\n'+ENV_WATER;wm.needsUpdate=true;
+}
+function envUpd(t){
+  if(!ENV.ok)envSetup();
+  const E=ENVT[TC.k]||ENVT.hills,hq=!lowQ,on=id=>lab(id)?1:0;
+  if(G.tick<SH.tick)SH.dirty=1;SH.tick=G.tick;
+  if(SH.dirty&&Math.abs(t-SH.last)>.4){SH.dirty=0;SH.last=t;envShoreFill();}
+  {const wu=water.material.uniforms,liq=E.liq,sh=on('envShore'),wv=on('envWaves'),d0=TC.sea[0],dp=wu.uDeep.value;
+    wu.uEW.value.set(liq?1:sh,liq?0:wv,E.floe&&hq&&lab('envFloes')?1:0,liq?(hq&&lab('envLiquid')?liq:-1):(sh||wv?0:-1));
+    const dl=clamp((dp.x+dp.y+dp.z)/(d0[0]+d0[1]+d0[2]+.001),0,1.15),si=sun.intensity/2.1,hc=hemi.color;
+    wu.uShal.value.set(E.shal[0]*dl,E.shal[1]*dl,E.shal[2]*dl);wu.uTod.value.set(dusk,sunset);
+    wu.uFoam.value.set(Math.min(1,sun.color.r*si*.62+hc.r*.42),Math.min(1,sun.color.g*si*.62+hc.g*.42),Math.min(1,sun.color.b*si*.62+hc.b*.42));}
 }
 
 /* ---------- props and characters ---------- */
