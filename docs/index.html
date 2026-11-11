@@ -2418,7 +2418,7 @@ $('pTitle').addEventListener('click',()=>{sfx('ui');toMenu('title');});
 $('bCam').addEventListener('click',()=>{initAudio();CFG.view=((CFG.view|0)+1)%4;persist();sfx('ui');toast(tr(49)+': '+tr(VNAME[CFG.view]));});
 /* studio ident, then the title reveal */
 {const st=$('studio');let done=false;
-  const fin=()=>{if(done)return;done=true;st.classList.add('out');if(mode==='title'&&$('map').hidden&&$('settings').hidden){const go=()=>{show('title');$('title').classList.add('reveal');};if(SAVE.intro)go();else{SAVE.intro=1;persist();show(null);MOVIE.play('intro',go);}}setTimeout(()=>{st.hidden=true;},950);};
+  const fin=()=>{if(done)return;done=true;st.classList.add('out');if(mode==='title'&&$('map').hidden&&$('settings').hidden){const go=()=>{show('title');$('title').classList.add('reveal');};show(null);MOVIE.play('intro',go);}setTimeout(()=>{st.hidden=true;},950);};
   if(location.hash){done=true;st.hidden=true;if(!/^#(play|lv|map|intro|ending)/.test(location.hash))show('title');}
   else{setTimeout(fin,matchMedia('(prefers-reduced-motion:reduce)').matches?1400:3500);st.addEventListener('pointerdown',fin);window.addEventListener('keydown',fin,{once:true});}
 }
@@ -2626,7 +2626,7 @@ function frame(ms){
 
 /* ---------- boot ---------- */
 /* build.js raises the last number and stamps the time on every build */
-const VERSION='0.4.13',BUILT='2026-11-11 09:51 UTC';
+const VERSION='0.4.14',BUILT='2026-11-11 09:57 UTC';
 document.querySelectorAll('.verT').forEach(e=>{e.textContent='DEMO · v'+VERSION+(BUILT?' · '+BUILT:'');});
 'TUMBLEBUDS'.split('').forEach((ch,i)=>{const s=document.createElement('span');s.textContent=ch;s.style.animationDelay=(i*.09)+'s';$('logo').append(s);});
 if(/[?&]all\b/.test(location.search))SAVE.all=1;
