@@ -8,13 +8,14 @@ const LTXT = JSON.parse(grab('const LTXT=', '};\nconst LT=') + '}');
 const MTXT = (new Function('return ' + grab('const MTXT=', '};') + '}'))();
 const TXT = JSON.parse(s.match(/const TXT=(\{.*\});\n/)[1]);
 const LANGS = ['en', 'de'];                       // languages that get a voice so far
-const BUD = new Set([3, 7, 14, 20, 23]);          // movie lines spoken by the Buds (a child's voice)
+const BUD = new Set([3, 7, 14, 20, 23, 27, 28, 29, 30]);   // movie lines spoken by the Buds (a child's voice)
+const INV = new Set([26]);                        // spoken by the inventor
 const SKIP = new Set([15]);                       // text on the signpost, not spoken
 const CARDS = { stop: 10, build: 11, dig: 12, bash: 13, float: 14, tramp: 67, jet: 68, run: 69, bomb: 70, bub: 71, climb: 72 };
 const out = {};
 for (const l of LANGS) {
   const o = out[l] = {};
-  MTXT[l].forEach((t, i) => { if (!SKIP.has(i)) o['m' + i] = [t, BUD.has(i) ? 'bud' : 'nar']; });
+  MTXT[l].forEach((t, i) => { if (!SKIP.has(i)) o['m' + i] = [t, BUD.has(i) ? 'bud' : INV.has(i) ? 'inv' : 'nar']; });
   LTXT[l].o.forEach((t, i) => { o['o' + i] = [t, 'nar']; });
   LTXT[l].e.forEach((t, i) => { o['e' + i] = [t, 'nar']; });
   for (const k in CARDS) o['c_' + k] = [TXT[l][CARDS[k]], 'bud'];

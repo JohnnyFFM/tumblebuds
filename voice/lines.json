@@ -92,6 +92,42 @@
    "CAKE!",
    "bud"
   ],
+  "m24": [
+   "The rocket was ready. The Buds were ready.",
+   "nar"
+  ],
+  "m25": [
+   "Even the cake was ready.",
+   "nar"
+  ],
+  "m26": [
+   "Hold on tight, little Buds!",
+   "inv"
+  ],
+  "m27": [
+   "Three...",
+   "bud"
+  ],
+  "m28": [
+   "two...",
+   "bud"
+  ],
+  "m29": [
+   "one...",
+   "bud"
+  ],
+  "m30": [
+   "WHEEEEE!",
+   "bud"
+  ],
+  "m31": [
+   "Up through the clouds they flew, higher than the mountain...",
+   "nar"
+  ],
+  "m32": [
+   "...and there, twinkling in the dark, was home.",
+   "nar"
+  ],
   "o0": [
    "Hello, beach! Let’s get everybody off the balloon.",
    "nar"
@@ -469,6 +505,42 @@
   "m23": [
    "KUCHEN!",
    "bud"
+  ],
+  "m24": [
+   "Die Rakete war bereit. Die Buds waren bereit.",
+   "nar"
+  ],
+  "m25": [
+   "Sogar der Kuchen war bereit.",
+   "nar"
+  ],
+  "m26": [
+   "Gut festhalten, kleine Buds!",
+   "inv"
+  ],
+  "m27": [
+   "Drei ...",
+   "bud"
+  ],
+  "m28": [
+   "zwei ...",
+   "bud"
+  ],
+  "m29": [
+   "eins ...",
+   "bud"
+  ],
+  "m30": [
+   "JUHUUUU!",
+   "bud"
+  ],
+  "m31": [
+   "Hoch durch die Wolken flogen sie, höher als der Berg ...",
+   "nar"
+  ],
+  "m32": [
+   "... und dort, als Funkeln im Dunkeln, lag ihr Zuhause.",
+   "nar"
   ],
   "o0": [
    "Hallo, Strand! Holen wir alle aus dem Ballon.",

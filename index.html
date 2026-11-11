@@ -1913,6 +1913,7 @@ function startGame(quick){
   {const lv=LVL;setTimeout(()=>{if(mode==='play'&&cine&&LVL===lv)VO.say('o'+lv);},900);}
   syncHud(true);
 }
+LABDEF.launch='Rocket launch movie';
 function endGame(){
   if(endShown)return;endShown=true;G.ended=true;mode='end';
   const win=G.saved>=NEED,stars=!win?0:G.saved>=TOTAL?3:G.saved>=Math.ceil((NEED+TOTAL)/2)?2:1;
@@ -1928,6 +1929,7 @@ function endGame(){
     sfx(win?'win':'lose');if(win){const lv=LVL;setTimeout(()=>{if(mode==='end'&&LVL===lv)VO.say('e'+lv);},1000);}
     if(win)for(let i=0;i<7;i++)setTimeout(()=>{flash=.12;burst(camX+vw/z*(.15+.7*Math.random()),camY+vh/z*(.15+.35*Math.random()),30,['#fff3a0','#ffd0e0','#b9f5ff','#fff'],'star',3.2,.02,80,5.5);},i*380);
     if(win)for(let i=0;i<110;i++)P(camX+Math.random()*vw/z,camY-10-Math.random()*120,(Math.random()-.5)*1.2,.8+Math.random()*1.4,260,3+Math.random()*2.5,FLOWER[i%5],'petal',.004);
+    if(win&&LVL===23&&lab('launch')){$('end').hidden=true;setTimeout(()=>{if(mode==='end')MOVIE.play('launch',()=>{if(mode==='end')$('end').hidden=false;});},2400);}
     if(win&&LVL===NLV-1){$('end').hidden=true;setTimeout(()=>{if(mode==='end')MOVIE.play('ending',()=>{if(mode==='end')$('end').hidden=false;});},2400);}
   },900);
 }
@@ -2123,40 +2125,53 @@ function renderMap(t,dt){
 
 /* ---------- intro and ending movies ---------- */
 /* ---------- movies: the intro and the ending ---------- */
-/* every on-screen string of the two movies; 0-15 intro (15 = the name on the signpost), 16-23 ending */
+/* every on-screen string of the movies; 0-15 intro (15 = the name on the signpost), 16-23 ending, 24-32 launch. The voice files are named after these indices: never renumber */
 const MTXT={
 en:['High above the clouds is a little place called Buddletop.','This is where the Buds grow.','A little sunshine, a little rain, and...','POP!','Today, the Buds are going on a picnic!','They remembered everything.','Well... almost everything.','Wheeeee!','Oh, Buds. This is a very long way from home.','But there is a way back.','Beyond the sea, across the sand, and up the mountains...','...a rocket is waiting!','They\'ll need a little help.','Shall we show them the way?','Let\'s go!','Rocket Mountain',
- 'Across the sand, beneath the sea,','over the mountains, and through the stars...','The Buds had found their way home.','And the cake had made it too.','Hello, little Bud!','Tomorrow, there would be more adventures.','But first...','CAKE!'],
+ 'Across the sand, beneath the sea,','over the mountains, and through the stars...','The Buds had found their way home.','And the cake had made it too.','Hello, little Bud!','Tomorrow, there would be more adventures.','But first...','CAKE!',
+ 'The rocket was ready. The Buds were ready.','Even the cake was ready.','Hold on tight, little Buds!','Three...','two...','one...','WHEEEEE!','Up through the clouds they flew, higher than the mountain...','...and there, twinkling in the dark, was home.'],
 de:['Hoch über den Wolken liegt ein kleiner Ort namens Buddletop.','Hier wachsen die Buds.','Ein bisschen Sonne, ein bisschen Regen, und ...','PLOPP!','Heute machen die Buds ein Picknick!','Sie haben an alles gedacht.','Na ja ... an fast alles.','Juhuuuu!','Oh, Buds. Das ist ganz schön weit weg von zu Hause.','Aber es gibt einen Weg zurück.','Über das Meer, durch den Sand und hinauf in die Berge ...','... dort wartet eine Rakete!','Sie brauchen ein bisschen Hilfe.','Wollen wir ihnen den Weg zeigen?','Los geht\'s!','Raketenberg',
- 'Durch den Sand, tief unters Meer,','über die Berge und durch die Sterne ...','Die Buds hatten nach Hause gefunden.','Und der Kuchen hatte es auch geschafft.','Hallo, kleiner Bud!','Morgen würde es neue Abenteuer geben.','Aber zuerst ...','KUCHEN!'],
+ 'Durch den Sand, tief unters Meer,','über die Berge und durch die Sterne ...','Die Buds hatten nach Hause gefunden.','Und der Kuchen hatte es auch geschafft.','Hallo, kleiner Bud!','Morgen würde es neue Abenteuer geben.','Aber zuerst ...','KUCHEN!',
+ 'Die Rakete war bereit. Die Buds waren bereit.','Sogar der Kuchen war bereit.','Gut festhalten, kleine Buds!','Drei ...','zwei ...','eins ...','JUHUUUU!','Hoch durch die Wolken flogen sie, höher als der Berg ...','... und dort, als Funkeln im Dunkeln, lag ihr Zuhause.'],
 fr:['Tout là-haut, au-dessus des nuages, il y a un petit coin appelé Buddletop.','C\'est ici que poussent les Buds.','Un peu de soleil, un peu de pluie, et...','POP !','Aujourd\'hui, les Buds partent en pique-nique !','Ils ont pensé à tout.','Enfin... presque à tout.','Youpiiii !','Oh, les Buds. Vous voilà bien loin de la maison.','Mais il existe un chemin pour rentrer.','Au-delà de la mer, à travers le sable et tout en haut des montagnes...','...une fusée les attend !','Ils auront besoin d\'un petit coup de main.','On leur montre le chemin ?','En route !','Mont Fusée',
- 'À travers le sable, sous la mer,','par-dessus les montagnes et parmi les étoiles...','Les Buds avaient retrouvé le chemin de la maison.','Et le gâteau aussi était bien arrivé.','Bonjour, petit Bud !','Demain, il y aurait de nouvelles aventures.','Mais d\'abord...','GÂTEAU !'],
+ 'À travers le sable, sous la mer,','par-dessus les montagnes et parmi les étoiles...','Les Buds avaient retrouvé le chemin de la maison.','Et le gâteau aussi était bien arrivé.','Bonjour, petit Bud !','Demain, il y aurait de nouvelles aventures.','Mais d\'abord...','GÂTEAU !',
+ 'La fusée était prête. Les Buds étaient prêts.','Même le gâteau était prêt.','Accrochez-vous bien, petits Buds !','Trois...','deux...','un...','YOUPIIII !','Ils montèrent à travers les nuages, plus haut que la montagne...','...et là, scintillant dans le noir, il y avait la maison.'],
 es:['Muy por encima de las nubes hay un lugarcito llamado Buddletop.','Aquí es donde crecen los Buds.','Un poquito de sol, un poquito de lluvia, y...','¡POP!','¡Hoy los Buds se van de pícnic!','Se acordaron de todo.','Bueno... de casi todo.','¡Yupiiii!','Ay, Buds. Esto queda muy, muy lejos de casa.','Pero hay un camino de vuelta.','Más allá del mar, cruzando la arena y subiendo las montañas...','...¡los espera un cohete!','Van a necesitar una ayudita.','¿Les enseñamos el camino?','¡Vamos!','Monte Cohete',
- 'Por la arena, bajo el mar,','sobre las montañas y entre las estrellas...','Los Buds habían encontrado el camino a casa.','Y el pastel también había llegado.','¡Hola, pequeño Bud!','Mañana habría más aventuras.','Pero primero...','¡PASTEL!'],
+ 'Por la arena, bajo el mar,','sobre las montañas y entre las estrellas...','Los Buds habían encontrado el camino a casa.','Y el pastel también había llegado.','¡Hola, pequeño Bud!','Mañana habría más aventuras.','Pero primero...','¡PASTEL!',
+ 'El cohete estaba listo. Los Buds estaban listos.','Hasta el pastel estaba listo.','¡Agárrense fuerte, pequeños Buds!','Tres...','dos...','uno...','¡YUPIIII!','Subieron entre las nubes, más alto que la montaña...','...y allí, brillando en la oscuridad, estaba su casa.'],
 it:['In alto, sopra le nuvole, c\'è un posticino chiamato Buddletop.','È qui che crescono i Buds.','Un po\' di sole, un po\' di pioggia, e...','POP!','Oggi i Buds vanno a fare un picnic!','Si sono ricordati di tutto.','Be\'... di quasi tutto.','Yuhuuuu!','Oh, Buds. Siete proprio lontani da casa.','Ma una strada per tornare c\'è.','Oltre il mare, attraverso la sabbia e su per le montagne...','...li aspetta un razzo!','Avranno bisogno di un piccolo aiuto.','Gli mostriamo la strada?','Andiamo!','Monte Razzo',
- 'Attraverso la sabbia, sotto il mare,','sopra le montagne e tra le stelle...','I Buds avevano ritrovato la strada di casa.','E ce l\'aveva fatta anche la torta.','Ciao, piccolo Bud!','Domani ci sarebbero state nuove avventure.','Ma prima...','TORTA!'],
+ 'Attraverso la sabbia, sotto il mare,','sopra le montagne e tra le stelle...','I Buds avevano ritrovato la strada di casa.','E ce l\'aveva fatta anche la torta.','Ciao, piccolo Bud!','Domani ci sarebbero state nuove avventure.','Ma prima...','TORTA!',
+ 'Il razzo era pronto. I Buds erano pronti.','Perfino la torta era pronta.','Tenetevi forte, piccoli Buds!','Tre...','due...','uno...','YUHUUUU!','Su, attraverso le nuvole, più in alto della montagna...','...e là, a brillare nel buio, c\'era casa.'],
 pt:['Lá no alto, acima das nuvens, fica um lugarzinho chamado Buddletop.','É aqui que os Buds crescem.','Um pouquinho de sol, um pouquinho de chuva, e...','PLOP!','Hoje os Buds vão fazer um piquenique!','Eles se lembraram de tudo.','Bem... de quase tudo.','Uhuuuu!','Ai, Buds. Isso é muito, muito longe de casa.','Mas existe um caminho de volta.','Além do mar, pela areia e montanha acima...','...um foguete está esperando!','Eles vão precisar de uma ajudinha.','Vamos mostrar o caminho?','Vamos lá!','Monte Foguete',
- 'Pela areia, por baixo do mar,','por cima das montanhas e por entre as estrelas...','Os Buds tinham encontrado o caminho de casa.','E o bolo também tinha chegado.','Oi, pequeno Bud!','Amanhã haveria mais aventuras.','Mas primeiro...','BOLO!'],
+ 'Pela areia, por baixo do mar,','por cima das montanhas e por entre as estrelas...','Os Buds tinham encontrado o caminho de casa.','E o bolo também tinha chegado.','Oi, pequeno Bud!','Amanhã haveria mais aventuras.','Mas primeiro...','BOLO!',
+ 'O foguete estava pronto. Os Buds estavam prontos.','Até o bolo estava pronto.','Segurem firme, pequenos Buds!','Três...','dois...','um...','UHUUUU!','Lá foram eles por entre as nuvens, mais alto que a montanha...','...e lá, brilhando no escuro, estava a casa deles.'],
 nl:['Hoog boven de wolken ligt een klein plekje dat Buddletop heet.','Hier groeien de Buds.','Een beetje zon, een beetje regen, en...','PLOP!','Vandaag gaan de Buds picknicken!','Ze hebben aan alles gedacht.','Nou ja... aan bijna alles.','Joepieee!','O, Buds. Dit is wel heel ver van huis.','Maar er is een weg terug.','Over de zee, door het zand en de bergen op...','...daar wacht een raket!','Ze kunnen wel een beetje hulp gebruiken.','Zullen wij ze de weg wijzen?','Daar gaan we!','Raketberg',
- 'Door het zand, onder de zee,','over de bergen en langs de sterren...','De Buds hadden de weg naar huis gevonden.','En de taart had het ook gehaald.','Hallo, kleine Bud!','Morgen zouden er nieuwe avonturen zijn.','Maar eerst...','TAART!'],
+ 'Door het zand, onder de zee,','over de bergen en langs de sterren...','De Buds hadden de weg naar huis gevonden.','En de taart had het ook gehaald.','Hallo, kleine Bud!','Morgen zouden er nieuwe avonturen zijn.','Maar eerst...','TAART!',
+ 'De raket was klaar. De Buds waren klaar.','Zelfs de taart was klaar.','Hou je goed vast, kleine Buds!','Drie...','twee...','één...','JOEPIEEE!','Omhoog door de wolken vlogen ze, hoger dan de berg...','...en daar, fonkelend in het donker, lag thuis.'],
 pl:['Wysoko ponad chmurami leży małe miejsce o nazwie Buddletop.','To tutaj rosną Buds.','Trochę słońca, trochę deszczu i...','PYK!','Dziś Buds wybierają się na piknik!','Pamiętały o wszystkim.','No... prawie o wszystkim.','Juhuuuu!','Oj, Buds. Stąd jest bardzo daleko do domu.','Ale jest droga powrotna.','Za morzem, przez piasek i wysoko w góry...','...tam czeka rakieta!','Przyda im się mała pomoc.','Pokażemy im drogę?','Ruszamy!','Rakietowa Góra',
- 'Przez piasek, pod morzem,','ponad górami i wśród gwiazd...','Buds odnalazły drogę do domu.','I tort też dał radę.','Cześć, mały Bud!','Jutro czekały na nie nowe przygody.','Ale najpierw...','TORT!'],
+ 'Przez piasek, pod morzem,','ponad górami i wśród gwiazd...','Buds odnalazły drogę do domu.','I tort też dał radę.','Cześć, mały Bud!','Jutro czekały na nie nowe przygody.','Ale najpierw...','TORT!',
+ 'Rakieta była gotowa. Buds były gotowe.','Nawet tort był gotowy.','Trzymajcie się mocno, małe Buds!','Trzy...','dwa...','jeden...','JUHUUUU!','Leciały w górę przez chmury, wyżej niż góra...','...a tam, migocząc w ciemności, czekał dom.'],
 tr:['Bulutların çok yukarısında Buddletop adında küçük bir yer var.','Buds işte burada büyür.','Biraz güneş, biraz yağmur, ve...','PAT!','Bugün Buds pikniğe gidiyor!','Her şeyi hatırladılar.','Şey... neredeyse her şeyi.','Yuppiii!','Ah, Buds. Burası evden çok ama çok uzak.','Ama bir dönüş yolu var.','Denizin ötesinde, kumların üzerinde ve dağların tepesinde...','...bir roket bekliyor!','Biraz yardıma ihtiyaçları olacak.','Onlara yolu gösterelim mi?','Hadi gidelim!','Roket Dağı',
- 'Kumların üzerinden, denizin altından,','dağların üstünden ve yıldızların arasından...','Buds evin yolunu bulmuştu.','Pasta da başarmıştı.','Merhaba, küçük Bud!','Yarın yeni maceralar olacaktı.','Ama önce...','PASTA!'],
+ 'Kumların üzerinden, denizin altından,','dağların üstünden ve yıldızların arasından...','Buds evin yolunu bulmuştu.','Pasta da başarmıştı.','Merhaba, küçük Bud!','Yarın yeni maceralar olacaktı.','Ama önce...','PASTA!',
+ 'Roket hazırdı. Buds hazırdı.','Pasta bile hazırdı.','Sıkı tutunun, küçük Buds!','Üç...','iki...','bir...','YUPPİİİ!','Bulutların arasından yükseldiler, dağdan bile yükseğe...','...ve işte orada, karanlıkta ışıl ışıl parlayan evleri vardı.'],
 ru:['Высоко-высоко над облаками есть маленькое местечко — Бадлтоп.','Здесь растут малыши.','Немножко солнышка, немножко дождика, и...','ХЛОП!','Сегодня малыши едут на пикник!','Они ничего не забыли.','Ну... почти ничего.','Уи-и-и!','Ох, малыши. Как же далеко отсюда до дома.','Но дорога домой есть.','За морем, через пески и высоко в горах...','...ждёт ракета!','Им понадобится немножко помощи.','Покажем им дорогу?','Вперёд!','Ракетная гора',
- 'Через пески, по морскому дну,','через горы и сквозь звёзды...','Малыши нашли дорогу домой.','И торт тоже добрался.','Привет, малыш!','Завтра будут новые приключения.','Но сначала...','ТОРТ!'],
+ 'Через пески, по морскому дну,','через горы и сквозь звёзды...','Малыши нашли дорогу домой.','И торт тоже добрался.','Привет, малыш!','Завтра будут новые приключения.','Но сначала...','ТОРТ!',
+ 'Ракета была готова. Малыши были готовы.','Даже торт был готов.','Держитесь, малыши!','Три...','два...','один...','УИ-И-И!','Они летели сквозь облака, выше самой горы...','...и там, мерцая в темноте, был их дом.'],
 ja:['くもの ずっと うえに、バドルトップという ちいさな ばしょが あります。','ここで バッズは そだちます。','おひさまを すこし、あめを すこし、すると…','ポン！','きょうは バッズの ピクニック！','わすれものは ありません。','ええと… ほとんどね。','わーーい！','あらあら、バッズ。おうちから ずいぶん とおくまで きちゃった。','でも、かえる みちは あります。','うみを こえて、すなを わたって、やまを のぼると…','…ロケットが まっています！','すこしだけ、おてつだいが いりそうです。','みちを おしえて あげようか？','しゅっぱつ！','ロケットやま',
- 'すなを こえ、うみの そこを ぬけ、','やまを こえて、ほしの あいだを とおって…','バッズは おうちに かえってきました。','ケーキも ぶじに とどきました。','こんにちは、ちびバッズ！','あしたは また、あたらしい ぼうけん。','でも、そのまえに…','ケーキ！'],
+ 'すなを こえ、うみの そこを ぬけ、','やまを こえて、ほしの あいだを とおって…','バッズは おうちに かえってきました。','ケーキも ぶじに とどきました。','こんにちは、ちびバッズ！','あしたは また、あたらしい ぼうけん。','でも、そのまえに…','ケーキ！',
+ 'ロケットの じゅんびは できました。バッズの じゅんびも できました。','ケーキの じゅんびも ばっちり。','しっかり つかまって、バッズ！','さん…','に…','いち…','わーーーい！','くもを ぬけて、やまよりも たかく たかく…','…そして くらやみの なかで きらきら ひかるのが、おうちでした。'],
 ko:['구름 위 높은 곳에 버들탑이라는 작은 마을이 있어요.','여기서 버드들이 자라요.','햇살 조금, 비 조금, 그러면...','뿅!','오늘은 버드들이 소풍 가는 날!','빠짐없이 다 챙겼어요.','음... 거의 다요.','야호오오!','이런, 버드들아. 집에서 아주 멀리 와 버렸네.','하지만 돌아갈 길이 있어요.','바다를 건너고, 모래밭을 지나, 산 위로 올라가면...','...로켓이 기다리고 있어요!','버드들에겐 도움이 조금 필요해요.','우리가 길을 알려 줄까요?','출발!','로켓 산',
- '모래밭을 지나, 바닷속을 지나,','산을 넘고, 별들 사이를 지나...','버드들은 집으로 돌아왔어요.','케이크도 무사히 도착했답니다.','안녕, 꼬마 버드!','내일은 또 새로운 모험이 기다려요.','하지만 먼저...','케이크!'],
+ '모래밭을 지나, 바닷속을 지나,','산을 넘고, 별들 사이를 지나...','버드들은 집으로 돌아왔어요.','케이크도 무사히 도착했답니다.','안녕, 꼬마 버드!','내일은 또 새로운 모험이 기다려요.','하지만 먼저...','케이크!',
+ '로켓은 준비됐어요. 버드들도 준비됐어요.','케이크까지 준비 끝!','꽉 잡아, 꼬마 버드들!','셋...','둘...','하나...','야호오오오!','구름을 뚫고, 산보다 더 높이 날아올랐어요...','...그리고 저기, 어둠 속에서 반짝이는 곳이 바로 집이었어요.'],
 zh:['在高高的云朵上面，有个小小的地方，叫小芽岛。','小芽们就是在这里长大的。','一点点阳光，一点点雨水，然后……','啵！','今天，小芽们要去野餐啦！','他们什么都带齐了。','嗯……差不多都带齐了。','呜呼——！','哎呀，小芽们。这里离家好远好远。','不过，有一条回家的路。','越过大海，穿过沙丘，再爬上高山……','……有一枚火箭在等着！','他们需要一点点帮助。','我们来给他们带路，好吗？','出发！','火箭山',
- '穿过沙滩，潜过海底，','翻过高山，飞越星空……','小芽们找到了回家的路。','蛋糕也平安到家啦。','你好呀，小小芽！','明天，还会有新的冒险。','不过，先……','吃蛋糕！']
+ '穿过沙滩，潜过海底，','翻过高山，飞越星空……','小芽们找到了回家的路。','蛋糕也平安到家啦。','你好呀，小小芽！','明天，还会有新的冒险。','不过，先……','吃蛋糕！',
+ '火箭准备好了。小芽们也准备好了。','连蛋糕都准备好了。','抓紧啦，小芽们！','三……','二……','一……','呜呼——！','他们穿过云层，飞得比高山还要高……','……看，在黑暗里一闪一闪的，就是家。']
 };
-/* MOVIE.play('intro'|'ending',onDone) starts a movie; while MOVIE.on the frame loop calls MOVIE.render(t,dt) instead of the normal render.
+/* MOVIE.play('intro'|'launch'|'ending',onDone) starts a movie; while MOVIE.on the frame loop calls MOVIE.render(t,dt) instead of the normal render.
    Every pose is a pure function of the movie time, so the timeline can be skipped, replayed or jumped (MOVIE._seek) at will. */
 const MOVIE=(()=>{
   const TX=MTXT[LANG]||MTXT.en,PI=Math.PI,api={on:false,play,render,skip,_seek,_dur:0,_hold:false};
-  let q=null,el=null,kind='',mt=0,prevT=0,dur=0,done=null,shots=null,subs=null,bubs=null,cues=null,curShot=0,nb=0,fadeA=0,titleA=0,bars=0,safeT=10,camK=1,pUp=.2;
+  let q=null,el=null,kind='',mt=0,prevT=0,dur=0,done=null,shots=null,subs=null,bubs=null,cues=null,curShot=0,nb=0,fadeA=0,titleA=0,bars=0,safeT=10,camK=1,pUp=.2,fadeC='';
   const ui={sub:-2,subA:-1,b:[-2,-2],bw:[0,0],bh:[0,0],bA:[-1,-1],fade:-1,title:-1,skip:-1};
   const sat=x=>x<0?0:x>1?1:x,ss=(a,b,x)=>{x=sat((x-a)/(b-a));return x*x*(3-2*x);};
   const back=u=>{u=sat(u)-1;return 1+2.70158*u*u*u+1.70158*u*u;},land=v=>v<0?1:1-.3*Math.exp(-7*v)*Math.cos(16*v),rr=(i,k)=>h2(i*31+k*17+5,k*101+i*7+3);
@@ -2283,7 +2298,7 @@ const MOVIE=(()=>{
       for(const c of[[-40,-10,22],[60,-50,30],[10,50,14],[-90,40,18],[110,30,16],[-10,-90,26]]){const y=Math.sqrt(360000-c[0]*c[0]-c[1]*c[1])-600;p.push(part(new T3.TorusGeometry(c[2],c[2]*.16,5,16),'#a8a8ba',M(c[0],y-.5,c[1],1,1,.6,PI/2,0,0)),part(cyl(c[2]*.92,c[2]*.92,.8,16),'#6a6a80',M(c[0],y-.6,c[1])));}
       mesh(merge(p),fm,ps,0);
       const n=260,sp=new Float32Array(n*3);for(let i=0;i<n;i++){const a=rr(i,40)*TAU,e=.04+rr(i,41)*1.2;sp[i*3]=Math.cos(a)*Math.cos(e)*5000;sp[i*3+1]=Math.sin(e)*5000;sp[i*3+2]=Math.sin(a)*Math.cos(e)*5000;}
-      const g=new T3.BufferGeometry();g.setAttribute('position',new T3.BufferAttribute(sp,3));const st=new T3.Points(g,new T3.PointsMaterial({color:0xffffff,size:2.4*dpr,sizeAttenuation:false,fog:false}));st.frustumCulled=false;ps.add(st);
+      const g=new T3.BufferGeometry();g.setAttribute('position',new T3.BufferAttribute(sp,3));const st=new T3.Points(g,new T3.PointsMaterial({color:0xffffff,size:2.4*dpr,sizeAttenuation:false,fog:false}));st.material.transparent=true;st.frustumCulled=false;sc.add(st);o.stars=actor(st);
       const wm=new T3.MeshBasicMaterial({vertexColors:true,side:T3.DoubleSide,transparent:true,opacity:.9,fog:false,depthWrite:false}),bm=new T3.MeshStandardMaterial({vertexColors:true,roughness:.9,emissive:0xfff0c0,emissiveIntensity:.25});
       const fw=merge([part(sph(12,5),'#b4f2d2',M(6.6,0,1.9,6.6,.16,3.5,0,-.32,0)),part(sph(8,4),'#6fc8a4',M(7.2,.12,4.6,6.2,.2,.8,0,-.32,0)),part(cyl(1.15,1.15,.5,10),'#ff9ab8',M(7.6,.2,1.6)),part(cyl(.5,.5,.6,8),'#ffffff',M(7.6,.26,1.6))]);
       const hw=merge([part(sph(12,5),'#d8ffea',M(4.6,0,-3.6,4.4,.16,3.1,0,.5,0)),part(sph(6,4),'#b4f2d2',M(5.8,0,-8,.9,.14,2.8,0,.22,0)),part(cyl(.9,.9,.5,10),'#ffb0c8',M(4.8,.2,-3.6))]);
@@ -2291,6 +2306,40 @@ const MOVIE=(()=>{
       for(const sd of[-1,1]){mb.push(rod(sd*.6,1.3,4,sd*2.7,3.6,6.6,.2,'#ffe9a8'));for(let k=1;k<=3;k++)mb.push(part(sph(5,3),'#ffe9a8',M(sd*(.6+k*.56),1.3+k*.62,4+k*.7,1-k*.16,.22,.42,0,sd*.6,0)));}
       const mbg=merge(mb);o.moths=[];for(let i=0;i<3;i++){const g2=grp(ps);mesh(mbg,bm,g2,0);const w=(geo,sx)=>{const m=mesh(geo,wm,g2,0);m.scale.x=sx;m.receiveShadow=false;return m;};o.moths.push({g:g2,fr:w(fw,1),fl:w(fw,-1),hr:w(hw,1),hl:w(hw,-1)});}}
 
+    /* --- the launch: the snowy summit of Rocket Mountain, the island seen from high above, the sleepy moon --- */
+    {const pl=o.padL=grp(),cl=[];
+      mesh(merge([shade(blobGeo(170,14,8,11,.2),'#8fa4cc','#ffffff',M(0,-64,0,1.9,.4,1.7)),shade(blobGeo(34,8,6,2,.6),'#8f96a8','#ffffff',M(-120,6,-60,1.3,1,1)),shade(blobGeo(26,8,6,4,.6),'#8f96a8','#ffffff',M(126,4,-74)),shade(blobGeo(16,8,6,6,.6),'#8f96a8','#ffffff',M(-76,1,128)),shade(blobGeo(13,8,6,8,.6),'#8f96a8','#ffffff',M(84,0,150)),
+        shade(new T3.ConeGeometry(460,560,8),'#6f7f96','#f4f8ff',M(-1000,-430,-1500)),shade(new T3.ConeGeometry(380,480,8),'#6f7f96','#f4f8ff',M(760,-470,-1700)),shade(new T3.ConeGeometry(320,400,7),'#7a88a0','#f4f8ff',M(1600,-440,-700)),shade(new T3.ConeGeometry(320,420,7),'#7a88a0','#f4f8ff',M(-1700,-440,-300)),shade(new T3.ConeGeometry(300,380,7),'#7a88a0','#f4f8ff',M(-700,-460,1300))]),fm,pl);
+      const rmp=[part(cyl(36,39,3,22),'#8a8a98',M(0,.2,0)),part(box(18,1.6,49),'#b56a3a',M(0,10.6,45,1,1,1,.48,0,0)),part(box(2.4,12,2.4),'#9a6238',M(-7,5.5,34)),part(box(2.4,12,2.4),'#9a6238',M(7,5.5,34))];
+      for(let k=0;k<5;k++){const z=62-k*8.4;rmp.push(part(box(18.6,1.1,1.8),'#9a6238',M(0,(66-z)/42*22+1.6,z,1,1,1,.48,0,0)));}
+      for(const sd of[-1,1])rmp.push(rod(sd*15,0,72,sd*15,17,72,.9,'#9a6238'),part(box(5,1,5),'#6a4428',M(sd*15,21.6,72)));
+      mesh(merge(rmp),mm,pl);mesh(merge([part(sph(8,6),'#ffffff',M(-15,19,72,2.6,2.6,2.6)),part(sph(8,6),'#ffffff',M(15,19,72,2.6,2.6,2.6))]),glowMat,pl,0).receiveShadow=false;
+      inst(TREE.spine.g(0),[[-86,0,-44,1.6,0],[96,0,-56,1.4,2],[-128,0,36,1.2,4],[136,0,52,1.1,1],[-44,0,-98,1.3,3],[60,0,-104,1.1,5]],mm,pl);
+      for(let i=0;i<40;i++){const a=rr(i,120)*TAU,r=420+rr(i,121)*1900;cl.push([Math.cos(a)*r,-230-rr(i,122)*190,Math.sin(a)*r,5+rr(i,123)*8,rr(i,124)*6]);}
+      inst(cloudG,cl,cloudM,pl,0).receiveShadow=false;
+      const shG=(typeof CRIT!=='undefined'&&CRIT.sheep)?CRIT.sheep():merge([part(blobGeo(5,8,6,5,.35),'#ffffff',M(0,6,0,1.25,1,1)),part(sph(8,6),'#3a2c28',M(5.6,7.5,0,2.2,2.2,2))]);
+      o.sheep=[];for(let i=0;i<3;i++)o.sheep.push(actor(mesh(shG,mm)));}
+    {const g=grp(),gp=goalParts('rocket'),b=mesh(merge(gp.g),mm,g),gl=mesh(merge(gp.l),glowMat,g,0);b.scale.setScalar(1.6);gl.scale.setScalar(1.6);gl.receiveShadow=false;
+      mesh(merge([part(new T3.TorusGeometry(12.4,2,8,24),'#6f6a70',M(0,70.4,21.3)),part(cyl(11.8,11.8,1,24),'#2a4474',M(0,70.4,20.9,1,1,1,PI/2,0,0))]),mm,g);
+      const fg=merge([BG.body,BG.eyes.clone().applyMatrix4(M(0,11,6.45))]),faces=[];for(let i=0;i<3;i++){const f=new T3.Mesh(fg,budMat);g.add(f);faces.push(f);}
+      const fl=new T3.Mesh(shade(new T3.ConeGeometry(11,44,12),'#ff6a20','#fff2a0',M(0,-22,0,1,1,1,PI,0,0)),new T3.MeshBasicMaterial({vertexColors:true,fog:false}));fl.position.y=11;g.add(fl);
+      o.rk={g,faces,fl};actor(g);}
+    {const mi=o.mini=grp(),p=[shade(blobGeo(420,18,8,21,.22),'#e2c884','#f8e6ac',M(0,-22,0,1.6,.07,1)),shade(blobGeo(250,14,6,22,.3),'#4f9a44','#93d862',M(190,-13,-70,1.5,.09,.95)),part(cyl(1,1,1,22),'#7fdfe6',M(-250,7.4,110,170,1,120)),part(cyl(1,1,1,22),'#4fc0dc',M(-262,8,118,110,1,74)),
+        shade(new T3.ConeGeometry(200,340,9),'#7a8a92','#ffffff',M(390,160,-90)),shade(new T3.ConeGeometry(150,210,8),'#6f9a70','#e4ece8',M(250,96,-190)),shade(new T3.ConeGeometry(140,180,8),'#6f9a70','#dfe8e2',M(500,82,20)),shade(new T3.ConeGeometry(110,130,7),'#6a9a5a','#b8d8a0',M(300,58,60))],cl=[];
+      for(let i=0;i<7;i++)p.push(shade(blobGeo(60,9,6,i+30,.3),'#e8b04c','#fbe08c',M(-60+i*38+Math.sin(i*2.3)*20,2,-110+Math.sin(i*1.7)*90,1.5,.34,1)));
+      for(let i=0;i<9;i++){const a=i*2.4;p.push(part(sph(6,4),'#2f8a3a',M(-470+Math.cos(a)*40-i*8,8,-40+Math.sin(a)*120,7,10,7)));}
+      mesh(merge(p),fm,mi,0);
+      const w=mesh(new T3.PlaneGeometry(60000,60000),new T3.MeshStandardMaterial({color:0x1f7fc8,roughness:.6}),mi,0);w.rotation.x=-PI/2;w.position.y=-3;
+      for(let i=0;i<26;i++){const a=rr(i,130)*TAU,r=620+rr(i,131)*1500;cl.push([Math.cos(a)*r,200+rr(i,132)*220,Math.sin(a)*r,4+rr(i,133)*7,rr(i,134)*6]);}
+      inst(cloudG,cl,cloudM,mi,0).receiveShadow=false;}
+    {const g=o.moon=grp(),R2=240,zax=V3(0,0,1),on=(geo,col,th,ph,s,sy,sz)=>{const n=V3(Math.sin(th)*Math.cos(ph),Math.sin(ph),Math.cos(th)*Math.cos(ph));return part(geo,col,new T3.Matrix4().compose(n.clone().multiplyScalar(R2*.995),new T3.Quaternion().setFromUnitVectors(zax,n),V3(s,sy||s,sz||s)));};
+      const p=[shade(new T3.SphereGeometry(R2,30,20),'#6c6c8a','#ececf6')];
+      for(const c of[[1.1,.5,1],[-1.2,.3,.8],[.9,-.5,.9],[-.8,-.6,1.1],[1.9,.1,1.2],[-2,.5,1],[2.6,-.3,1.3],[.2,1.1,.7],[-.3,-1.1,.8]])p.push(on(new T3.TorusGeometry(26,5,5,16),'#b8b8cc',c[0],c[1],c[2]),on(new T3.CylinderGeometry(24,24,3,16).applyMatrix4(M(0,0,0,1,1,1,PI/2,0,0)),'#7a7a96',c[0],c[1],c[2]));
+      /* its sleeping face */
+      for(const sd of[-1,1])p.push(on(new T3.TorusGeometry(26,5.5,6,14,PI).applyMatrix4(M(0,0,2,1,1,1,0,0,PI)),'#4a4a66',sd*.33,.2,1),on(new T3.SphereGeometry(1,10,8),'#ff9ab8',sd*.56,-.12,30,18,5));
+      p.push(on(new T3.TorusGeometry(11,4,6,14).applyMatrix4(M(0,0,2)),'#4a4a66',0,-.26,1));
+      p.push(shade(new T3.ConeGeometry(118,230,16),'#4f6fd0','#7f9cf0',M(-96,266,0,1,1,1,0,0,.52)),part(new T3.TorusGeometry(116,17,8,22),'#ffffff',M(-39,166,0,1,1,1,PI/2,.52,0)),part(sph(10,8),'#ffffff',M(-153,366,0,30,30,30)));
+      mesh(merge(p),fm,g,0).receiveShadow=false;actor(g);}
     /* --- the cast --- */
     const item=(b,geo,mat)=>{const m=new T3.Mesh(geo,mat||mm);m.castShadow=true;m.visible=false;b.up.add(m);b.it.push(m);return m;};
     const mkBud=(s,seed)=>{const g=new T3.Group(),up=new T3.Group();g.add(up);const mk=(geo,par,x,y,z,sh)=>{const m=new T3.Mesh(geo,budMat);m.position.set(x,y,z);m.castShadow=!!sh;par.add(m);return m;};
@@ -2343,7 +2392,7 @@ const MOVIE=(()=>{
       const jaw=grp(hd);jaw.position.set(4.4,-.6,0);mesh(merge([part(sph(10,6),c2,M(4,-.4,0,3.9,1.7,3.3)),part(sph(6,4),'#7a4a2a',M(6.4,.9,0,1.6,.3,2.2))]),mm,jaw,0);
       const ears=[];for(const sd of[-1,1]){const e=grp(hd);e.position.set(-.6,5.4,sd*3);mesh(part(sph(6,5),c3,M(0,1.6,0,1.2,2.3,1)),mm,e,0);ears.push(e);}
       o.camel={g,hd,body,tail,eye,jaw,ears};actor(g);}
-    for(const m of[isl,o.sky,bch,o.padM,o.padS])o.act.push(m);
+    for(const m of[isl,o.sky,bch,o.padM,o.padS,o.padL,o.mini])o.act.push(m);
     const pose=a=>{const pts=[];for(let i=0;i<a.length;i+=3)pts.push(V3(a[i],a[i+1],a[i+2]));const sp=new T3.CatmullRomCurve3(pts,false,'centripetal').getSpacedPoints(RN),out=new Float32Array((RN+1)*3);sp.forEach((p,i)=>{out[i*3]=p.x;out[i*3+1]=Math.max(1.2,p.y);out[i*3+2]=p.z;});return out;};o.rpA=pose(RA);o.rpB=pose(RB);
   }
 
@@ -2563,7 +2612,7 @@ const MOVIE=(()=>{
     else if(n===2){dayB(330,0,40,200);camel(330,bh(330,40)-.5,40,-.35,1.15,l);camAt(336,33,40,.25,.07,140,98,104);}
     else if(n===3){sky(0x3f8fe0,0xdff0ff,1500,8000);q.padM.visible=true;lite(0,0,0,-.5,.7,.5,200,0xfff4e0,1.3,0xe6f6ff,0x9aa8a0,.95);
       const b=bud(q.inv,4,0,24,-.2);b.coat.visible=true;b.tool.visible=true;wave(b,1,t*10);b.tool.position.copy(b.ar.position).y+=2;b.tool.rotation.z=-.3+Math.sin(t*10)*.3;hops(b,l,.6,5,0);camAt(8,22,10,.18,.1,120,74,92);}
-    else{sky(0x050818,0x1b2658,1500,9000);q.padS.visible=true;lite(0,0,0,.5,.6,.5,200,0xcfe0ff,.8,0x8fa8ff,0x404868,.45);
+    else{sky(0x050818,0x1b2658,1500,9000);q.padS.visible=true;q.stars.visible=true;q.stars.material.opacity=1;lite(0,0,0,.5,.6,.5,200,0xcfe0ff,.8,0x8fa8ff,0x404868,.45);
       for(let i=0;i<3;i++){const m=q.moths[i],v=q.v,f=Math.sin(l*24+i*2)*.75+.2,f2=Math.sin(l*24+i*2-.7)*.6+.15;
         for(let k=5;k>0;k--){mothPos(i,l-k*.075,v);const s=(1-k/6)*1.25;bit(v.x,v.y,v.z,s,s,s,l*3+k,l*2+k,q.pal.star[(i+k)%3]);}
         mothPos(i,l+.05,v);const nx=v.x,ny=v.y,nz=v.z;mothPos(i,l,v);m.g.position.copy(v);m.g.rotation.set(-Math.atan2(ny-v.y,Math.hypot(nx-v.x,nz-v.z))*.6,Math.atan2(nx-v.x,nz-v.z),Math.sin(l*3+i)*.12);m.g.scale.setScalar(1.2);
@@ -2631,10 +2680,82 @@ const MOVIE=(()=>{
     fadeA=ss(d-.9,d-.1,t);
   }
 
+  /* ---------- the launch ---------- */
+  const skyDusk=()=>sky(0x35449c,0xffb69c,3000,16000),dusk=(x,y,z,r)=>lite(x,y,z,.5,.46,.7,r,0xffb890,1.15,0xb4bcff,0x6a72a4,.6);
+  function skyMix(t1,b1,t2,b2,k){const u=q.dome.material.uniforms;u.uTop.value.setHex(t1).lerp(q.col.setHex(t2),k).convertSRGBToLinear();u.uBot.value.setHex(b1).lerp(q.col.setHex(b2),k).convertSRGBToLinear();q.sc.fog.color.copy(u.uBot.value);q.sc.fog.near=6000;q.sc.fog.far=60000;}
+  function stars(k){const s=q.stars;s.visible=k>.01;s.material.opacity=k;}
+  /* the rocket: fl 0..1 is the flame, fc shows the three faces at the window */
+  function rocket(x,y,z,rz,fl,fc,s){const r=q.rk,k=fl*(1+.2*Math.sin(mt*47)+.12*Math.sin(mt*31));r.g.visible=true;r.g.position.set(x,y,z);r.g.rotation.set(0,0,rz);r.g.scale.setScalar(s||1);r.fl.visible=fl>.01;r.fl.scale.set(.6+.4*fl,k,.6+.4*fl);
+    for(let i=0;i<3;i++){const f=r.faces[i];f.visible=!!fc;f.position.set((i-1)*6.7,(i===1?66.4:63.8)+Math.abs(Math.sin(mt*3.1+i*2))*1.5,21.7);f.scale.set(.5,.5,.1);f.rotation.z=Math.sin(mt*2.3+i)*.09;}}
+  function sheep(i,x,z,hp,tilt){const m=q.sheep[i];m.visible=true;m.position.set(x,Math.abs(Math.sin(mt*5+i*2))*hp,z);m.rotation.set(0,Math.atan2(z,-x),tilt+Math.sin(mt*1.7+i)*.04);m.scale.setScalar(1.7);}
+  function flock(hp,tilt,run){sheep(0,36+run*40,118+run*30,hp,tilt);sheep(1,56+run*50,94+run*10,hp,tilt);sheep(2,-60-run*40,112+run*30,hp,tilt);}
+  function inventor(x,z,ry){const b=bud(q.inv,x,0,z,ry);b.coat.visible=true;b.tool.visible=true;b.tool.position.set(b.ar.position.x+1,b.ar.position.y+2,b.ar.position.z);b.tool.rotation.z=-.3;return b;}
+  /* smoke that billows out along the ground, and puffs left hanging in the air behind the rocket */
+  function billow(t,n){if(t<=0)return;const e=1-Math.exp(-t*1.3);for(let i=0;i<n;i++){const a=rr(i,140)*TAU,r=e*(34+rr(i,141)*120),s=(10+rr(i,142)*15)*Math.min(1,t*2.5)*(1-ss(3,5.5,t));bit(Math.cos(a)*r,3+rr(i,143)*12+t*5*rr(i,144),Math.sin(a)*r*.8+10,s,s*.8,s,0,0,q.pal.smoke[i%2]);}}
+  function trail(x,y,z,len,n,sz){for(let i=0;i<n;i++){const f=(i+((mt*3)%1))/n,s=sz*(.5+f*1.4)*(1-f*f);bit(x+Math.sin(i*2.4+mt)*sz*.5*f,y-18-f*len,z+Math.cos(i*1.9)*sz*.4*f,s,s*.85,s,0,0,q.pal.smoke[i%2]);}}
+  function l1(t,d){ // everybody aboard
+    skyDusk();q.padL.visible=true;dusk(0,0,50,260);const u=ss(0,d,t),B=q.buds,TE=[1.8,2.7,5.1,.9,3.6];
+    camAt(lerp(2,-2,u),lerp(54,60,u),lerp(52,40,u),lerp(1.22,.96,u),.07,lerp(230,200,u),lerp(186,172,u),lerp(160,140,u));
+    rocket(0,-1,0,0,0,t>1.6);
+    for(let i=0;i<5;i++){const b=B[i],te=TE[i],sp=i===2?28:38,k=(t-te)/.5;if(k>=1)continue;const z=24+Math.max(0,te-t)*sp;
+      bud(b,0,sat((66-z)/42)*22,z,PI-.6);if(k<0)walk(b,(t-te)*sp*.34);else{b.g.position.set(0,22+arc(k)*9+k*4,lerp(24,12,k));b.g.scale.setScalar(lerp(1,.5,k));armsUp(b,1);}
+      if(i===2){cakeHat(b);b.cake.rotation.z=.12+Math.sin(t*9)*.06;if(k>0)b.cake.scale.x=.74*(1-.45*arc(sat(k)));}if(i===4)eyes(b,.6);}
+    const iv=inventor(-27,76,1.2),cl=ss(5.6,5.9,t);wave(iv,1,t*9);iv.tool.position.set(iv.ar.position.x+1,iv.ar.position.y+2,iv.ar.position.z);iv.tool.rotation.z=-.3+Math.sin(t*9)*.3;if(cl>0){hops(iv,t,.6,5,0);armsUp(iv,1);iv.tool.position.set(iv.ar.position.x+1,iv.ar.position.y+2,2);}
+    flock(.6,0,0);fadeA=1-ss(0,.8,t);
+  }
+  function l2(t,d){ // faces at the window
+    skyDusk();q.padL.visible=true;dusk(0,30,40,220);const u=ss(0,d,t),tn=ss(2.6,3.1,t);pUp=.1;
+    camAt(lerp(14,10,u),lerp(46,49,u),30,lerp(.46,.32,u),.03,lerp(132,120,u),lerp(112,104,u),lerp(100,92,u));
+    rocket(0,-1,0,0,0,1);
+    const iv=inventor(38,58,lerp(-2.5,.3,tn));if(tn<.5){wave(iv,1,t*9);lookUp(iv,.9);}else{iv.ar.position.set(9.6,14.5,3);hop(iv,t,3.15,.4,7);}iv.tool.position.set(iv.ar.position.x+1,iv.ar.position.y+2,iv.ar.position.z);
+    sheep(0,-36,58,.5,.3);sheep(1,-56,76,.5,.3);
+  }
+  function l3(t,d){ // three... two... one...
+    skyDusk();q.padL.visible=true;dusk(0,30,40,240);const u=ss(0,d,t),rm=ss(.3,d,t),sh=rm*1.1,fl=ss(3.1,4.5,t);
+    camAt(Math.sin(t*53)*sh*.5,lerp(50,46,u)+Math.sin(t*61)*sh*.5,24,lerp(-.52,-.34,u),.05,lerp(220,180,u),lerp(178,156,u),lerp(150,128,u));
+    rocket(Math.sin(t*71)*rm*.7,-1+Math.abs(Math.sin(t*59))*rm*.6,0,Math.sin(t*67)*.007*rm,fl*.6,1);
+    glint(0,0,8,10,(16+80*rm*rm)*(1+.2*Math.sin(t*23)));
+    if(t>.4)for(let i=0;i<14;i++){const a=(i%3)/3*TAU+.5,f=(t*.8+rr(i,150))%1,r=27+rr(i,151)*8;bit(Math.cos(a)*r+(rr(i,152)-.5)*8,38-f*f*38,Math.sin(a)*r+(rr(i,153)-.5)*8,1.5,1.5,1.5,0,0,q.pal.star[1]);}
+    billow(t-3.3,18);
+    const iv=inventor(lerp(40,66,ss(.4,2.6,t)),64,-.7);iv.al.position.set(-7.6,13.4,2.4);iv.ar.position.set(7.6,13.4,2.4);iv.tool.visible=false;iv.up.rotation.z=Math.sin(t*30)*.03*rm;sq(iv,1-.1*rm);
+    flock(1.5*rm,.2,ss(2.8,d,t));
+  }
+  function l4a(t,d){ // lift-off
+    skyDusk();q.padL.visible=true;const y=26*Math.pow(t,2.3),u=ss(0,d,t),sh=1-u;dusk(0,y*.4,40,330);
+    camAt(Math.sin(t*49)*sh,58+y*.7+Math.sin(t*57)*sh,22,lerp(.78,.6,u),.02,lerp(300,400,u),lerp(250,340,u),lerp(210,270,u));
+    rocket(Math.sin(t*63)*.5*sh,y-1,0,Math.sin(t*2.6)*.012,1,1);glint(0,0,y+4,10,100*(1+.2*Math.sin(t*29)));
+    billow(t+1.2,34);trail(0,y,0,Math.min(y,170),8,11);
+    const iv=inventor(70,66,-.9);armsUp(iv,1,Math.sin(t*12)*.8);hops(iv,t,.5,8,0);lookUp(iv,1);iv.tool.position.set(iv.ar.position.x+1,iv.ar.position.y+2,2);
+    flock(5,.4,1);fadeA=ss(.25,0,t)*.7;
+  }
+  function l4b(t,d){ // up through the clouds
+    skyDusk();q.sky.visible=true;q.sky.position.y=1900;const y=640+t*290,x=Math.sin(t*1.1)*14;
+    lite(x,y,0,.5,.46,.7,220,0xffb890,1.15,0xb4bcff,0xb0b8e0,.7);
+    camAt(x*.5,y+48-t*10,0,-.42+t*.1,-.1,330,300,250);rocket(x,y,0,Math.sin(t*1.1+1.2)*-.05,1,1);trail(x,y,0,300,12,14);glint(0,x,y+4,8,70*(1+.2*Math.sin(t*29)));
+    stars(ss(1.5,d,t)*.25);
+  }
+  function l5(t,d){ // higher than the mountain
+    const u=ss(0,d,t),k=ss(.3,d,t),ry=480+t*52;skyMix(0x35449c,0xffb69c,0x070a26,0x2a3f8c,k);q.sc.fog.color.setHex(0xffd2c0).lerp(q.col.setHex(0x3f5cb4),k).convertSRGBToLinear();q.sc.fog.near=2200;q.sc.fog.far=11000;q.mini.visible=true;stars(k*.9);
+    lite(390,ry,-90,.5,.46,.7,300,0xffc8a0,lerp(1.1,.7,k),0xa8b4ff,0x5a6aa0,lerp(.6,.42,k));
+    rocket(390,ry,-90,-.1,.9,1,1.6);trail(396,ry,-90,300,9,13);glint(0,390,ry+8,-74,96*(1+.2*Math.sin(t*29)));
+    pUp=.1;camAt(lerp(150,210,u),lerp(400,470,u),-40,lerp(.84,.64,u),.15,1800,lerp(1040,980,u),lerp(920,860,u));
+  }
+  function l6(t,d){ // and there, twinkling in the dark, was home
+    sky(0x03051a,0x161f52,9000,70000);stars(1);const u=ss(0,d,t),k=ss(-.6,d+2.4,t),m=q.moon,px=lerp(-190,120,k),py=lerp(-50,170,k),pz=lerp(180,-1000,k),tw=1+.3*Math.sin(t*7)+.15*Math.sin(t*17);
+    lite(px,py,pz,-.5,.5,.7,260,0xfff0d8,1.05,0x8494ff,0x202a58,.5);
+    m.visible=true;m.position.set(560,470,-1700);m.rotation.set(.1,-.42,-.08+Math.sin(t*.8)*.03);m.scale.setScalar(1+Math.sin(t*1.3)*.012);
+    rocket(px,py,pz,-.86+Math.sin(t*1.4)*.04,.5,1,.9);
+    for(let i=1;i<9;i++){const f=i/9,s=(1-f)*2.6;bit(px-f*150+Math.sin(i*2+t*3)*5,py-f*110+Math.cos(i*3+t*2)*5,pz+f*250,s,s,s,t*3+i,t*2+i,q.pal.star[i%3]);}
+    glint(0,2140,1663,-4568,330*tw);glint(1,2140,1663,-4568,120*(2-tw));
+    pUp=.1;camAt(190,200,-600,lerp(-.34,-.28,u),-.14,lerp(940,860,u),lerp(720,660,u),lerp(560,520,u));
+    fadeA=Math.max(ss(.5,0,t)*.6,ss(d-1.1,d-.1,t));fadeC='#060a22';
+  }
+
   /* ---------- timelines ---------- */
   const anchor={
     pop:v=>v.set(-66,58,100),whee:v=>v.set(q.bal.g.position.x,q.bal.g.position.y+52,0),
-    go:v=>v.copy(q.buds[3].g.position).setY(q.buds[3].g.position.y+34),hello:v=>v.set(4,40,34),pop2:v=>v.set(FX,34,FZ),cake:v=>v.set(0,52,36)
+    go:v=>v.copy(q.buds[3].g.position).setY(q.buds[3].g.position.y+34),hello:v=>v.set(4,40,34),pop2:v=>v.set(FX,34,FZ),cake:v=>v.set(0,52,36),
+    inv:v=>v.set(38,38,58),win:v=>v.set(0,92,21),rkt:v=>v.copy(q.rk.g.position).setY(q.rk.g.position.y+170)
   };
   const DEF={
     intro:{shots:[[i1,7.5],[i2,10.5],[i3a,5.5],[i3b,4],[i3c,5.5],[i4a,4.5],[i4b,5.2],[i5,8],[i6a,4],[i6b,8.6],[i7a,6],[i7b,5.6]],
@@ -2645,7 +2766,11 @@ const MOVIE=(()=>{
     ending:{shots:[[e1,4.5],[e2,7.5],[e3,4.5],[e4,6.5],[e5,7],[e6,6],[e7,4.6]],
       subs:[[0,1,6.6,16],[1,2.7,7.3,17],[2,.5,4.2,18],[3,2.3,6.1,19],[5,.4,3.9,21],[5,4.2,5.9,22]],
       bubs:[[4,2.15,3.2,3,'pop2',1],[4,3.5,6.7,20,'hello',0],[6,.35,3.6,23,'cake',0]],
-      cues:[[0,1,'ding'],[1,0,'click'],[1,4.5,'shine'],[1,6,'shine'],[3,1.8,'flump'],[3,4.1,'shine'],[4,2.1,'pop'],[5,3.95,'shine'],[6,.35,'cake'],[6,.5,'ding'],[6,1.3,'ding']]}
+      cues:[[0,1,'ding'],[1,0,'click'],[1,4.5,'shine'],[1,6,'shine'],[3,1.8,'flump'],[3,4.1,'shine'],[4,2.1,'pop'],[5,3.95,'shine'],[6,.35,'cake'],[6,.5,'ding'],[6,1.3,'ding']]},
+    launch:{shots:[[l1,7],[l2,4.5],[l3,4.6],[l4a,2.8],[l4b,3.4],[l5,5],[l6,6.2]],
+      subs:[[0,.4,3.8,24],[0,4.3,6.8,25],[5,.4,4.7,31],[6,.6,5.2,32]],
+      bubs:[[1,.8,4.2,26,'inv',0],[2,.5,1.55,27,'win',0],[2,1.75,2.85,28,'win',0],[2,3.05,4.3,29,'win',0],[4,.3,3.1,30,'rkt',0]],
+      cues:[[0,.9,'hopS'],[0,1.8,'hopS'],[0,2.7,'hopS'],[0,3.6,'hopS'],[0,5.1,'hopS'],[1,.3,'shine'],[2,.5,'rumble'],[2,1.75,'rumble'],[2,3.05,'rumble'],[3,.02,'blast'],[4,.2,'whoosh'],[5,.5,'shine'],[6,1.5,'shine'],[6,3.6,'ding']]}
   };
   const snd={
     ding(){const t=AC.currentTime;harp(88,t,.13,3.2);harp(100,t+.01,.04,2.2);},
@@ -2656,7 +2781,9 @@ const MOVIE=(()=>{
     flump(){noise(.3,.22,240,.8);tone(110,.3,'sine',.16,0,.5);},
     click(){tone(1500,.03,'square',.045);tone(1700,.03,'square',.045,.13);},
     title(){const t=AC.currentTime;[72,76,79,84].forEach((n,i)=>harp(n,t+i*.09,.09,2.4));},
-    cake(){sfx('win');}
+    cake(){sfx('win');},
+    rumble(){const t=AC.currentTime;drum(t,.22);tone(55,1.1,'triangle',.12,0,1.25);},
+    blast(){const t=AC.currentTime;drum(t,.4);drum(t+.35,.3);swell(t,2,.05);tone(60,2.6,'sawtooth',.05,0,2.4);noise(.5,.2,300,.6);}
   };
   function compile(k){const D=DEF[k];if(D.t0)return D;let t=0;D.t0=[];for(const s of D.shots){D.t0.push(t);t+=s[1];}D.dur=t;
     for(const a of[D.subs,D.bubs,D.cues]){for(const s of a){const o=D.t0[s[0]];s[1]+=o;if(a!==D.cues)s[2]+=o;}}return D;}
@@ -2666,9 +2793,10 @@ const MOVIE=(()=>{
     el={root:$('mv'),fade:$('mvFade'),sub:$('mvSub'),b:[$('mvB0'),$('mvB1')],title:$('mvTitle'),skip:$('mvSkip')};
     if(!$('mvLogo').firstChild)'TUMBLEBUDS'.split('').forEach((ch,i)=>{const s=document.createElement('span');s.textContent=ch;s.style.animationDelay=(i*.09)+'s';$('mvLogo').append(s);});
     $('mvTSub').textContent=tr(64);el.skip.textContent=tr(1);
+    for(const d of el.b){d.style.whiteSpace='normal';d.style.maxWidth='min(calc(100vw - 28px),12.5em)';d.style.textAlign='center';d.style.textWrap='balance';if(LANG==='ja'||LANG==='ko')d.style.wordBreak='keep-all';}   // a long bubble wraps instead of leaving a narrow screen
     if(LANG==='ja'||LANG==='ko'){el.sub.style.wordBreak='keep-all';el.sub.style.overflowWrap='anywhere';}   // these two are written with spaces between phrases: wrap there, not inside a word
   }
-  function resetUi(){ui.sub=-2;ui.subA=-1;ui.b[0]=ui.b[1]=-2;ui.bA[0]=ui.bA[1]=-1;ui.fade=-1;ui.title=-1;ui.skip=-1;el.sub.style.opacity=0;el.b[0].style.opacity=0;el.b[1].style.opacity=0;el.title.style.opacity=0;el.fade.style.opacity=0;el.skip.style.opacity=0;}
+  function resetUi(){ui.fc='';el.fade.style.background='';ui.sub=-2;ui.subA=-1;ui.b[0]=ui.b[1]=-2;ui.bA[0]=ui.bA[1]=-1;ui.fade=-1;ui.title=-1;ui.skip=-1;el.sub.style.opacity=0;el.b[0].style.opacity=0;el.b[1].style.opacity=0;el.title.style.opacity=0;el.fade.style.opacity=0;el.skip.style.opacity=0;}
   function overlay(){
     let si=-1,sa=0;for(let i=0;i<subs.length;i++){const s=subs[i];if(mt>=s[1]&&mt<s[2]){si=i;sa=Math.min(1,(mt-s[1])/.3,(s[2]-mt)/.3);break;}}
     if(si>=0&&si!==ui.sub){ui.sub=si;el.sub.textContent=TX[subs[si][3]];VO.say('m'+subs[si][3],1);}
@@ -2679,6 +2807,7 @@ const MOVIE=(()=>{
       const v=q.v;anchor[b[4]](v);v.project(q.cam);const w=ui.bw[e],h=ui.bh[e],k=back((mt-b[1])/.3)*(1-ss(b[2]-.2,b[2],mt));
       const x=clamp((v.x*.5+.5)*vw,w/2+10,vw-w/2-10),y=clamp((.5-v.y*.5)*vh,h+safeT+26,vh-96);
       ui.bA[e]=1;d.style.opacity=1;d.style.transform='translate('+(x-w/2).toFixed(1)+'px,'+(y-h-14).toFixed(1)+'px) scale('+Math.max(0,k).toFixed(3)+') rotate('+(Math.sin(mt*6)*2.5).toFixed(2)+'deg)';}
+    if(fadeC!==ui.fc){ui.fc=fadeC;el.fade.style.background=fadeC;}
     const f=Math.round(sat(fadeA)*50)/50;if(f!==ui.fade){ui.fade=f;el.fade.style.opacity=f;}
     const ta=Math.round(titleA*100)/100;if(ta!==ui.title){ui.title=ta;el.title.style.opacity=Math.min(1,ta*2.5);el.title.style.transform='translateY('+((back(ta)-1)*46).toFixed(1)+'px) scale('+(1+(1-ta)*.22).toFixed(3)+')';}
     const sk=Math.round(ss(1.2,1.9,mt)*.8*(1-ss(dur-1.2,dur-.6,mt))*25)/25;if(sk!==ui.skip){ui.skip=sk;el.skip.style.opacity=sk;}
@@ -2687,7 +2816,7 @@ const MOVIE=(()=>{
   /* ---------- playing ---------- */
   function play(k,onDone){
     if(api.on)finish();
-    kind=k==='ending'?'ending':'intro';done=onDone||null;
+    kind=DEF[k]?k:'intro';done=onDone||null;
     if(!R||!$('mv')){const cb=done;done=null;if(cb)cb();return;}
     if(!q)build();if(!el)dom();
     const D=compile(kind);shots=D.shots;subs=D.subs;bubs=D.bubs;cues=D.cues;dur=api._dur=D.dur;mt=0;prevT=0;curShot=0;
@@ -2704,10 +2833,10 @@ const MOVIE=(()=>{
     if(!api._hold)mt+=dt;if(mt>=dur){finish();return;}
     const D=DEF[kind],T0=D.t0;let i=curShot;if(i>=shots.length||mt<T0[i])i=0;while(i<shots.length-1&&mt>=T0[i+1])i++;curShot=i;
     const A=q.act;for(let j=0;j<A.length;j++)A[j].visible=false;q.sign.visible=true;
-    nb=0;fadeA=0;titleA=0;camK=1;pUp=.2;bars=clamp(Math.min(mt/.6,(dur-mt)/.6),0,1)*(vw>vh?.085:.03);
+    nb=0;fadeA=0;titleA=0;camK=1;pUp=.2;fadeC='';q.sky.position.y=0;bars=clamp(Math.min(mt/.6,(dur-mt)/.6),0,1)*(vw>vh?.085:.03);
     shots[i][0](mt-T0[i],shots[i][1]);
     const bt=q.bits;bt.count=nb;bt.visible=nb>0;if(nb){bt.instanceMatrix.needsUpdate=true;bt.instanceColor.needsUpdate=true;}
-    q.dome.position.copy(q.cam.position);windU.value=mt;
+    q.dome.position.copy(q.cam.position);q.stars.position.copy(q.cam.position);windU.value=mt;
     overlay();
     if(AC&&AC.state==='running'&&soundOn)for(let j=0;j<cues.length;j++){const c=cues[j];if(c[1]>prevT&&c[1]<=mt&&mt-prevT<.3)snd[c[2]]();}
     prevT=mt;
@@ -2816,7 +2945,7 @@ function buildSettings(){
   if(VO.ok)seg(tr(76),'voice',onoff,()=>{if(!CFG.voice)VO.stop();});
   seg(tr(45),'gfx',[['auto',tr(46)],['high',tr(47)],['low',tr(48)]],applyGfx);
   seg(tr(49),'view',[[0,tr(50)],[1,tr(51)],[2,tr(52)],[3,tr(61)]]);
-  if(setBack==='title'){const rw=row('Story'),sg=document.createElement('div');sg.className='seg';for(const kd of['intro','ending']){if(kd==='ending'&&!(SAVE.stars[NLV-1]>0)&&!SAVE.all)continue;const b=document.createElement('button');b.textContent='\u25B6 '+(kd==='intro'?'Intro':'Finale');b.addEventListener('click',()=>{initAudio();sfx('ui');show(null);MOVIE.play(kd,()=>show('settings'));});sg.append(b);}rw.append(sg);}
+  if(setBack==='title'){const rw=row('Story'),sg=document.createElement('div');sg.className='seg';for(const kd of['intro','launch','ending']){if(kd==='ending'&&!(SAVE.stars[NLV-1]>0)&&!SAVE.all)continue;if(kd==='launch'&&!(SAVE.stars[23]>0)&&!SAVE.all)continue;const b=document.createElement('button');b.textContent='\u25B6 '+(kd==='intro'?'Intro':kd==='launch'?'Rocket':'Finale');b.addEventListener('click',()=>{initAudio();sfx('ui');show(null);MOVIE.play(kd,()=>show('settings'));});sg.append(b);}rw.append(sg);}
   {const ids=Object.keys(LABDEF);if(ids.length){const h=document.createElement('div');h.className='sub';h.style.marginTop='6px';h.textContent='Lab';box.append(h);
     for(const id of ids){const rw=row(LABDEF[id]),sg=document.createElement('div');sg.className='seg';[[1,'✓'],[0,'✕']].forEach(o=>{const b=document.createElement('button');b.textContent=o[1];b.classList.toggle('on',lab(id)===!!o[0]);b.addEventListener('click',()=>{SAVE.lab=SAVE.lab||{};SAVE.lab[id]=o[0];persist();sfx('ui');[...sg.children].forEach((c,i)=>c.classList.toggle('on',i===(o[0]?0:1)));});sg.append(b);});rw.append(sg);}}}
   const r=row(tr(53)),se=document.createElement('select');se.setAttribute('aria-label',tr(53));
@@ -2849,7 +2978,7 @@ $('bCam').addEventListener('click',()=>{initAudio();CFG.view=((CFG.view|0)+1)%4;
 /* studio ident, then the title reveal */
 {const st=$('studio');let done=false;
   const fin=()=>{if(done)return;done=true;st.classList.add('out');if(mode==='title'&&$('map').hidden&&$('settings').hidden){const go=()=>{show('title');$('title').classList.add('reveal');};show(null);MOVIE.play('intro',go);}setTimeout(()=>{st.hidden=true;},950);};
-  if(location.hash){done=true;st.hidden=true;if(!/^#(play|lv|map|intro|ending)/.test(location.hash))show('title');}
+  if(location.hash){done=true;st.hidden=true;if(!/^#(play|lv|map|intro|ending|launch)/.test(location.hash))show('title');}
   else{const go=()=>{initAudio();VO.pre(['m0','m1','m2','m3']);fin();};st.addEventListener('click',go);window.addEventListener('keydown',go,{once:true});}
 }
 {const de=document.documentElement,rq=de.requestFullscreen||de.webkitRequestFullscreen,ex=document.exitFullscreen||document.webkitExitFullscreen;
@@ -3081,6 +3210,6 @@ initPost();paintMap();applyGfx();z=defaultZoom();clampCam();drawSkillIcons(0);
 requestAnimationFrame(frame);
 if(location.hash==='#play'||/^#lv/.test(location.hash))startGame(/^#lv/.test(location.hash));
 if(location.hash==='#map')openMap();
-if(location.hash==='#intro'||location.hash==='#ending')MOVIE.play(location.hash.slice(1),()=>show('title'));
+if(location.hash==='#intro'||location.hash==='#ending'||location.hash==='#launch')MOVIE.play(location.hash.slice(1),()=>show('title'));
 
 </script>

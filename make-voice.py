@@ -7,8 +7,8 @@ import edge_tts
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 VOICES = {
-    'en': {'nar': ('en-GB-SoniaNeural', '-4%', '+0Hz'), 'bud': ('en-US-AnaNeural', '+0%', '+12Hz')},
-    'de': {'nar': ('de-DE-KatjaNeural', '-4%', '+0Hz'), 'bud': ('de-DE-AmalaNeural', '+6%', '+40Hz')},   # no German child voice on offer: a young voice, pitched up
+    'en': {'nar': ('en-GB-SoniaNeural', '-4%', '+0Hz'), 'bud': ('en-US-AnaNeural', '+0%', '+12Hz'), 'inv': ('en-GB-RyanNeural', '+0%', '+0Hz')},
+    'de': {'nar': ('de-DE-KatjaNeural', '-4%', '+0Hz'), 'bud': ('de-DE-AmalaNeural', '+6%', '+40Hz'), 'inv': ('de-DE-ConradNeural', '+0%', '+0Hz')},   # no German child voice on offer: a young voice, pitched up
 }
 
 async def one(sem, lang, key, text, kind, done):
