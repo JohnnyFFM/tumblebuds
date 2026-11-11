@@ -1502,11 +1502,11 @@ function mapZones(x,z){
 function mapH(x,z){
   const q=mapZones(x,z);let h=7+vn(x*.02,z*.02)*7;
   h-=smst((1-Math.abs(x-580)/210)*1.6)*smst((z+150)/90)*52;      // Bubble Bay: a bowl in the coast
-  h-=smst((z-70)/110)*46;h-=smst((-40-x)/120)*40;                 // open sea in front and to the left
+  h-=smst((z-70)/150)*64;h-=smst((-40-x)/160)*64;                 // open sea in front and to the left
   h+=q[0]*(10+9*Math.sin(x*.045+z*.03)+6*Math.sin(x*.02-z*.05));  // dunes
   h+=q[1]*250+q[2]*(18+vn(x*.012+4,z*.012)*40)*(1-q[1]);          // Rocket Mountain and its foothills
   h+=q[3]*(20+vn(x*.008,z*.008+3)*70);
-  return lerp(h,-46,Math.max(smst((-z-320)/130),smst((x-1860)/190)));   // it is an island: the far sides sink into the sea too
+  return lerp(h,-56,Math.max(smst((-z-320)/130),smst((x-1860)/190)));   // it is an island: the far sides sink into the sea too
 }
 function buildMap(){
   const sc=MAP.scene=new T3.Scene();MAP.cam=new T3.PerspectiveCamera(38,1,5,7000);MAP.F=V3(0,0,0);
@@ -2003,7 +2003,7 @@ function frame(ms){
 
 /* ---------- boot ---------- */
 /* build.js raises the last number and stamps the time on every build */
-const VERSION='0.4.8',BUILT='2026-11-11 09:31 UTC';
+const VERSION='0.4.9',BUILT='2026-11-11 09:32 UTC';
 document.querySelectorAll('.verT').forEach(e=>{e.textContent='DEMO · v'+VERSION+(BUILT?' · '+BUILT:'');});
 'TUMBLEBUDS'.split('').forEach((ch,i)=>{const s=document.createElement('span');s.textContent=ch;s.style.animationDelay=(i*.09)+'s';$('logo').append(s);});
 if(/[?&]all\b/.test(location.search))SAVE.all=1;
