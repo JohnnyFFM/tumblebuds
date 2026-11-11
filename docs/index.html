@@ -1778,7 +1778,8 @@ function openMap(i){
 }
 function mapTap(sx,sy){
   let best=-1,bd=52;
-  MAP.pts.forEach((p,i)=>{_v.copy(p);if(_v.y<-3)_v.y=6;_v.project(MAP.cam);if(_v.z>1)return;const d=Math.hypot((_v.x*.5+.5)*vw-sx,(.5-_v.y*.5)*vh-sy+8);if(d<bd){bd=d;best=i;}});
+  /* a stop can be tapped on its base or on its numbered badge */
+  MAP.pts.forEach((p,i)=>{for(const q of[p,MAP.nodes[i].sp.position]){_v.copy(q);if(q===p&&_v.y<-3)_v.y=6;_v.project(MAP.cam);if(_v.z>1)continue;const d=Math.hypot((_v.x*.5+.5)*vw-sx,(.5-_v.y*.5)*vh-sy+(q===p?8:0));if(d<bd){bd=d;best=i;}}});
   if(best<0)return;sfx('ui');
   if(best===MAP.sel&&unlocked(best)){goLevel(best);return;}
   selectLevel(best);
@@ -2743,7 +2744,7 @@ function frame(ms){
 
 /* ---------- boot ---------- */
 /* build.js raises the last number and stamps the time on every build */
-const VERSION='0.4.17',BUILT='2026-11-11 10:17 UTC';
+const VERSION='0.4.18',BUILT='2026-11-11 10:32 UTC';
 document.querySelectorAll('.verT').forEach(e=>{e.textContent='DEMO · v'+VERSION+(BUILT?' · '+BUILT:'');});
 'TUMBLEBUDS'.split('').forEach((ch,i)=>{const s=document.createElement('span');s.textContent=ch;s.style.animationDelay=(i*.09)+'s';$('logo').append(s);});
 if(/[?&]all\b/.test(location.search))SAVE.all=1;
