@@ -765,10 +765,15 @@ function fillParticles(t){
 }
 
 /* ---------- audio ---------- */
+let mBus=null;
 let AC=null,master=null,soundOn=!!CFG.sfx,musicOn=!!CFG.music,musicTimer=null,mStep=0,mNext=0;
 function initAudio(){
   if(AC){if(AC.state==='suspended')AC.resume();return;}
-  try{AC=new (window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=.55;master.connect(AC.destination);mNext=AC.currentTime+.2;musicTimer=setInterval(music,90);}catch(e){AC=null;}
+  try{AC=new (window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=.55;master.connect(AC.destination);
+    /* music bus with a generated hall reverb */
+    mBus=AC.createGain();mBus.gain.value=1.2;const rv=AC.createConvolver(),len=Math.floor(AC.sampleRate*3.4),ib=AC.createBuffer(2,len,AC.sampleRate);
+    for(let ch=0;ch<2;ch++){const d=ib.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.4)*(i<400?i/400:1);}
+    rv.buffer=ib;const wet=AC.createGain();wet.gain.value=.6;mBus.connect(master);mBus.connect(rv);rv.connect(wet);wet.connect(master);mNext=AC.currentTime+.2;musicTimer=setInterval(music,90);}catch(e){AC=null;}
 }
 function tone(f,dur,type,vol,when,slide){
   if(!AC)return;const t=AC.currentTime+(when||0),o=AC.createOscillator(),g=AC.createGain();
@@ -785,16 +790,44 @@ function noise(dur,vol,freq,q){
 const mt=n=>440*Math.pow(2,(n-69)/12);
 const PENTA=[72,74,76,79,81,84],CH=[[48,64,67],[45,60,64],[41,57,60],[43,59,62]];
 const MEL=[2,-1,3,2,1,-1,0,-1,2,-1,4,3,2,-1,-1,-1,3,-1,4,5,4,-1,3,-1,2,3,2,1,0,-1,-1,-1];
+/* orchestral-style score: string pad, low bass, harp arpeggio, a slow lead and a soft drum, all through the hall reverb */
+const PROG=[[38,50,54,57],[33,49,52,57],[35,50,54,59],[31,50,55,59],[38,50,54,57],[31,47,50,55],[40,52,55,59],[33,49,52,57]];
+const LEAD=[[78,0,0,81,0,0,76,0],[76,0,0,0,73,0,0,0],[78,0,0,74,0,0,71,0],[71,0,74,0,0,79,0,0],[81,0,0,78,0,0,74,0],[79,0,0,0,83,0,81,0],[79,0,0,76,0,0,71,0],[76,0,0,0,0,73,0,0]];
+function strings(n,t,dur,vol){
+  const g=AC.createGain(),lp=AC.createBiquadFilter();lp.type='lowpass';lp.Q.value=.3;
+  lp.frequency.setValueAtTime(420,t);lp.frequency.linearRampToValueAtTime(1500,t+dur*.55);lp.frequency.linearRampToValueAtTime(520,t+dur+1.2);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+1.4);g.gain.setValueAtTime(vol,t+dur-.2);g.gain.linearRampToValueAtTime(0,t+dur+1.8);
+  for(const d of[-8,7]){const o=AC.createOscillator();o.type='sawtooth';o.frequency.value=mt(n);o.detune.value=d;o.connect(lp);o.start(t);o.stop(t+dur+1.9);}
+  lp.connect(g);g.connect(mBus);
+}
+function harp(n,t,vol,len){
+  const g=AC.createGain(),L=len||2.4;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.01);g.gain.exponentialRampToValueAtTime(.0005,t+L);
+  for(const h of[[1,'triangle',1],[2,'sine',.3],[3,'sine',.1]]){const o=AC.createOscillator(),hg=AC.createGain();o.type=h[1];o.frequency.value=mt(n)*h[0];hg.gain.value=h[2];o.connect(hg);hg.connect(g);o.start(t);o.stop(t+L+.05);}
+  g.connect(mBus);
+}
+function lowBass(n,t,dur,vol){
+  const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=mt(n);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.5);g.gain.setValueAtTime(vol,t+dur-.4);g.gain.linearRampToValueAtTime(0,t+dur+.6);o.connect(g);g.connect(mBus);o.start(t);o.stop(t+dur+.7);
+}
+function drum(t,vol){
+  const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.setValueAtTime(92,t);o.frequency.exponentialRampToValueAtTime(36,t+.55);
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0006,t+1.5);o.connect(g);g.connect(mBus);o.start(t);o.stop(t+1.6);
+}
 function music(){
   if(!AC||AC.state!=='running')return;
-  while(mNext<AC.currentTime+.25){
-    const w=mNext-AC.currentTime,st=mStep%32,ch=CH[(mStep>>3)&3];
-    if(!musicOn){mNext+=.29;mStep++;continue;}
-    if(st%8===0)tone(mt(ch[0]),.9,'sine',.13,w);
-    if(st%8===4)tone(mt(ch[0]+7),.5,'sine',.08,w);
-    if(st%2===1)tone(mt(ch[1+((st>>1)&1)]),.35,'triangle',.035,w);
-    const m=MEL[st];if(m>=0&&((mStep>>5)&1?st%4!==3:true))tone(mt(PENTA[m]),.42,'triangle',.07,w);
-    mNext+=.29;mStep++;
+  if(mNext<AC.currentTime)mNext=AC.currentTime+.05;
+  while(mNext<AC.currentTime+.3){
+    const t=mNext,st=mStep%8,bar=(mStep>>3)%8,pass=(mStep>>6)%4,c=PROG[bar];
+    if(musicOn){
+      if(st===0){
+        lowBass(c[0],t,4,.2);strings(c[1],t,4,.03);strings(c[2],t,4,.026);strings(c[3],t,4,.026);
+        if(pass>0)strings(c[2]+12,t,4,.012);
+        if(pass>1&&bar%2===0)drum(t,.3);if(pass>1&&bar===7)drum(t+3,.2);
+      }
+      if(st%2===1||st===6)harp(c[1+(st*2+bar)%3]+12,t,.035,1.6);
+      const m=LEAD[bar][st];if(m&&pass!==0)harp(pass===3?m-12:m,t,.085,3);
+    }
+    mNext+=.5;mStep++;
   }
 }
 let lastTick=0;
