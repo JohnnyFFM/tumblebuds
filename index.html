@@ -162,7 +162,7 @@ button:focus-visible{outline:3px solid var(--coral);outline-offset:2px}
     <button class="mbtn" id="bSettings" data-t="42">Settings</button>
     <button class="ghost" id="bInstall" data-t="40" hidden>Install app</button>
   </div>
-  <div class="foot">DEMO &middot; V0.3</div>
+  <div class="foot verT"></div>
 </div>
 
 <div id="map" class="screen" hidden>
@@ -180,6 +180,7 @@ button:focus-visible{outline:3px solid var(--coral);outline-offset:2px}
     <div class="rows" id="setRows"></div>
     <button class="mbtn warn" id="bReset" data-t="54">Reset progress</button>
     <button class="mbtn" id="bSetBack" data-t="43">Back</button>
+    <div class="sub verT"></div>
   </div>
 </div>
 
@@ -192,6 +193,7 @@ button:focus-visible{outline:3px solid var(--coral);outline-offset:2px}
       <button class="mbtn" id="pSettings" data-t="42">Settings</button>
       <button class="mbtn" id="pMap" data-t="58">World map</button>
     </div>
+    <div class="sub verT"></div>
   </div>
 </div>
 
@@ -1469,6 +1471,9 @@ function frame(ms){
 }
 
 /* ---------- boot ---------- */
+/* build.js raises the last number and stamps the time on every build */
+const VERSION='0.4.1',BUILT='2026-11-11 06:10 UTC';
+document.querySelectorAll('.verT').forEach(e=>{e.textContent='DEMO · v'+VERSION+(BUILT?' · '+BUILT:'');});
 'TUMBLEBUDS'.split('').forEach((ch,i)=>{const s=document.createElement('span');s.textContent=ch;s.style.animationDelay=(i*.09)+'s';$('logo').append(s);});
 buildLevel();resetSim();buildSkillBar();
 try{

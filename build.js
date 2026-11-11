@@ -8,6 +8,16 @@ fs.mkdirSync(out, { recursive: true });
 
 const CDN = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
 let src = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+// every build gets a new visible version (shown on the title screen, in Settings and in the pause menu)
+{
+  const m = src.match(/const VERSION='(\d+)\.(\d+)\.(\d+)',BUILT='[^']*';/);
+  if (!m) throw new Error('VERSION line not found');
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  const ver = m[1] + '.' + m[2] + '.' + (+m[3] + 1), stamp = d.getUTCFullYear() + '-' + p(d.getUTCMonth() + 1) + '-' + p(d.getUTCDate()) + ' ' + p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()) + ' UTC';
+  src = src.replace(m[0], "const VERSION='" + ver + "',BUILT='" + stamp + "';");
+  fs.writeFileSync(path.join(__dirname, 'index.html'), src);
+  console.log('version ' + ver + ' (' + stamp + ')');
+}
 if (!src.includes(CDN)) throw new Error('three.js CDN tag not found');
 if (!fs.existsSync(path.join(out, 'three.min.js'))) throw new Error('docs/three.min.js missing - download it from ' + CDN);
 src = src.replace(CDN, 'three.min.js');
