@@ -1479,6 +1479,7 @@ function loadProps(){
   else if(th==='moon')put('moth',7,{s:1.5,up:34});
   else{put('sheep',3,{s:1.5,ry:-1.57});put('moth',5,{s:1.4,up:36});}
   if(wk)put('inventor',1,{x:EXIT.x-(EXIT.x<HATCH.x?-46:46),z:8,s:1.05});
+  chCritBuild();
   // signposts
   for(const sg of L.s||[]){
     const x=sg[0],k=sg[1],y=surfaceY(x),c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');
@@ -1536,6 +1537,252 @@ function animBud(o,c){
   if(c.st==='clm'){o.up.rotation.x=-.5;o.g.rotation.y=dir*1.45+yawAt(c.x);}
   if(c.st==='bomb')o.g.scale.setScalar(1+Math.sin(c.w*.5)*.0012*c.w);
   if(o.jetm.visible){o.up.rotation.z=-dir*.5;if(Math.random()<.8)P(c.x-dir*9,c.y-9,-dir*(1+Math.random()*1.5),.4+Math.random(),16,2.6,Math.random()<.5?'#ffb04a':'#fff3a0','star');}
+  budLife(o,c);
+}
+
+/* ---------- epic-chars: living Buds and story friends ----------
+   Layered on top of animBud and the critter loop; every part has its own lab switch (ch*).
+   All Bud animation state lives on the 3D object (o.L) and is driven by sim ticks (c.age), so it freezes in bullet time like the rest. */
+LABDEF.chSquash='Bud squash & stretch';
+LABDEF.chSprout='Springy sprout & arms';
+LABDEF.chLook='Buds look around';
+LABDEF.chFace='Bud expressions';
+LABDEF.chWalk='Richer walk & air poses';
+LABDEF.chVary='Every Bud is different';
+LABDEF.chGoal='Happy hop into the goal';
+LABDEF.chBlob='Soft contact shadows';
+LABDEF.chFriends='Lively story friends';
+LABDEF.chMoths='Moths fly figure eights';
+const CHR={ok:false,saved:0,waveT:-99,stray:[],cg:{},blob:null,f:{}},chM=new T3.Matrix4(),chFr=x=>x-Math.floor(x);
+function chInit(){
+  CHR.ok=true;
+  const arc=(x,y,rz)=>part(new T3.TorusGeometry(1.45,.55,5,10,Math.PI),'#33201a',M(x,y,.25,1,1,.8,0,0,rz));
+  CHR.eHappy=merge([arc(-2.9,-.6,0),arc(2.9,-.6,0)]);CHR.eShut=merge([arc(-2.9,.7,Math.PI),arc(2.9,.7,Math.PI)]);
+  CHR.mO=part(sph(10,8),'#7a2a26',M(0,0,0,1,1,.5));
+  CHR.mSmile=part(new T3.SphereGeometry(1,10,5,0,TAU,Math.PI/2,Math.PI/2),'#7a2a26',M(0,.5,0,1,1,.5));
+  CHR.tints=[[1,1,1],[1.05,.92,.78],[.96,1.04,.84],[1.06,.9,.9],[1.02,.98,1.05],[1.07,1,.72]].map(c=>{const m=rimMat({vertexColors:true,roughness:.7},.12);m.color.setRGB(c[0],c[1],c[2]);return m;});
+  for(const o of buds3){o.mouth=new T3.Mesh(CHR.mO,budMat);o.mouth.visible=false;o.up.add(o.mouth);o.L={c:null};}
+  // one instanced quad for every contact shadow; the (unused) Y scale of each instance carries its strength
+  const pg=new T3.PlaneGeometry(2,2);pg.rotateX(-Math.PI/2);
+  CHR.blob=new T3.InstancedMesh(pg,new T3.ShaderMaterial({transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4,
+    vertexShader:'varying vec2 vU;varying float vA;void main(){vU=uv*2.-1.;vA=length(instanceMatrix[1].xyz);gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.);}',
+    fragmentShader:'varying vec2 vU;varying float vA;void main(){float a=smoothstep(1.,.25,length(vU));gl_FragColor=vec4(.09,.07,.15,a*vA*.5);}'}),48);
+  CHR.blob.count=0;CHR.blob.frustumCulled=false;CHR.blob.renderOrder=1;scene.add(CHR.blob);
+}
+function chReset(o,c){
+  const L=o.L,sd=c.seed;L.c=c;L.pst=c.st;L.age=c.age;L.px=c.x;L.py=-c.y;L.vx=L.vy=0;L.pfall=0;L.landAmp=0;L.stAge=c.age;
+  L.landAge=L.flyAge=L.boomAge=L.proudAge=L.goAge=-999;L.sx=L.sxv=L.sy=L.syv=0;L.lx=L.ly=0;
+  L.h1=chFr(sd*7.31+.13);L.h2=chFr(sd*13.7+.57);L.h3=chFr(sd*29.3+.31);
+}
+function chSpin(f,cs,sn,a){const x=f.position.x,z=f.position.z;f.position.x=x*cs+z*sn;f.position.z=z*cs-x*sn;f.position.y+=1.4;f.rotation.y=a;}
+function chFoot(f,cs,sn,rz){const x=f.position.x,y=f.position.y-9.5;f.position.x=x*cs-y*sn;f.position.y=9.5+x*sn+y*cs;f.rotation.z=rz;}
+function budLife(o,c){
+  if(!CHR.ok)chInit();
+  const L=o.L,up=o.up,g=o.g,F=CHR.f;if(L.c!==c)chReset(o,c);
+  // neutral values for everything animBud itself never sets, so a switch that is off leaves no trace
+  up.scale.set(1,1,1);up.rotation.y=0;up.position.x=0;up.position.z=0;
+  o.eyes.position.set(0,11,6.45);o.eyes.rotation.set(0,0,0);o.eyes.geometry=BG.eyes;o.mouth.visible=false;
+  o.sprout.rotation.x=0;o.sprout.rotation.y=0;o.sprout.scale.x=o.sprout.scale.z=1;
+  o.fl.rotation.set(0,0,0);o.fr.rotation.set(0,0,0);o.body.material=o.al.material=o.ar.material=budMat;
+  const t=c.age,st=c.st,vst=VST[st]||st,dir=c.dir,dA=clamp(t-L.age,0,4);
+  const work=(vst==='bash'&&c.did)||vst==='dig'||vst==='build',walk=st!=='clm'&&(vst==='walk'||(vst==='bash'&&!c.did));
+  // things that just happened (landing, launch, bang, bridge finished, released from Halt)
+  if(st!==L.pst){const was=L.pst,wa=was==='fall'||was==='fly'||was==='bub',ia=st==='fall'||st==='fly'||st==='bub';
+    if(wa&&!ia&&st!=='exit'){L.landAge=t;L.landAmp=clamp(L.pfall/130,.25,1)*(c.float?.5:1);}
+    if(st==='fly')L.flyAge=t;
+    if(was==='bomb')L.boomAge=t;
+    if((was==='build'||was==='wait')&&st==='walk')L.proudAge=t;
+    if(was==='stop'&&st==='walk')L.goAge=t;
+    L.stAge=t;L.pst=st;}
+  L.pfall=st==='fall'||st==='fly'?c.fall:0;
+  if(dA>0){const k=60/(t-L.age);let ix=(g.position.x-L.px)*k,iy=(g.position.y-L.py)*k;if(Math.abs(ix)>400||Math.abs(iy)>700||st==='exit'){ix=0;iy=0;}
+    L.vx+=(ix-L.vx)*.14;L.vy+=(iy-L.vy)*.2;L.px=g.position.x;L.py=g.position.y;L.age=t;}
+  const ph=t*(c.run?.55:.3)+c.seed*10,sw=Math.sin(ph),cw=Math.cos(ph);
+  // arrival: a joyful hop, arms up, then a turn and a dive through the door
+  if(st==='exit'&&F.goal){
+    const k=clamp(c.w/36,0,1),hk=Math.min(1,k/.72),hop=Math.sin(hk*Math.PI),q=clamp((k-.42)/.58,0,1),e=q*q*(3-2*q);
+    g.position.set(lerp(c.x,EXIT.x,k),-c.y+hop*15,-e*20+bz(c.x));g.scale.setScalar(1-e*.8);g.rotation.y=o.ry*(1-e)+yawAt(c.x)+e*Math.PI;
+    const sy=1+.16*Math.cos(hk*Math.PI)*(1-hk*.5),sx=1/Math.sqrt(sy);up.scale.set(sx,sy,sx);
+    o.al.position.set(-7.7-Math.sin(t*.8)*.9,15.4,1);o.ar.position.set(7.7+Math.sin(t*.8)*.9,15.4,1);
+    o.fl.position.y+=hop*1.6;o.fr.position.y+=hop*1.6;o.fl.position.x-=hop;o.fr.position.x+=hop;
+  }
+  if(F.walk){
+    if(st==='clm'){   // hand over hand up the wall
+      o.al.position.set(-5.2,12.5+sw*3.4,7);o.ar.position.set(5.2,12.5-sw*3.4,7);
+      o.fl.position.set(-3.4,1.8+Math.max(0,-sw)*3.2,-2.4);o.fr.position.set(3.4,1.8+Math.max(0,sw)*3.2,-2.4);
+      up.rotation.z=sw*.1;up.position.y=Math.abs(cw)*.9;up.position.z=-5.5;   // hang on the face of the wall, not half inside it
+    }else if(walk){   // waddle, heel-and-toe feet, lean into the way and into slopes
+      const run=c.run?1:0,lean=.05+run*.17+clamp(L.vy/34,-1,1)*.1,th=o.ry,lf=Math.max(0,cw)*Math.abs(sw),rf=Math.max(0,-cw)*Math.abs(sw);
+      up.rotation.z+=sw*.07-lean*Math.cos(th)*dir;up.rotation.x+=lean*Math.sin(th)*dir;up.rotation.y=sw*.12;up.position.x=sw*.45;
+      o.fl.position.y+=lf*(1+run);o.fr.position.y+=rf*(1+run);o.fl.rotation.x=lf*.6-sw*.1;o.fr.rotation.x=rf*.6+sw*.1;
+      if(run){o.fl.position.z+=sw*1.5;o.fr.position.z-=sw*1.5;up.position.y+=Math.abs(sw)*.8;if(vst==='walk'){o.al.position.set(-7.9,7.4,-2.2-sw);o.ar.position.set(7.9,7.4,-2.2+sw);}}
+    }else if(st==='fall'&&c.float&&c.fall>14){   // hanging from the parasol like a little pendulum
+      const a=Math.sin(t*.055+c.seed*9)*.17*clamp((c.fall-14)/20,0,1),sx=Math.sin(a)*20;up.rotation.z=a;up.position.x=sx;o.fl.position.x+=sx*1.12;o.fr.position.x+=sx*1.12;
+    }else if(st==='bub'){up.position.y+=Math.sin(t*.09)*1.1;up.rotation.z=Math.sin(t*.05+c.seed*5)*.16;}
+    else if(st==='fly'){const n=t-L.flyAge;
+      if(c.jet){   // rocket ride: nose along the flight path, feet trailing
+        const rz=-clamp(Math.atan2(c.vx,-c.vy),-1.3,1.3)*.8,cs=Math.cos(rz),sn=Math.sin(rz);
+        up.rotation.z=rz;up.position.x=sn*9.5+Math.sin(t*2.3)*.25;up.position.y+=9.5*(1-cs);chFoot(o.fl,cs,sn,rz);chFoot(o.fr,cs,sn,rz);
+      }else if(n<34){const k=1-n/34,a=(1-k*k*k)*TAU*dir,cs=Math.cos(a),sn=Math.sin(a);up.rotation.y=a;chSpin(o.fl,cs,sn,a);chSpin(o.fr,cs,sn,a);}   // a pirouette off the bounce pad
+    }
+    if(o.bub.visible){const a=t*.11+c.seed*30,k=st==='bub'?.06:.035,s0=o.bub.scale.x;o.bub.scale.set(s0*(1+Math.sin(a)*k),s0*(1-Math.sin(a)*k),s0*(1+Math.cos(a*.8)*k));}
+  }
+  if(F.squash&&!(st==='exit'&&F.goal)){
+    let s=0;const nl=t-L.landAge,nb=t-L.boomAge,ng=t-L.goAge;
+    if(nl<48)s-=L.landAmp*.27*Math.exp(-nl/6.5)*Math.cos(nl*.42);
+    if(nb<34)s+=.3*Math.exp(-nb/5.5)*Math.cos(nb*.5);
+    if(ng<30)s+=.12*Math.exp(-ng/6)*Math.cos(ng*.5);
+    if(st==='fall')s+=c.float&&c.fall>18?.03:Math.min(.14,c.fall*.0035);
+    else if(st==='fly'){const n=t-L.flyAge;s+=n<3?-.2:clamp(Math.abs(c.vy)*.04,0,.15)-.04+.2*Math.exp(-(n-3)/7);}
+    else if(st==='bomb'){const k=c.w/70;s-=.2*k*k;up.position.x+=Math.sin(t*1.9)*.55*k*k;}
+    else if(st==='stop'){const n=t-L.stAge;if(n<44){const e=Math.exp(-n/8);s-=.13*e*Math.cos(n*.48);up.rotation.x+=.17*e*Math.sin(n*.42);}}
+    else if(st==='exit')s+=.1*Math.sin(clamp(c.w/36,0,1)*Math.PI);
+    else if(walk)s-=.032*Math.cos(2*ph);
+    else if(vst==='dig')s-=.06*Math.abs(Math.sin(t*.4));
+    else if(st==='build'){const k=Math.max(0,Math.sin(t*.29));s-=.07*k*k*k*k;}
+    else if(vst==='bash'){const k=Math.max(0,Math.sin(t*.42));s-=.05*k*k*k;up.rotation.x+=.1*k*k*k;}
+    const sy=clamp(1+s,.6,1.45),sx=1/Math.sqrt(sy);up.scale.set(sx,sy,sx);
+  }
+  if(F.vary){   // size, tint and sprout from the Bud's seed
+    g.scale.multiplyScalar(.94+L.h1*.12);o.body.material=o.al.material=o.ar.material=CHR.tints[(L.h2*CHR.tints.length)|0];
+    const ss=.8+L.h3*.45;o.sprout.rotation.y=(L.h2-.5)*1.5;o.sprout.scale.x=o.sprout.scale.z=ss;o.sprout.scale.y*=.85+L.h1*.35;
+  }
+  if(F.sprout){   // the leaf is a little spring that lags behind and overshoots; loose arms follow through
+    for(let i=0;i<dA;i++){L.sxv+=(clamp(L.vx*.0045,-.6,.6)-L.sx)*.05-L.sxv*.15;L.sx+=L.sxv;L.syv+=(clamp(-L.vy*.003,-.45,.5)-L.sy)*.07-L.syv*.17;L.sy+=L.syv;}
+    const a=L.sx*Math.cos(o.ry),b=L.sx*Math.sin(o.ry),phi=o.sprout.rotation.y,az=a/Math.cos(phi);
+    o.sprout.rotation.z+=az;o.sprout.rotation.x=-b-az*Math.sin(phi);
+    o.sprout.scale.y=Math.max(.45,o.sprout.scale.y/(st==='fall'||st==='fly'||st==='bub'?1.3:1)*(1+L.sy*.8));
+    if(!o.tool.visible&&st!=='clm'&&st!=='exit'&&!(c.float&&st==='fall')){const dy=L.sy*3.5;o.al.position.y+=dy;o.ar.position.y+=dy;o.al.position.x-=a*2.5;o.ar.position.x-=a*2.5;o.al.position.z-=b*2.5;o.ar.position.z-=b*2.5;}
+  }
+  if(F.look){   // eyes (and a little of the body) turn to where the Bud is going; now and then a glance at you
+    let tx=0,ty=0;const gp=250+L.h1*230,gl=(t+L.h2*gp)%gp<44;
+    if(st==='exit')ty=.3;
+    else if(st==='fly'){tx=dir*.4;ty=c.vy<0?.8:-.7;}
+    else if(st==='bub')ty=.85;
+    else if(st==='fall'){if(c.float&&c.fall>18)ty=gl?-.6:.9;else ty=c.fall>24?-.85:-.3;}
+    else if(st==='stop'||st==='bomb'){let bd=70;tx=Math.sin(t*.021+c.seed*9)*.6;for(const s of G.buds){const d=s.x-c.x;if(s!==c&&Math.abs(d)<bd&&Math.abs(s.y-c.y)<40){bd=Math.abs(d);tx=clamp(d/28,-1,1);}}}
+    else if(st==='clm')ty=.8;
+    else if(walk){tx=gl?-dir*.8:dir*.2;ty=clamp(L.vy/34,-1,1)*.45+(gl?.1:0);}
+    else if(vst==='dig')ty=-.85;
+    else if(work)tx=dir*.3;
+    for(let i=0;i<dA;i++){L.lx+=(tx-L.lx)*.13;L.ly+=(ty-L.ly)*.13;}
+    o.eyes.position.set(L.lx*1.5,11+L.ly*1.05,6.45-L.lx*L.lx*.32-Math.max(0,L.ly)*.5);o.eyes.rotation.y=L.lx*.21;o.eyes.rotation.x=-L.ly*.16;up.rotation.y+=L.lx*.15;
+  }
+  if(F.face){   // feelings with eyes and mouth; every Bud blinks to its own rhythm
+    let ex=1,ey=1,geo=BG.eyes,mg=null,mx=1,my=1;const bp=150+L.h1*170,bt=(t+L.h2*bp)%bp;let blink=bt<6||(L.h3>.55&&bt>12&&bt<17);
+    if(st==='exit'){geo=CHR.eHappy;mg=CHR.mSmile;mx=2.3;my=1.9;}
+    else if(st==='fly'){ex=1.15;ey=1.25;blink=false;mg=CHR.mSmile;mx=2.1;my=2;}
+    else if(st==='bub'){mg=CHR.mSmile;mx=1.6;my=1.1;}
+    else if(st==='fall'){if(c.float&&c.fall>18){ey=1.08;mg=CHR.mSmile;mx=1.7;my=1.2;}else{const p=clamp(c.fall/MAXFALL,0,1);ex=1.1+p*.25;ey=1.2+p*.3;blink=false;mg=CHR.mO;mx=1.05+p*.7;my=1.1+p*1.1;}}
+    else if(st==='bomb'){const p=c.w/70;ex=1+p*.25;ey=1+p*.35;blink=false;mg=CHR.mO;mx=1.6;my=.55;}
+    else if(st==='stop'){const n=t-L.stAge;if(n>780){const y=(n-780)%520;ey=.5;if(y<96){const k=Math.sin(y/96*Math.PI);if(k>.35)geo=CHR.eShut;mg=CHR.mO;mx=1.05+k*.5;my=.55+k*2;up.scale.y*=1+k*.05;}}}
+    else if(st==='clm'){ey=.82;mg=CHR.mO;mx=1.5;my=.55;}
+    else if(work){const k=vst==='dig'?Math.abs(Math.sin(t*.4)):Math.max(0,Math.sin(t*(vst==='build'?.29:.42)));ey=1-.55*k;ex=1+.1*k;mg=CHR.mO;mx=1.6;my=.55+.3*(1-k);}
+    else if(t-L.proudAge<120){const n=t-L.proudAge;geo=CHR.eHappy;mg=CHR.mSmile;mx=2;my=1.5;up.position.y+=Math.abs(Math.sin(n*.2))*2.4*Math.exp(-n/45);}
+    else if(t-L.landAge<14&&L.landAmp>.9){geo=CHR.eShut;mg=CHR.mO;mx=1.5;my=.55;}
+    else if(c.run){ey=.88;mg=CHR.mSmile;mx=1.7;my=1.3;}
+    o.eyes.geometry=geo;o.eyes.scale.set(ex,geo===BG.eyes&&blink?.1:ey,1);
+    if(mg){o.mouth.visible=true;o.mouth.geometry=mg;o.mouth.position.set(o.eyes.position.x*.25,7.5,7.15);o.mouth.scale.set(mx,my,1);}
+  }
+}
+/* story friends: each keeps its merged mesh for the body and gets a few loose parts (head, legs, claws ...) as children */
+function chCritGeo(k){
+  if(k in CHR.cg)return CHR.cg[k];
+  let r=null;const P=(a,b,c,d)=>part(a,b,c),E='#33201a';
+  if(k==='crab'){
+    const leg=(x,z,rz)=>part(cyl(.5,.5,5,4),'#c8403a',M(x,1.5,z,1,1,1,0,0,rz)),claw=s=>merge([part(sph(8,6),'#e8504a',M(s*7.2,.6,0,3,2.2,2.2)),part(sph(6,5),'#f0685e',M(s*8.7,2.7,.4,1.5,1.2,1.2))]);
+    r={body:merge([P(sph(10,8),'#e8504a',M(0,4,0,6,3.6,4.6)),P(sph(6,5),'#ffffff',M(-2,8,2.6,1.2,1.5,1)),P(sph(6,5),'#ffffff',M(2,8,2.6,1.2,1.5,1)),P(sph(5,4),E,M(-2,8.3,3.4,.6,.7,.5)),P(sph(5,4),E,M(2,8.3,3.4,.6,.7,.5))]),
+      parts:[['la',merge([leg(-6,-2,.6),leg(6.5,1,-.7)]),0,0,0],['lb',merge([leg(6,-2,-.6),leg(-6.5,1,.7)]),0,0,0],['cl',merge([claw(-1),claw(1)]),0,5.6,3]]};
+  }else if(k==='sheep'){
+    const lg=(x,z)=>part(cyl(.7,.7,4,5),'#3a2c28',M(x,2,z));
+    r={body:merge([P(blobGeo(5,8,6,5,.35),'#ffffff',M(0,6,0,1.25,1,1)),lg(-3,2),lg(3,2),lg(-3,-2),lg(3,-2),P(sph(6,5),'#ffffff',M(-6,7.2,0,1.5,1.5,1.5))]),
+      parts:[['hd',merge([P(sph(8,6),'#3a2c28',M(3.1,0,0,2.2,2.2,2)),P(sph(5,4),'#ffffff',M(4.5,.7,1.3,.5,.6,.4)),P(sph(5,4),'#ffffff',M(4.5,.7,-1.3,.5,.6,.4)),P(sph(5,4),'#3a2c28',M(2.5,1.3,2.2,.8,.55,1.2)),P(sph(5,4),'#3a2c28',M(2.5,1.3,-2.2,.8,.55,1.2))]),2.5,7.5,0]]};
+  }else if(k==='camel'){
+    const lg=(x,z)=>part(cyl(1.8,1.5,18,6),'#c98f52',M(x,9,z));
+    r={body:merge([P(blobGeo(9,10,8,2,.2),'#d9a25a',M(0,24,0,1.7,1,1)),P(sph(10,8),'#c98f52',M(-5,33,0,5,6,5)),P(sph(10,8),'#c98f52',M(6,33,0,5,6,5)),lg(-9,4),lg(9,4),lg(-9,-4),lg(9,-4),P(box(14,2,11),'#e8504a',M(.5,33.5,0)),P(box(15,1,12),'#ffd24a',M(.5,34.6,0))]),
+      parts:[['hd',merge([P(cyl(2.6,3.4,18,8),'#d9a25a',M(4.3,7.9,0,1,1,1,0,0,-.5)),P(sph(10,8),'#d9a25a',M(10.3,16.9,0,5.5,4,4)),P(sph(6,5),E,M(12.3,18.4,3,.9,1.1,.7)),P(sph(6,5),E,M(12.3,18.4,-3,.9,1.1,.7))]),12.7,24.1,0,null,1],
+        ['er',merge([P(sph(6,5),'#c98f52',M(0,1.4,2.5,1.2,2.2,1)),P(sph(6,5),'#c98f52',M(0,1.4,-2.5,1.2,2.2,1))]),7.3,19.5,0,'hd'],
+        ['jw',P(sph(8,6),'#c98f52',M(0,0,0,3.4,1.5,2.8)),12.2,14.6,0,'hd'],
+        ['tl',merge([P(cyl(.6,.6,10,5),'#8a6a48',M(-1.8,-4.6,0,1,1,1,0,0,-.35)),P(sph(6,5),'#6a4c34',M(-3.6,-9.4,0,1.1,1.5,1.1))]),-15,26,0]]};
+  }else if(k==='turtle'){
+    const gp=goalParts('boat').g;
+    if(gp.length===15){const mv=(l,x,y,z)=>{const m=merge(l);m.applyMatrix4(M(-x,-y,-z));return m;};
+      r={body:merge([gp[0],gp[1],gp[9],gp[10],gp[11],gp[12],gp[13],gp[14]]),
+        parts:[['hd',mv([gp[2],gp[3],gp[4]],26,10,4),26,10,4],['ld',merge([P(sph(8,6),'#6fba6a',M(0,0,4,1.8,2.3,1.3)),P(sph(8,6),'#6fba6a',M(0,0,-4,1.8,2.3,1.3))]),13,5,0,'hd'],
+          ['ff',mv([gp[5],gp[7]],10,3,8),10,3,8],['fb',mv([gp[6],gp[8]],-10,3,8),-10,3,8]]};}
+  }else if(k==='inventor'){
+    r={body:merge([BG.body,BG.eyes.clone().applyMatrix4(M(0,11,6.45)),BG.foot.clone().applyMatrix4(M(-3.4,1.8,1)),BG.foot.clone().applyMatrix4(M(3.4,1.8,1)),P(cyl(8.3,9.4,8,14),'#ffffff',M(0,5.5,0)),P(new T3.TorusGeometry(2.7,.8,6,12),'#6f6a70',M(-3,11.2,7.2)),P(new T3.TorusGeometry(2.7,.8,6,12),'#6f6a70',M(3,11.2,7.2)),P(box(15,1.2,1),'#6f6a70',M(0,11.2,3,1,1,1)),P(blobGeo(3,6,5,9,.6),'#e8e8f0',M(0,18.5,0,1.6,1,1.3))]),
+      parts:[['wr',merge([P(sph(8,6),'#ffc04e',M(0,0,0,1.95,1.95,1.95)),P(cyl(.6,.6,12,5),'#9a9aa8',M(.3,2.8,0,1,1,1,0,0,-.3)),P(box(5,3,1.4),'#9a9aa8',M(2.4,9.3,0))]),9.2,9.2,2],['wv',P(sph(8,6),'#ffc04e',M(0,0,0,1.95,1.95,1.95)),-9.2,9.2,2]]};
+  }
+  return CHR.cg[k]=r;
+}
+function chCritBuild(){
+  for(const g of CHR.stray)g.dispose();CHR.stray.length=0;CHR.saved=G.saved;
+  for(const q of critL){
+    const m=q.m,d=chCritGeo(q.k);q.r0=m.rotation.y;q.zz=m.position.z-bz(q.x);q.on=false;q.g0=m.geometry;q.P=null;
+    if(CHR.stray.indexOf(q.g0)<0)CHR.stray.push(q.g0);
+    if(q.k==='crab'){q.yl=clamp(landY(q.x-13,q.zz),q.y-6,q.y+6);q.yr=clamp(landY(q.x+13,q.zz),q.y-6,q.y+6);}
+    if(!d)continue;q.gb=d.body;q.P={};
+    for(const pp of d.parts){const c=new T3.Mesh(pp[1],propMat);c.position.set(pp[2],pp[3],pp[4]);c.visible=false;c.castShadow=!!pp[6];(pp[5]?q.P[pp[5]]:m).add(c);q.P[pp[0]]=c;}
+  }
+}
+function critLife(t){
+  if(!CHR.ok)chInit();
+  const F=CHR.f;F.squash=lab('chSquash');F.sprout=lab('chSprout');F.look=lab('chLook');F.face=lab('chFace');F.walk=lab('chWalk');F.vary=lab('chVary');F.goal=lab('chGoal');
+  const on=lab('chFriends'),mo=lab('chMoths');
+  if(G.saved>CHR.saved)CHR.waveT=t;CHR.saved=G.saved;
+  for(const q of critL){
+    const m=q.m,a=t+q.p,P=q.P,k=q.k,use=k==='moth'?mo:on&&!!P;
+    if(use!==q.on){q.on=use;if(P){m.geometry=use?q.gb:q.g0;for(const n in P)P[n].visible=use;}if(!use){m.rotation.set(0,q.r0,0);m.scale.setScalar(q.s);m.position.set(q.x,q.y,q.zz+bz(q.x));}}
+    if(!use)continue;
+    if(k==='moth'){   // a lazy figure of eight, nose into the turn
+      const u=a*.45,x=q.x+Math.sin(u)*30;
+      m.position.set(x,q.y+Math.sin(2*u)*9+Math.sin(a*4.3)*.7,q.zz+bz(x)+Math.cos(u*.5+q.p)*9);
+      m.rotation.y=Math.atan2(2*Math.sin(u*.5+q.p),13.5*Math.cos(u));m.rotation.z=clamp(Math.cos(2*u)*.55,-.5,.5);
+    }else if(k==='crab'){   // scuttle sideways, stop, clack the claws, scuttle back
+      const f=(a*.09)%1,h=f<.5?f*2:f*2-1,e=clamp(h/.62,0,1),sm=e*e*(3-2*e),pos=f<.5?sm:1-sm,mv=e<1?Math.sin(e*Math.PI):0,sg=f<.5?1:-1,p=a*20,x=q.x+(pos*2-1)*13;
+      m.position.set(x,(pos<.5?lerp(q.yl,q.y,pos*2):lerp(q.y,q.yr,pos*2-1))+Math.abs(Math.sin(p))*.6*mv,q.zz+bz(x));m.rotation.z=-sg*mv*.1;
+      P.la.position.set(Math.cos(p)*1.1*mv*sg,Math.max(0,Math.sin(p))*1.3*mv,0);P.lb.position.set(-Math.cos(p)*1.1*mv*sg,Math.max(0,-Math.sin(p))*1.3*mv,0);
+      P.cl.rotation.z=e<1?sg*.14*mv:Math.sin(a*7)*.32*Math.sin((h-.62)/.38*Math.PI);
+    }else if(k==='sheep'){   // graze, chew, look about; a hop now and then with a crouch before and after
+      const s=Math.sin(a*.8),hop=Math.max(0,s-.86)/.14,cr=clamp((s-.7)/.16,0,1)*(1-Math.min(1,hop*4)),sy=1-cr*.14+hop*.12+Math.sin(a*1.9)*.012,sx=1/Math.sqrt(sy);
+      const gz=clamp(Math.sin(a*.21+q.p*2)*3+.8,0,1)*(1-clamp((s-.5)/.2,0,1));
+      m.position.y=q.y+hop*4.2;m.scale.set(q.s*sx,q.s*sy,q.s*sx);
+      P.hd.position.y=7.5-gz*2.2;P.hd.rotation.z=-gz*1+gz*Math.sin(a*9)*.05+(1-gz)*Math.sin(a*.6)*.08+hop*.25;P.hd.rotation.y=(1-gz)*Math.sin(a*.37+q.p)*.5;
+    }else if(k==='camel'){   // chewing sideways, a slow look around, ears flick, tail swishes
+      const ef=(a*.23+q.p)%1,tf=(a*.17+q.p*.5)%1;
+      m.scale.set(q.s,q.s*(1+Math.sin(a*1.1)*.012),q.s);
+      P.hd.rotation.z=Math.sin(a*.5)*.05-Math.max(0,Math.sin(a*.31+q.p)-.6)*.5;P.hd.rotation.y=Math.sin(a*.23+q.p)*.22;
+      P.jw.position.set(12.2,14.6-Math.max(0,Math.sin(a*5.2))*.8,Math.sin(a*5.2+1.3)*1);
+      P.er.rotation.x=ef<.1?Math.sin(ef/.1*TAU*2)*.5:0;
+      P.tl.rotation.x=Math.sin(a*1.3)*.12+(tf<.2?Math.sin(tf/.2*TAU*2)*.55:0);
+    }else if(k==='turtle'){   // slow flipper strokes, head stretching out, a long sleepy blink
+      const b=(a*.21)%1,bk=b<.14?Math.sin(b/.14*Math.PI):0;
+      m.position.y=q.y+Math.sin(a*.9)*1.5;m.rotation.z=Math.sin(a*1.1-.8)*.04;
+      P.ff.rotation.z=Math.sin(a*1.1)*.3;P.ff.rotation.y=Math.cos(a*1.1)*.2;P.fb.rotation.z=-Math.sin(a*1.1-1)*.2;
+      P.hd.position.x=26+Math.sin(a*.4)*2.2;P.hd.rotation.y=Math.sin(a*.27+q.p)*.3;P.hd.rotation.z=Math.sin(a*.5)*.06;
+      P.ld.visible=bk>.02;P.ld.position.y=5+(1-bk)*2.6;P.ld.scale.set(1,.4+.6*bk,1);
+    }else if(k==='inventor'){   // ratchets away with the spanner; waves (and hops) when a Bud comes home
+      const w=t-CHR.waveT,joy=w<1.6?Math.sin(w/1.6*Math.PI):0,wv=Math.max(joy,clamp((Math.sin(a*.35)-.93)*14,0,1)),r=(a*1.4)%1,tw=r<.25?r/.25:1-(r-.25)/.75;
+      m.position.y=q.y+Math.abs(Math.sin(a*2.4))*.5*(1-joy)+Math.abs(Math.sin(w*7.85))*5*joy;m.rotation.z=Math.sin(a*1.2)*.03;
+      P.wr.rotation.z=-.45+tw*.7;P.wr.position.y=9.2+tw*.8;
+      P.wv.position.set(-9.2-wv*1.4+Math.sin(a*11)*1.3*wv,9.2+wv*8,2);
+    }
+  }
+}
+function chBlobs(){
+  const b=CHR.blob;if(!lab('chBlob')){b.visible=false;return;}
+  let n=0;
+  for(const c of G.buds){const o=buds3[c.id];if(!o||n>=48)break;
+    let gy=c.y,h=0;
+    if(c.st==='exit')h=o.g.position.y+c.y;
+    else if(c.st==='fall'||c.st==='fly'||c.st==='bub'){const x=c.x|0;while(h<130&&!S(x,c.y+h))h++;if(h>=130)continue;gy=c.y+h;}
+    const r=11.5*o.g.scale.x*(1+h*.01);chM.makeScale(r,1/(1+h*.035),r);chM.setPosition(o.g.position.x,-gy+1,o.g.position.z);b.setMatrixAt(n++,chM);
+  }
+  for(const q of critL){const k=q.k;if(k==='moth'||k==='turtle'||n>=48)continue;
+    const h=Math.max(0,q.m.position.y-q.y),r=(k==='camel'?19:k==='sheep'?8.5:9)*q.s;chM.makeScale(r,1/(1+h*.06),r);chM.setPosition(q.m.position.x,(k==='crab'?q.m.position.y:q.y)+.7,q.m.position.z);b.setMatrixAt(n++,chM);
+  }
+  b.count=n;b.visible=n>0;b.instanceMatrix.needsUpdate=true;
 }
 
 /* ---------- ambient ---------- */
@@ -2726,6 +2973,7 @@ function render(t,dt){
     else if(q.k==='sheep')m.position.y=q.y+Math.max(0,Math.sin(a*.8)-.86)*22;
     else if(q.k==='inventor'){m.position.y=q.y+Math.abs(Math.sin(a*2.4))*1.6;m.rotation.z=Math.sin(a*1.2)*.05;}
     else if(q.k==='turtle')m.position.y=q.y+Math.sin(a*.9)*1.5;}
+  critLife(t);chBlobs();
   {const n=Math.min(12,G.items.length);for(let i=0;i<n;i++){const it=G.items[i],k=it.t&&G.tick-it.t<14?.5+.5*(G.tick-it.t)/14:1;padMesh.setMatrixAt(i,M(it.x,-it.y,bz(it.x),1,k,1,0,yawAt(it.x),0));}if(n||padMesh.count){padMesh.count=n;padMesh.instanceMatrix.needsUpdate=true;}}
   const open=mode==='title'?0:clamp((G.tick-20)/50,0,1)*(G.spawned>=TOTAL&&G.tick>90+TOTAL*SPAWN_EVERY?0:1);
   for(const f of hatchFlaps)f.pv.rotation.z=-f.sd*open*1.25;
