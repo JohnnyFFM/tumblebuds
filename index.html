@@ -1305,12 +1305,12 @@ function sfx(n,a){
 LABDEF.bus='Mix bus + limiter';LABDEF.verb='Effects room reverb';LABDEF.pan='Stereo placement';LABDEF.amb='World ambience';
 LABDEF.worldMusic='World instruments';LABDEF.adaptive='Adaptive music';LABDEF.sfx2='New action sounds';LABDEF.steps='Footsteps + landings';
 LABDEF.stinger='Win/lose stingers';LABDEF.uiSnd='UI + map sounds';LABDEF.voiceMix='Voice mixing';LABDEF.audFix='Audio resume fade';
-let MX=null,sEv=null,sC=null;   /* the mix graph; the sim event being played and its Bud (set around FX.ev) */
+let AMX=null,sEv=null,sC=null;   /* the mix graph; the sim event being played and its Bud (set around FX.ev) */
 function nb(){if(!nbuf){nbuf=AC.createBuffer(1,AC.sampleRate*.5,AC.sampleRate);const d=nbuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}return nbuf;}
 /* buses (all end in the old master gain): effects through seven fixed stereo lanes, UI, ambience; a short room for the effects;
    a gentle compressor after the master. Nothing here is audible until a lab switch routes sound through it. */
 function initMix(){
-  if(MX&&MX.ac===AC)return;
+  if(AMX&&AMX.ac===AC)return;
   try{
     const m={ac:AC,key:-1,sv:-1,sg:-1,ag:-1,ug:-1,amb:null,ambK:'',ambN:0,stepN:0,thF:0,lanes:[]},sr=AC.sampleRate;
     const pn=v=>{let p;if(AC.createStereoPanner){p=AC.createStereoPanner();p.pan.value=v;}else p=AC.createGain();return p;};
@@ -1325,41 +1325,41 @@ function initMix(){
     m.comp=AC.createDynamicsCompressor();m.comp.threshold.value=-16;m.comp.knee.value=12;m.comp.ratio.value=6;m.comp.attack.value=.003;m.comp.release.value=.2;
     m.post=AC.createGain();m.post.gain.value=COMP_POST;m.comp.connect(m.post);m.post.connect(AC.destination);
     m.shelf=AC.createBiquadFilter();m.shelf.type='highshelf';m.shelf.frequency.value=3200;m.shelf.gain.value=3.5;
-    MX=m;
+    AMX=m;
     /* every sim event passes through here first, so effects know where they happen and which Bud they belong to */
     if(!FX.ev.snd){const ev0=FX.ev;FX.ev=(n,c)=>{sEv=n;sC=c;try{if(c)sndEv(n,c);ev0(n,c);}finally{sEv=null;sC=null;}};FX.ev.snd=1;}
     audRoute();
-  }catch(e){MX=null;}
+  }catch(e){AMX=null;}
 }
 const COMP_POST=.6;   /* takes back the make-up gain the browser's compressor adds, so quiet passages keep their old level */
 /* master -> speakers directly (old path) or through the compressor; the narrator joins the same path, with a little air on top */
 function audRoute(){
-  if(!MX)return;const b=lab('bus'),v=lab('voiceMix'),key=(b?1:0)+(v?2:0)+(VO.g?4:0);if(key===MX.key)return;
-  MX.key=key;const out=b?MX.comp:AC.destination;
-  try{master.disconnect(MX.comp);}catch(e){}try{master.disconnect(AC.destination);}catch(e){}
+  if(!AMX)return;const b=lab('bus'),v=lab('voiceMix'),key=(b?1:0)+(v?2:0)+(VO.g?4:0);if(key===AMX.key)return;
+  AMX.key=key;const out=b?AMX.comp:AC.destination;
+  try{master.disconnect(AMX.comp);}catch(e){}try{master.disconnect(AC.destination);}catch(e){}
   master.connect(out);
-  if(VO.g){try{VO.g.disconnect();}catch(e){}try{MX.shelf.disconnect();}catch(e){}if(v){VO.g.connect(MX.shelf);MX.shelf.connect(out);}else VO.g.connect(out);}
+  if(VO.g){try{VO.g.disconnect();}catch(e){}try{AMX.shelf.disconnect();}catch(e){}if(v){VO.g.connect(AMX.shelf);AMX.shelf.connect(out);}else VO.g.connect(out);}
 }
 /* pick the output for the next effect: x = where it happens in the level (null: not in the world -> UI bus) */
 function sfxRoute(x){
-  sVol=1;sDst=null;if(!MX)return;
+  sVol=1;sDst=null;if(!AMX)return;
   const b=lab('bus'),p=lab('pan'),v=lab('verb')&&!lowQ;
-  if(x==null){if(b)sDst=MX.uBus;return;}
+  if(x==null){if(b)sDst=AMX.uBus;return;}
   if(!(b||p||v))return;
   let u=0;if(p){u=(x-camX)*z/vw*2-1;const a=Math.abs(u);sVol=a<=1?1-.22*a:Math.max(.3,.78-.4*(a-1));u=clamp(u,-1,1);}
-  sDst=MX.lanes[Math.round((u+1)*3)];
+  sDst=AMX.lanes[Math.round((u+1)*3)];
 }
-function setG(k,p,v,tc){if(MX[k]!==v){MX[k]=v;p.setTargetAtTime(v,AC.currentTime,tc);}}
+function setG(k,p,v,tc){if(AMX[k]!==v){AMX[k]=v;p.setTargetAtTime(v,AC.currentTime,tc);}}
 /* runs with the music timer (every 90 ms): routing, bus levels, ambience, footsteps. No timers of its own. */
 function audTick(){
-  if(!MX||!AC)return;
+  if(!AMX||!AC)return;
   try{
     audRoute();
     const d=VO.n>0,vm=lab('voiceMix');
-    setG('sv',MX.send.gain,lab('verb')&&!lowQ?.2:0,.05);
-    setG('sg',MX.sBus.gain,vm&&d?.72:1,d?.2:.5);
-    setG('ug',MX.uBus.gain,.85,.05);
-    setG('ag',MX.aBus.gain,(d?.4:1)*(btOn?.3:1),d||btOn?.25:.7);
+    setG('sv',AMX.send.gain,lab('verb')&&!lowQ?.2:0,.05);
+    setG('sg',AMX.sBus.gain,vm&&d?.72:1,d?.2:.5);
+    setG('ug',AMX.uBus.gain,.85,.05);
+    setG('ag',AMX.aBus.gain,(d?.4:1)*(btOn?.3:1),d||btOn?.25:.7);
     if(AC.state==='running'){ambTick();stepTick();}
   }catch(e){}
 }
@@ -1386,7 +1386,7 @@ function ambBuf(){
   return abuf;
 }
 function ambBed(k){
-  const t=AC.currentTime,out=AC.createGain(),src=[];out.gain.value=0;out.gain.setValueAtTime(0,t);out.gain.linearRampToValueAtTime(1,t+2.5);out.connect(MX.aBus);
+  const t=AC.currentTime,out=AC.createGain(),src=[];out.gain.value=0;out.gain.setValueAtTime(0,t);out.gain.linearRampToValueAtTime(1,t+2.5);out.connect(AMX.aBus);
   const n=AC.createBufferSource();n.buffer=ambBuf();n.loop=true;n.start(t,Math.random()*2);src.push(n);
   /* a noise layer: filter, level, optional slow level LFO (rate, depth 0..1) and filter-frequency LFO (rate, depth 0..1) */
   const lay=(type,f,q,vol,lr,ld,fr,fd)=>{
@@ -1409,7 +1409,7 @@ function ambStop(b){
   b.src[0].onended=()=>{try{b.out.disconnect();}catch(e){}};for(const s of b.src)try{s.stop(t+3);}catch(e){}
 }
 function ambEv(k){
-  sDst=Math.random()<.5?MX.aL:MX.aR;sVol=1;let gap=30;
+  sDst=Math.random()<.5?AMX.aL:AMX.aR;sVol=1;let gap=30;
   try{
     if(k==='beach'){const n=2+(Math.random()*2|0),f=1300+Math.random()*500;for(let i=0;i<n;i++)tone(f*(1-i*.04),.2,'sine',.03,i*.26,.74);gap=8+Math.random()*10;}          /* far-off gull-like calls */
     else if(k==='sea'){const n=1+(Math.random()*4|0);for(let i=0;i<n;i++)tone(280+Math.random()*420,.07,'sine',.04,i*(.09+Math.random()*.08),1.9);gap=1.5+Math.random()*4;} /* bubbles */
@@ -1422,14 +1422,14 @@ function ambEv(k){
 }
 function ambTick(){
   const want=lab('amb')&&soundOn&&(mode==='play'||mode==='end')&&!MOVIE.on?TC.k:'',t=AC.currentTime;
-  if(want!==MX.ambK){if(MX.amb)ambStop(MX.amb);MX.amb=null;MX.ambK=want;if(want)MX.amb=ambBed(want);MX.ambN=t+2+Math.random()*3;}
-  if(MX.amb&&t>MX.ambN&&!btOn&&VO.n===0)MX.ambN=t+ambEv(want);
+  if(want!==AMX.ambK){if(AMX.amb)ambStop(AMX.amb);AMX.amb=null;AMX.ambK=want;if(want)AMX.amb=ambBed(want);AMX.ambN=t+2+Math.random()*3;}
+  if(AMX.amb&&t>AMX.ambN&&!btOn&&VO.n===0)AMX.ambN=t+ambEv(want);
 }
 
 /* --- footsteps: now and then one of the walking Buds in view makes a tiny step sound that fits the ground --- */
 const SURF={beach:1300,sea:600,desert:1500,hills:900,snow:2400,moon:500,home:900};
 function stepTick(){
-  if(!lab('steps')||!soundOn||mode!=='play'||paused||cine||menuOpen||introT>0||(++MX.stepN&1))return;
+  if(!lab('steps')||!soundOn||mode!=='play'||paused||cine||menuOpen||introT>0||(++AMX.stepN&1))return;
   let n=0,pick=null;const x0=camX,x1=camX+vw/z;
   for(const c of G.buds)if(c.st==='walk'&&c.x>x0&&c.x<x1&&Math.random()<1/++n)pick=c;
   if(!pick||Math.random()>.45+.12*n)return;
@@ -1449,9 +1449,9 @@ function mDrop(t,f0,f1,dur,vol){const o=AC.createOscillator(),g=AC.createGain();
 function wind(n,t,vol,dur,glide){
   const f=mt(n),g=AC.createGain(),o=AC.createOscillator(),o2=AC.createOscillator(),g2=AC.createGain(),l=AC.createOscillator(),lg=AC.createGain(),e=t+dur+.3;
   g.gain.value=0;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+(glide?.1:.06));g.gain.setValueAtTime(vol,t+dur);g.gain.linearRampToValueAtTime(0,t+dur+.25);
-  if(glide&&MX&&MX.thF>0){o.frequency.setValueAtTime(MX.thF,t);o.frequency.exponentialRampToValueAtTime(f,t+.1);o2.frequency.setValueAtTime(MX.thF*2,t);o2.frequency.exponentialRampToValueAtTime(f*2,t+.1);}
+  if(glide&&AMX&&AMX.thF>0){o.frequency.setValueAtTime(AMX.thF,t);o.frequency.exponentialRampToValueAtTime(f,t+.1);o2.frequency.setValueAtTime(AMX.thF*2,t);o2.frequency.exponentialRampToValueAtTime(f*2,t+.1);}
   else{o.frequency.value=f;o2.frequency.value=f*2;}
-  if(glide&&MX)MX.thF=f;
+  if(glide&&AMX)AMX.thF=f;
   g2.gain.value=glide?.07:.16;l.frequency.value=glide?5.6:5;lg.gain.value=0;lg.gain.setValueAtTime(0,t);lg.gain.linearRampToValueAtTime(glide?16:8,t+.4);l.connect(lg);lg.connect(o.detune);lg.connect(o2.detune);
   o.connect(g);o2.connect(g2);g2.connect(g);g.connect(mBus);
   if(!glide){const s=AC.createBufferSource(),bf=AC.createBiquadFilter(),bg=AC.createGain();s.buffer=nb();s.loop=true;bf.type='bandpass';bf.frequency.value=f*2;bf.Q.value=4;bg.gain.value=.3;s.connect(bf);bf.connect(bg);bg.connect(g);s.start(t);s.stop(e);}
