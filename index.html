@@ -1734,7 +1734,7 @@ const ENVT={
  moon:{liq:3,shal:[0,0,0],wet:0,glit:.4,caus:0,mist:[0,-380,70,1,1,1],sway:0,swsp:1,glow:1,planet:1},
  home:{liq:2,shal:[0,0,0],wet:0,glit:0,caus:0,mist:[.5,-385,70,1.2,1.2,1.26],sway:1,swsp:1.1}
 };
-const ENV={ok:0,shT:-1,shN:0,bounce:new T3.Color(1,1,1),treeDepth:null},plDir=V3(.5,.2,-.84).normalize();
+const ENV={ok:0,shT:-1,shN:0,bounce:new T3.Color(1,1,1),treeDepth:null},plDir=V3(.3,.17,-.9).normalize();
 const ENVU={uEA:{value:new T3.Vector4()},uEB:{value:new T3.Vector4()},uEC:{value:new T3.Vector4()},uED:{value:new T3.Vector4()},uEMc:{value:V3(1,1,1)},uESc:{value:V3(1,1,1)}};
 function eRep(src,a,b){if(src.indexOf(a)<0)console.warn('env: shader hook not found: '+a);return src.replace(a,b);}
 /* shore map: a small texture over the level and its surroundings. R = distance to the nearest shore (0 at land .. 1 at 90 units and beyond),
@@ -1838,8 +1838,63 @@ const ENV_WATER=['uniform sampler2D tShore;uniform vec4 uShR,uEW;uniform vec3 uS
  'void main(){',
  ' if(uEW.w<0.)mainOld();else if(uEW.w<.5)gl_FragColor=eWater();else if(uEW.w<1.5)gl_FragColor=eSand();else if(uEW.w<2.5)gl_FragColor=eCloud();else if(uEW.w<3.5)gl_FragColor=eDust();else gl_FragColor=eTrench();',
  ' if(uEW.z>0.)gl_FragColor=eFloe(gl_FragColor);}'].join('\n');
+/* sky dome: original shader stays as mainOld(); uES = (clouds, sun and moon, stars, aurora strength), uES2 = (planet, underwater, sunset, dusk) */
+const ENV_SKY=['uniform vec4 uES,uES2,uShoot;uniform vec3 uShootV,uPl;',
+ 'float ef3(vec2 p){return vnoise(p)*.55+vnoise(p*2.3+5.1)*.3+vnoise(p*5.1+1.7)*.15;}',
+ 'void main(){',
+ ' if(uES.x+uES.y+uES.z+uES.w+uES2.x+uES2.y<=0.){mainOld();return;}',
+ ' vec3 d=normalize(vD);float h=d.y;',
+ ' vec3 col=mix(cHor,cMid,smoothstep(-.01,.07,h));col=mix(col,cTop,smoothstep(.05,.42,h));',
+ ' float sd=max(dot(d,uSun),0.);col+=uSunCol*(pow(sd,300.)*.55+pow(sd,10.)*.2);',
+ ' if(uES.y>0.)col+=uSunCol*(pow(sd,2200.)*.5+pow(sd,60.)*.12+pow(sd,3.)*.12*uES2.z);',   // tight corona, soft halo, and a wide warm wash at sunset
+ ' vec2 sp=vec2(atan(d.z,d.x),asin(clamp(d.y,-1.,1.)))*70.;vec2 id=floor(sp);float hh=h21(id),star=uStar*step(0.,h);',
+ ' if(uES.z>0.){if(star>0.){',   // stars of different size and colour, a dusting of faint ones, the milky way, now and then a shooting star
+ '   float mag=h21(id+1.3),r=length(fract(sp)-(vec2(h21(id+3.7),h21(id+9.1))*.5+.25));',
+ '   col+=mix(vec3(.75,.85,1.),vec3(1.,.88,.7),h21(id+5.5))*step(.975,hh)*smoothstep(.1+.3*mag*mag,0.,r)*(.5+.5*sin(uT*(1.5+2.*mag)+hh*90.))*(.5+.9*mag)*star;',
+ '   vec2 s2=sp*2.7;col+=vec3(.8,.85,1.)*step(.955,h21(floor(s2)+11.))*smoothstep(.3,0.,length(fract(s2)-.5))*.28*star;',
+ '   float bd=dot(d,vec3(.36,.5,.79));vec2 mq=d.xz*3.+d.y*vec2(1.7,-2.3);',
+ '   col+=vec3(.36,.4,.6)*exp(-bd*bd*20.)*(.3+.7*ef3(mq*2.))*(.25+.75*smoothstep(.3,.7,ef3(mq*.9+4.)))*.42*star;',
+ '   if(uShoot.w>0.){vec3 dv=normalize(uShootV),pd=d-normalize(uShoot.xyz+uShootV*uShoot.w);float al=dot(pd,dv);',
+ '    col+=vec3(1.,.97,.85)*smoothstep(.004,0.,length(pd-dv*al))*smoothstep(-.14,0.,al)*step(al,.003)*sin(uShoot.w*3.1416)*star;}}}',
+ ' else col+=step(.982,hh)*smoothstep(.45,.08,length(fract(sp)-.5))*(.55+.45*sin(uT*2.+hh*90.))*uStar*step(0.,h);',
+ ' float dm=max(dot(d,uMoon),0.);',
+ ' if(uES2.x>0.){',   // seen from the moon: a small blue planet with drifting weather, lit from one side, a thin glowing rim of air
+ '  vec3 px=normalize(cross(vec3(0.,1.,0.),uPl)),py=cross(uPl,px);vec2 pq=vec2(dot(d-uPl,px),dot(d-uPl,py))/.085;float rr=length(pq);',
+ '  if(rr<1.5&&dot(d,uPl)>0.){float zc=sqrt(max(1.-rr*rr,0.));vec3 n=vec3(pq,zc),lp=normalize(vec3(-.62,.45,.6));float lam=clamp(dot(n,lp)*1.25+.1,0.,1.);',
+ '   vec2 sq=n.xy/(1.+zc)*2.4+vec2(uT*.003,0.);vec3 sur=mix(vec3(.08,.3,.62),vec3(.26,.5,.28),smoothstep(.5,.58,ef3(sq*1.6+3.)));',
+ '   sur=mix(sur,vec3(.96),smoothstep(.48,.72,ef3(sq*3.2+vec2(uT*.006,9.)))*.85);',
+ '   col=mix(col,sur*lam+vec3(.012,.02,.045),smoothstep(1.,.95,rr));',
+ '   col+=vec3(.3,.55,1.)*smoothstep(1.3,1.,rr)*smoothstep(.8,1.02,rr)*.45*clamp(dot(vec3(pq,0.),lp)+.7,0.,1.);}}',
+ ' else if(uES.y>0.)col+=(vec3(.96,.95,1.)*smoothstep(.9990,.9993,dm)*(.84+.16*smoothstep(.35,.6,vnoise(d.xy*60.+d.z*37.)))+vec3(.45,.5,.8)*(pow(dm,160.)*.5+pow(dm,1400.)*.45+pow(dm,22.)*.1))*uStar;',
+ ' else col+=(vec3(.96,.95,1.)*smoothstep(.9990,.9993,dm)+vec3(.45,.5,.8)*pow(dm,160.)*.5)*uStar;',
+ ' if(uES.w>0.){',   // aurora: curtains with a sharp lower hem that fade upward, fine rays, green turning violet
+ '  float ax=atan(d.x,-d.z),hem=.13+.07*sin(ax*2.3+uT*.05)+.04*sin(ax*5.1-uT*.08)+.05*vnoise(vec2(ax*4.+uT*.03,1.)),v=h-hem;',
+ '  float ry=vnoise(vec2(ax*42.+vnoise(vec2(ax*3.,uT*.05))*8.,uT*.2));',
+ '  float cu=smoothstep(0.,.025,v)*exp(-v*6.5)*(.35+.65*ry)*(.5+.5*vnoise(vec2(ax*1.5-uT*.02,3.)));',
+ '  float v2=h-hem*1.6-.1,c2=smoothstep(0.,.03,v2)*exp(-v2*8.)*(.4+.6*vnoise(vec2(ax*30.-uT*.1,7.)))*.5;',
+ '  col+=(mix(vec3(.2,1.,.55),vec3(.55,.35,1.),smoothstep(0.,.3,v))*cu+vec3(.25,.9,.75)*c2)*uES.w*.6;}',
+ ' float cov=0.;',
+ ' if(uES.x>0.){if(uCloud>0.){',   // clouds: softer fringe, shaded cores, silver lining toward the sun, warm rims at sunset, a thin high layer drifting the other way
+ '  vec2 cu=d.xz/(max(h,0.)+.11)*.55+vec2(uT*.004,uT*.0015);float cl=fb(cu),c2=fb(cu+uSun.xz*.09),dens=smoothstep(.44,.74,cl);',
+ '  cov=dens*smoothstep(-.005,.05,h)*uCloud;float edge=dens*(1.-dens)*4.;',
+ '  vec3 cc=mix(cCs,cCl,clamp(.55+(cl-c2)*3.5,0.,1.));cc=mix(cc,cCs*.9,smoothstep(.62,.9,cl)*.4);',
+ '  cc+=uSunCol*(pow(sd,6.)*.35*(1.-smoothstep(.5,.8,cl))+edge*pow(sd,3.)*.45+edge*.14*uES2.z);',
+ '  vec2 cq=d.xz/(max(h,0.)+.3)*vec2(.2,.62)+vec2(-uT*.0018,uT*.0007)+7.;',
+ '  float cir=smoothstep(.45,.85,ef3(cq*vec2(1.,2.8)))*smoothstep(.03,.22,h)*uCloud*.45;',
+ '  col=mix(col,mix(cCl,uSunCol,.2+.4*uES2.z),cir);col=mix(col,cc,cov*.92);}}',
+ ' else{vec2 cu=d.xz/(max(h,0.)+.11)*.55+vec2(uT*.004,uT*.0015);float cl=fb(cu),c2=fb(cu+uSun.xz*.09);',
+ '  cov=smoothstep(.47,.72,cl)*smoothstep(-.005,.05,h)*uCloud;',
+ '  vec3 cc=mix(cCs,cCl,clamp(.55+(cl-c2)*3.5,0.,1.))+uSunCol*pow(sd,6.)*.35*(1.-smoothstep(.5,.8,cl));col=mix(col,cc,cov*.92);}',
+ ' col+=uSunCol*smoothstep(.9993,.9996,sd)*1.4*(1.-cov);',
+ ' if(uES2.y>0.){',   // under the sea: the bright rippling surface far above, shafts of light slanting down from it
+ '  vec2 wq=d.xz/(max(h,0.)+.2)*3.;float a=vnoise(wq+uT*.25),b=vnoise(wq*1.8-uT*.2+4.),ang=atan(d.x,-d.z);',
+ '  col+=vec3(.22,.5,.55)*smoothstep(.04,.6,h)*(.3+.7*pow(1.-min(abs(a-b)*2.5,1.),2.))*.5;',
+ '  col+=vec3(.16,.42,.48)*smoothstep(.2,.55,vnoise(vec2(ang*9.+uT*.04,0.))*vnoise(vec2(ang*23.-uT*.06,5.)))*smoothstep(-.06,.45,h)*.5;}',
+ ' gl_FragColor=vec4(col,1.);}'].join('\n');
 function envSetup(){
   ENV.ok=1;
+  const sm=sky.material;Object.assign(sm.uniforms,{uES:{value:new T3.Vector4()},uES2:{value:new T3.Vector4()},uShoot:{value:new T3.Vector4(0,1,0,-1)},uShootV:{value:V3(1,0,0)},uPl:{value:plDir}});
+  sm.fragmentShader=eRep(sm.fragmentShader,'void main(){','void mainOld(){')+'\n'+ENV_SKY;sm.needsUpdate=true;
   const wm=water.material;Object.assign(wm.uniforms,{tShore:{value:SH.tex},uShR:{value:new T3.Vector4(SH.x0,SH.z0,1/SH.sx,1/SH.sz)},uEW:{value:new T3.Vector4(0,0,0,-1)},uShal:{value:V3(0,0,0)},uFoam:{value:V3(1,1,1)},uTod:{value:new T3.Vector2()}});
   wm.fragmentShader=eRep(wm.fragmentShader,'void main(){','void mainOld(){')+'\n'+ENV_WATER;wm.needsUpdate=true;
 }
@@ -1853,6 +1908,15 @@ function envUpd(t){
     const dl=clamp((dp.x+dp.y+dp.z)/(d0[0]+d0[1]+d0[2]+.001),0,1.15),si=sun.intensity/2.1,hc=hemi.color;
     wu.uShal.value.set(E.shal[0]*dl,E.shal[1]*dl,E.shal[2]*dl);wu.uTod.value.set(dusk,sunset);
     wu.uFoam.value.set(Math.min(1,sun.color.r*si*.62+hc.r*.42),Math.min(1,sun.color.g*si*.62+hc.g*.42),Math.min(1,sun.color.b*si*.62+hc.b*.42));}
+  {const su=sky.material.uniforms,st=su.uStar.value,sh=su.uShoot.value;
+    su.uES.value.set(hq&&lab('envClouds')?1:0,on('envSun'),on('envStars'),E.aur&&hq&&lab('envAurora')?clamp((tod-.3)/.4,0,1):0);
+    su.uES2.value.set(E.planet&&lab('envPlanet')?1:0,E.liq===4&&lab('envCaust')?1:0,sunset,dusk);
+    // a shooting star every now and then while the stars are out
+    if(sh.w>=0){sh.w+=(t-ENV.shT)/.9;if(sh.w>=1||t<ENV.shT)sh.w=-1;}
+    else if(st>.3&&lab('envStars')&&(t>ENV.shN||t<ENV.shN-40)){
+      if(ENV.shN>0&&t>=ENV.shN){const a=(Math.random()-.5)*1.6,e=.35+Math.random()*.5,v=su.uShootV.value;sh.set(Math.sin(a)*Math.cos(e),Math.sin(e),-Math.cos(a)*Math.cos(e),0);v.set(Math.random()<.5?-1:1,-.35-Math.random()*.4,(Math.random()-.5)*.4).normalize().multiplyScalar(.3+Math.random()*.2);}
+      ENV.shN=t+5+Math.random()*9;}
+    ENV.shT=t;}
 }
 
 /* ---------- props and characters ---------- */
