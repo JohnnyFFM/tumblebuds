@@ -12,9 +12,13 @@
 }
 [hidden]{display:none!important}
 html,body{height:100%;overflow:hidden;overscroll-behavior:none}
-body{background:var(--sky);color:var(--ink);font-family:var(--body);font-weight:700;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none}
+body{background:#10181d;color:var(--ink);font-family:var(--body);font-weight:700;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none}
 #cv,#fx{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
 #fx{pointer-events:none}
+@media (display-mode:standalone),(display-mode:fullscreen){
+  html{min-height:calc(100% + env(safe-area-inset-top,0px))}
+  #cv,#hud,.screen,#studio{height:100vh;bottom:auto}
+}
 #hud > .head{display:flex;flex-direction:column;gap:8px;pointer-events:none}
 #hud .head > *{pointer-events:auto}
 #mini{flex:none;border:3px solid var(--ink);border-radius:12px;box-shadow:0 4px 0 var(--shade);touch-action:none;cursor:pointer}
@@ -851,7 +855,7 @@ FX.ev=(n,c)=>{
 let vw=1,vh=1,dpr=1,rscale=Math.min(window.devicePixelRatio||1,window.innerWidth<700?1.5:2),z=1,camX=0,camY=0,minZ=.5,maxZ=3,topPad=60,camAnim=null,bars=0,sCx=null,sCy=0,sZ=1;
 const mini=$('mini'),miniX=mini.getContext('2d'),camTarget=V3(0,0,0);
 function resize(){
-  dpr=Math.min(window.devicePixelRatio||1,rscale);vw=window.innerWidth;vh=window.innerHeight;
+  dpr=Math.min(window.devicePixelRatio||1,rscale);vw=cv.clientWidth||window.innerWidth;vh=cv.clientHeight||window.innerHeight;
   const pw=Math.max(2,Math.round(vw*dpr)),ph=Math.max(2,Math.round(vh*dpr));
   R.setPixelRatio(1);R.setSize(pw,ph,false);cam.aspect=vw/vh;cam.updateProjectionMatrix();makeRTs(pw,ph);
   const mw=Math.round(vw>=700?clamp(vw-500,150,260):Math.min(210,vw*.5)),mh=Math.round(mw*H/W);mini.width=mw*2;mini.height=mh*2;mini.style.width=mw+'px';mini.style.height=mh+'px';
@@ -1281,7 +1285,7 @@ $('bCam').addEventListener('click',()=>{initAudio();CFG.view=[2,0,3,1][CFG.view|
 $('bPause').addEventListener('click',()=>{initAudio();paused=!paused;sfx('ui');toast(paused?tr(20):tr(21));syncHud(true);});
 $('bSpeed').addEventListener('click',()=>{initAudio();speed=speed%3+1;sfx('ui');syncHud(true);});
 $('bFinish').addEventListener('click',()=>{endGame();});
-window.addEventListener('resize',resize);
+window.addEventListener('resize',resize);window.addEventListener('orientationchange',()=>setTimeout(resize,250));setTimeout(resize,400);setTimeout(resize,1500);
 document.addEventListener('visibilitychange',()=>{if(AC){if(document.hidden)AC.suspend();else AC.resume();}});
 
 /* ---------- post fx ---------- */
@@ -1432,7 +1436,7 @@ function frame(ms){
   ft=ft*.96+dt*.04;if(++fc>150){fc=0;if(CFG.gfx==='auto'&&ft>.027){if(rscale>1){rscale=Math.max(1,rscale-.5);ft=.016;resize();}else setLow(true);}}
   if(mode==='title')setTod(.5-.5*Math.cos(T*TAU/50));else setTod(G.tick/(170*60));
   let bt=0;
-  if(cine){if(!cine.hold)cine.t+=dt;bt=.105*clamp(Math.min(cine.t/.6,(cine.dur-cine.t)/1),0,1);if(cine.t>=cine.dur)endCine();}
+  if(cine){if(!cine.hold)cine.t+=dt;bt=(vw>vh?.105:.035)*clamp(Math.min(cine.t/.6,(cine.dur-cine.t)/1),0,1);if(cine.t>=cine.dur)endCine();}
   bars+=(bt-bars)*Math.min(1,dt*8);if(bars<.0005)bars=0;
   if(mode==='play'){
     if(introT>0){if(!cine)introT-=dt;}
