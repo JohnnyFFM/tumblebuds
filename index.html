@@ -1897,6 +1897,72 @@ function envSetup(){
   sm.fragmentShader=eRep(sm.fragmentShader,'void main(){','void mainOld(){')+'\n'+ENV_SKY;sm.needsUpdate=true;
   const wm=water.material;Object.assign(wm.uniforms,{tShore:{value:SH.tex},uShR:{value:new T3.Vector4(SH.x0,SH.z0,1/SH.sx,1/SH.sz)},uEW:{value:new T3.Vector4(0,0,0,-1)},uShal:{value:V3(0,0,0)},uFoam:{value:V3(1,1,1)},uTod:{value:new T3.Vector2()}});
   wm.fragmentShader=eRep(wm.fragmentShader,'void main(){','void mainOld(){')+'\n'+ENV_WATER;wm.needsUpdate=true;
+  for(const m of[terrMat,landMat,MATS.rock,MATS.tree])envBump(m);
+  for(const m of[MATS.grass,MATS.flower,MATS.reed])envBlade(m);
+  // trees cast their shadow with the same sway they are drawn with
+  ENV.treeDepth=new T3.MeshDepthMaterial({depthPacking:T3.RGBADepthPacking});
+  ENV.treeDepth.onBeforeCompile=sh=>{sh.uniforms.uEC=ENVU.uEC;sh.vertexShader=eRep(eRep(sh.vertexShader,'#include <common>','#include <common>\nuniform vec4 uEC;'),'#include <project_vertex>',ENV_SWAY+'\n#include <project_vertex>');};
+  for(const o of LG.children)if(o.material===MATS.tree&&o.castShadow)o.customDepthMaterial=ENV.treeDepth;
+}
+/* ground, rocks and plants: extra code in the materials made by bumpInject (terrain, scenery land, boulders, trees) and windMat (grass, flowers, reeds).
+   uEA = (wet, glitter, caustics, detail), uEB = (mist, mist top, crystal glow, sunset rim), uEC = (time, sway, sway speed, gusts), uED = (underwater, camera distance, mist band, -) */
+const ENV_SWAY=['#ifdef USE_INSTANCING',
+ 'if(uEC.y>0.){vec3 ip=instanceMatrix[3].xyz;float s2=dot(instanceMatrix[0].xyz,instanceMatrix[0].xyz),hy=max(position.y,0.),tt=uEC.x*uEC.z,ph=ip.x*.013+ip.z*.021;',
+ ' float gu=.55+.45*sin(tt*.35+ip.x*.004-ip.z*.002);',   // trunks lean with slow gusts that cross the land, crowns rustle on top
+ ' vec2 w=vec2(sin(tt+ph)+.5*sin(tt*2.3+ph*1.7),.6*cos(tt*.8+ph*1.3))*gu+vec2(sin(tt*3.1+position.x*.9+position.z*.7+ph),cos(tt*2.7+position.z*.8+ph))*.22;',
+ ' transformed+=(vec3(w.x,0.,w.y)*mat3(instanceMatrix))*(hy*hy*.0012*uEC.y/sqrt(s2));}',
+ '#endif'].join('\n');
+const ENV_VPOS='{vec4 ew=vec4(transformed,1.);\n#ifdef USE_INSTANCING\new=instanceMatrix*ew;\n#endif\nvEW=(modelMatrix*ew).xyz;}';
+const ENV_MIST=['#include <fog_fragment>','#ifdef USE_FOG',
+ 'if(uEB.x>0.){float mh=1.-smoothstep(uEB.y-uED.z,uEB.y,vEW.y);',   // mist lies low and only beyond the play strip, so the path stays clear
+ ' float mf=uEB.x*mh*mh*(.55+.45*vnoise(vEW.xz*.0035+vec2(uEC.x*.012,0.)))*smoothstep(uED.y+80.,uED.y+1500.,length(cameraPosition-vEW));',
+ ' gl_FragColor.rgb=mix(gl_FragColor.rgb,fogColor*uEMc,min(mf,.9));}','#endif'].join('\n');
+function envBump(m){
+  const ob=m.onBeforeCompile,ck=m.customProgramCacheKey,terr=m===terrMat,tree=m===MATS.tree;
+  m.customProgramCacheKey=()=>ck()+'env'+(terr?'T':tree?'S':'');
+  m.onBeforeCompile=sh=>{
+    ob(sh);Object.assign(sh.uniforms,ENVU);
+    sh.vertexShader=eRep(eRep(sh.vertexShader,'#include <common>','#include <common>\nuniform vec4 uEC;varying vec3 vEW;'),'#include <project_vertex>',(tree?ENV_SWAY+'\n':'')+ENV_VPOS+'\n#include <project_vertex>');
+    let f=eRep(sh.fragmentShader,'void main() {','uniform vec4 uEA,uEB,uEC,uED;uniform vec3 uEMc,uESc;varying vec3 vEW;float eWet=0.,eGl=0.,eCa=0.;\nvoid main() {');
+    f=eRep(f,'#include <roughnessmap_fragment>',['{float eNy=normalize(vNo).y,eWl=vEW.y+452.;',
+     'if(uEA.x>0.){float wn=vnoise(vEW.xz*.09+vEW.y*.05)*4.+sin(uEC.x*.9+vEW.x*.04+vEW.z*.03)*1.3;',   // rock is dark and glossy where the water laps, and dims further down
+     ' eWet=uEA.x*(1.-smoothstep(2.5+wn,8.+wn,eWl));diffuseColor.rgb*=mix(vec3(1.),vec3(.5,.56,.6),eWet)*(1.-.3*uEA.x*smoothstep(0.,-45.,eWl));}',
+     terr?['if(uEA.w>0.){float fz=abs(vNo.z),cv=smoothstep(4.,9.,vDp)*(1.-smoothstep(.25,.6,fz));',   // dug faces show fresh earth; the cut face is shaded under the turf, which hangs over the edge in tongues
+      ' diffuseColor.rgb=mix(diffuseColor.rgb,pow(uSo,vec3(2.2))*(.5+.5*vnoise(vEW.xy*.3+vEW.z*.21))*vec3(1.05,.95,.88),cv*.6);',
+      ' float fc=step(.6,fz),dl=13.*pow(vnoise(vec2(vEW.x*.2+vEW.z*.2,7.)),3.);',
+      ' diffuseColor.rgb*=1.-.3*fc*smoothstep(4.,8.,vDp)*exp(-max(vDp-8.-dl,0.)*.09);',
+      ' diffuseColor.rgb=mix(diffuseColor.rgb,pow(mix(uT1,uT2,.6),vec3(2.2))*(.55+.35*vnoise(vEW.xy*1.1)),fc*smoothstep(3.5+dl,2.+dl,vDp)*step(2.5,dl)*.9);}'].join('\n'):'',
+     'if(uEA.y>0.&&eNy>.55'+(terr?'&&vDp<6.':'')+'){vec2 gq=vEW.xz*.42,gi=floor(gq);float gh=h21(gi);',   // single grains of sand or snow flash as the view moves
+     ' float tw=fract(gh*41.+dot(normalize(cameraPosition-vEW),vec3(3.1,1.7,2.3))*9.+uEC.x*.12);',
+     ' eGl=step(.86,gh)*smoothstep(.7,1.,tw)*smoothstep(.3,.06,length(fract(gq)-.5-(vec2(h21(gi+2.),h21(gi+5.))-.5)*.5))*uEA.y;}',
+     'if(uEA.z>0.){float cm=uED.x>0.?(.14+.86*smoothstep(.2,.8,eNy))*smoothstep(-470.,-430.,vEW.y):smoothstep(0.,-4.,eWl)*smoothstep(-60.,-20.,eWl);',   // caustics: bright webs where two drifting noise fields cross
+     ' if(cm>0.){vec2 cq=vEW.xz+vEW.y*vec2(.35,.2);float tt=uEC.x;',
+     '  float ca=vnoise(cq*.05+vec2(tt*.21,tt*.13)),cb=vnoise(cq*.085-vec2(tt*.17,tt*.24)+5.),c2=vnoise(cq*.13+vec2(-tt*.3,tt*.2)+2.),c3=vnoise(cq*.2+vec2(tt*.26,-tt*.31)+8.);',
+     '  eCa=(pow(1.-min(abs(ca-cb)*3.,1.),5.)+.6*pow(1.-min(abs(c2-c3)*3.,1.),5.))*cm*uEA.z;diffuseColor.rgb*=1.-.12*cm*uEA.z;}}',
+     '}','#include <roughnessmap_fragment>','roughnessFactor=mix(roughnessFactor,.28,eWet*.85);'].join('\n'));
+    f=eRep(f,'#include <emissivemap_fragment>',['#include <emissivemap_fragment>',
+     'totalEmissiveRadiance+=uESc*eGl*2.4+diffuseColor.rgb*eCa*vec3(.8,1.,.95)*1.3;',
+     'if(uEB.w>0.'+(tree?'||uEB.z>0.':'')+'){float er=pow(1.-max(dot(normalize(vViewPosition),normal),0.),3.);totalEmissiveRadiance+=diffuseColor.rgb*uESc*er*uEB.w;',
+     tree?' totalEmissiveRadiance+=diffuseColor.rgb*uEB.z*(.3+.18*sin(uEC.x*1.1+vEW.x*.03+vEW.z*.05)+er*.8);}':'}'].join('\n'));
+    sh.fragmentShader=eRep(f,'#include <fog_fragment>',ENV_MIST);
+  };
+  m.needsUpdate=true;
+}
+function envBlade(m){
+  const ob=m.onBeforeCompile,ck=m.customProgramCacheKey;
+  m.customProgramCacheKey=()=>ck()+'env';
+  m.onBeforeCompile=sh=>{
+    ob(sh);Object.assign(sh.uniforms,ENVU);
+    sh.vertexShader=eRep(eRep(sh.vertexShader,'#include <common>','#include <common>\nuniform vec4 uEC;varying vec3 vEW;varying float vGu;'),'#include <project_vertex>',['vGu=0.;','#ifdef USE_INSTANCING',
+     'if(uEC.w>0.){vec3 ip=instanceMatrix[3].xyz;float s2=dot(instanceMatrix[0].xyz,instanceMatrix[0].xyz);',   // gusts: bright bands that run across the meadow and press the blades down as they pass
+     ' float gu=pow(.5+.5*sin(ip.x*.011+ip.z*.006-uEC.x*1.25+sin(ip.z*.017+uEC.x*.31)*1.6),4.);',
+     ' transformed+=(vec3(1.,0.,.3)*mat3(instanceMatrix))*(gu*position.y*.4/sqrt(s2));transformed.y-=gu*position.y*.1;vGu=gu*clamp(position.y*.14,0.,1.);}',
+     '#endif',ENV_VPOS,'#include <project_vertex>'].join('\n'));
+    let f=eRep(sh.fragmentShader,'void main() {','uniform vec4 uEB,uEC,uED;uniform vec3 uEMc;varying vec3 vEW;varying float vGu;\n'+GLSL_NOISE+'\nvoid main() {');
+    f=eRep(f,'#include <color_fragment>','#include <color_fragment>\ndiffuseColor.rgb*=1.+.4*vGu;');
+    sh.fragmentShader=eRep(f,'#include <fog_fragment>',ENV_MIST);
+  };
+  m.needsUpdate=true;
 }
 function envUpd(t){
   if(!ENV.ok)envSetup();
@@ -1917,6 +1983,16 @@ function envUpd(t){
       if(ENV.shN>0&&t>=ENV.shN){const a=(Math.random()-.5)*1.6,e=.35+Math.random()*.5,v=su.uShootV.value;sh.set(Math.sin(a)*Math.cos(e),Math.sin(e),-Math.cos(a)*Math.cos(e),0);v.set(Math.random()<.5?-1:1,-.35-Math.random()*.4,(Math.random()-.5)*.4).normalize().multiplyScalar(.3+Math.random()*.2);}
       ENV.shN=t+5+Math.random()*9;}
     ENV.shT=t;}
+  {const U=ENVU,M=E.mist,wn=on('envWind'),si=sun.intensity/2.1;
+    U.uEA.value.set(lab('envWet')?E.wet:0,hq&&lab('envGlit')?E.glit:0,hq&&lab('envCaust')?E.caus:0,on('envDetail'));
+    U.uEB.value.set(lab('envMist')?M[0]:0,M[1],lab('envGlow')?E.glow||0:0,lab('envLight')?sunset*.45:0);
+    U.uEC.value.set(t,wn*E.sway,E.swsp,wn);U.uED.value.set(E.liq===4?1:0,cam.position.distanceTo(camTarget),M[2],0);
+    U.uEMc.value.set(M[3],M[4],M[5]);U.uESc.value.set(sun.color.r*si,sun.color.g*si,sun.color.b*si);}
+  if(lab('envLight')){   // warmer key, cooler fill, sky light that picks up the colour of the ground, a goal that lights the ground around it
+    sun.color.r*=1.04;sun.color.b*=.86;fill.color.setRGB(fill.color.r*.93,fill.color.g*.97,fill.color.b*1.05);
+    const g=hemi.groundColor,b=ENV.bounce,k=(g.r+g.g+g.b)/(b.r+b.g+b.b+.001);g.setRGB(lerp(g.r,b.r*k,.6),lerp(g.g,b.g*k,.6),lerp(g.b,b.b*k,.6));
+    homeLight.intensity=lerp(.8,3,dusk);
+  }
 }
 
 /* ---------- props and characters ---------- */
