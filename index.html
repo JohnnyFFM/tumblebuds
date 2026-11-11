@@ -1790,18 +1790,40 @@ function renderMap(t,dt){
 
 /* ---------- intro and ending movies ---------- */
 /* ---------- movies: the intro and the ending ---------- */
-/* every on-screen string of the two movies; 0-15 intro, 16-23 ending */
+/* every on-screen string of the two movies; 0-15 intro (15 = the name on the signpost), 16-23 ending */
 const MTXT={
 en:['High above the clouds is a little place called Buddletop.','This is where the Buds grow.','A little sunshine, a little rain, and...','POP!','Today, the Buds are going on a picnic!','They remembered everything.','Well... almost everything.','Wheeeee!','Oh, Buds. This is a very long way from home.','But there is a way back.','Beyond the sea, across the sand, and up the mountains...','...a rocket is waiting!','They\'ll need a little help.','Shall we show them the way?','Let\'s go!','Rocket Mountain',
  'Across the sand, beneath the sea,','over the mountains, and through the stars...','The Buds had found their way home.','And the cake had made it too.','Hello, little Bud!','Tomorrow, there would be more adventures.','But first...','CAKE!'],
 de:['Hoch über den Wolken liegt ein kleiner Ort namens Buddletop.','Hier wachsen die Buds.','Ein bisschen Sonne, ein bisschen Regen, und ...','PLOPP!','Heute machen die Buds ein Picknick!','Sie haben an alles gedacht.','Na ja ... an fast alles.','Juhuuuu!','Oh, Buds. Das ist ganz schön weit weg von zu Hause.','Aber es gibt einen Weg zurück.','Über das Meer, durch den Sand und hinauf in die Berge ...','... dort wartet eine Rakete!','Sie brauchen ein bisschen Hilfe.','Wollen wir ihnen den Weg zeigen?','Los geht\'s!','Raketenberg',
- 'Durch den Sand, tief unters Meer,','über die Berge und durch die Sterne ...','Die Buds hatten nach Hause gefunden.','Und der Kuchen hatte es auch geschafft.','Hallo, kleiner Bud!','Morgen würde es neue Abenteuer geben.','Aber zuerst ...','KUCHEN!']
+ 'Durch den Sand, tief unters Meer,','über die Berge und durch die Sterne ...','Die Buds hatten nach Hause gefunden.','Und der Kuchen hatte es auch geschafft.','Hallo, kleiner Bud!','Morgen würde es neue Abenteuer geben.','Aber zuerst ...','KUCHEN!'],
+fr:['Tout là-haut, au-dessus des nuages, il y a un petit coin appelé Buddletop.','C\'est ici que poussent les Buds.','Un peu de soleil, un peu de pluie, et...','POP !','Aujourd\'hui, les Buds partent en pique-nique !','Ils ont pensé à tout.','Enfin... presque à tout.','Youpiiii !','Oh, les Buds. Vous voilà bien loin de la maison.','Mais il existe un chemin pour rentrer.','Au-delà de la mer, à travers le sable et tout en haut des montagnes...','...une fusée les attend !','Ils auront besoin d\'un petit coup de main.','On leur montre le chemin ?','En route !','Mont Fusée',
+ 'À travers le sable, sous la mer,','par-dessus les montagnes et parmi les étoiles...','Les Buds avaient retrouvé le chemin de la maison.','Et le gâteau aussi était bien arrivé.','Bonjour, petit Bud !','Demain, il y aurait de nouvelles aventures.','Mais d\'abord...','GÂTEAU !'],
+es:['Muy por encima de las nubes hay un lugarcito llamado Buddletop.','Aquí es donde crecen los Buds.','Un poquito de sol, un poquito de lluvia, y...','¡POP!','¡Hoy los Buds se van de pícnic!','Se acordaron de todo.','Bueno... de casi todo.','¡Yupiiii!','Ay, Buds. Esto queda muy, muy lejos de casa.','Pero hay un camino de vuelta.','Más allá del mar, cruzando la arena y subiendo las montañas...','...¡los espera un cohete!','Van a necesitar una ayudita.','¿Les enseñamos el camino?','¡Vamos!','Monte Cohete',
+ 'Por la arena, bajo el mar,','sobre las montañas y entre las estrellas...','Los Buds habían encontrado el camino a casa.','Y el pastel también había llegado.','¡Hola, pequeño Bud!','Mañana habría más aventuras.','Pero primero...','¡PASTEL!'],
+it:['In alto, sopra le nuvole, c\'è un posticino chiamato Buddletop.','È qui che crescono i Buds.','Un po\' di sole, un po\' di pioggia, e...','POP!','Oggi i Buds vanno a fare un picnic!','Si sono ricordati di tutto.','Be\'... di quasi tutto.','Yuhuuuu!','Oh, Buds. Siete proprio lontani da casa.','Ma una strada per tornare c\'è.','Oltre il mare, attraverso la sabbia e su per le montagne...','...li aspetta un razzo!','Avranno bisogno di un piccolo aiuto.','Gli mostriamo la strada?','Andiamo!','Monte Razzo',
+ 'Attraverso la sabbia, sotto il mare,','sopra le montagne e tra le stelle...','I Buds avevano ritrovato la strada di casa.','E ce l\'aveva fatta anche la torta.','Ciao, piccolo Bud!','Domani ci sarebbero state nuove avventure.','Ma prima...','TORTA!'],
+pt:['Lá no alto, acima das nuvens, fica um lugarzinho chamado Buddletop.','É aqui que os Buds crescem.','Um pouquinho de sol, um pouquinho de chuva, e...','PLOP!','Hoje os Buds vão fazer um piquenique!','Eles se lembraram de tudo.','Bem... de quase tudo.','Uhuuuu!','Ai, Buds. Isso é muito, muito longe de casa.','Mas existe um caminho de volta.','Além do mar, pela areia e montanha acima...','...um foguete está esperando!','Eles vão precisar de uma ajudinha.','Vamos mostrar o caminho?','Vamos lá!','Monte Foguete',
+ 'Pela areia, por baixo do mar,','por cima das montanhas e por entre as estrelas...','Os Buds tinham encontrado o caminho de casa.','E o bolo também tinha chegado.','Oi, pequeno Bud!','Amanhã haveria mais aventuras.','Mas primeiro...','BOLO!'],
+nl:['Hoog boven de wolken ligt een klein plekje dat Buddletop heet.','Hier groeien de Buds.','Een beetje zon, een beetje regen, en...','PLOP!','Vandaag gaan de Buds picknicken!','Ze hebben aan alles gedacht.','Nou ja... aan bijna alles.','Joepieee!','O, Buds. Dit is wel heel ver van huis.','Maar er is een weg terug.','Over de zee, door het zand en de bergen op...','...daar wacht een raket!','Ze kunnen wel een beetje hulp gebruiken.','Zullen wij ze de weg wijzen?','Daar gaan we!','Raketberg',
+ 'Door het zand, onder de zee,','over de bergen en langs de sterren...','De Buds hadden de weg naar huis gevonden.','En de taart had het ook gehaald.','Hallo, kleine Bud!','Morgen zouden er nieuwe avonturen zijn.','Maar eerst...','TAART!'],
+pl:['Wysoko ponad chmurami leży małe miejsce o nazwie Buddletop.','To tutaj rosną Buds.','Trochę słońca, trochę deszczu i...','PYK!','Dziś Buds wybierają się na piknik!','Pamiętały o wszystkim.','No... prawie o wszystkim.','Juhuuuu!','Oj, Buds. Stąd jest bardzo daleko do domu.','Ale jest droga powrotna.','Za morzem, przez piasek i wysoko w góry...','...tam czeka rakieta!','Przyda im się mała pomoc.','Pokażemy im drogę?','Ruszamy!','Rakietowa Góra',
+ 'Przez piasek, pod morzem,','ponad górami i wśród gwiazd...','Buds odnalazły drogę do domu.','I tort też dał radę.','Cześć, mały Bud!','Jutro czekały na nie nowe przygody.','Ale najpierw...','TORT!'],
+tr:['Bulutların çok yukarısında Buddletop adında küçük bir yer var.','Buds işte burada büyür.','Biraz güneş, biraz yağmur, ve...','PAT!','Bugün Buds pikniğe gidiyor!','Her şeyi hatırladılar.','Şey... neredeyse her şeyi.','Yuppiii!','Ah, Buds. Burası evden çok ama çok uzak.','Ama bir dönüş yolu var.','Denizin ötesinde, kumların üzerinde ve dağların tepesinde...','...bir roket bekliyor!','Biraz yardıma ihtiyaçları olacak.','Onlara yolu gösterelim mi?','Hadi gidelim!','Roket Dağı',
+ 'Kumların üzerinden, denizin altından,','dağların üstünden ve yıldızların arasından...','Buds evin yolunu bulmuştu.','Pasta da başarmıştı.','Merhaba, küçük Bud!','Yarın yeni maceralar olacaktı.','Ama önce...','PASTA!'],
+ru:['Высоко-высоко над облаками есть маленькое местечко — Бадлтоп.','Здесь растут малыши.','Немножко солнышка, немножко дождика, и...','ХЛОП!','Сегодня малыши едут на пикник!','Они ничего не забыли.','Ну... почти ничего.','Уи-и-и!','Ох, малыши. Как же далеко отсюда до дома.','Но дорога домой есть.','За морем, через пески и высоко в горах...','...ждёт ракета!','Им понадобится немножко помощи.','Покажем им дорогу?','Вперёд!','Ракетная гора',
+ 'Через пески, по морскому дну,','через горы и сквозь звёзды...','Малыши нашли дорогу домой.','И торт тоже добрался.','Привет, малыш!','Завтра будут новые приключения.','Но сначала...','ТОРТ!'],
+ja:['くもの ずっと うえに、バドルトップという ちいさな ばしょが あります。','ここで バッズは そだちます。','おひさまを すこし、あめを すこし、すると…','ポン！','きょうは バッズの ピクニック！','わすれものは ありません。','ええと… ほとんどね。','わーーい！','あらあら、バッズ。おうちから ずいぶん とおくまで きちゃった。','でも、かえる みちは あります。','うみを こえて、すなを わたって、やまを のぼると…','…ロケットが まっています！','すこしだけ、おてつだいが いりそうです。','みちを おしえて あげようか？','しゅっぱつ！','ロケットやま',
+ 'すなを こえ、うみの そこを ぬけ、','やまを こえて、ほしの あいだを とおって…','バッズは おうちに かえってきました。','ケーキも ぶじに とどきました。','こんにちは、ちびバッズ！','あしたは また、あたらしい ぼうけん。','でも、そのまえに…','ケーキ！'],
+ko:['구름 위 높은 곳에 버들탑이라는 작은 마을이 있어요.','여기서 버드들이 자라요.','햇살 조금, 비 조금, 그러면...','뿅!','오늘은 버드들이 소풍 가는 날!','빠짐없이 다 챙겼어요.','음... 거의 다요.','야호오오!','이런, 버드들아. 집에서 아주 멀리 와 버렸네.','하지만 돌아갈 길이 있어요.','바다를 건너고, 모래밭을 지나, 산 위로 올라가면...','...로켓이 기다리고 있어요!','버드들에겐 도움이 조금 필요해요.','우리가 길을 알려 줄까요?','출발!','로켓 산',
+ '모래밭을 지나, 바닷속을 지나,','산을 넘고, 별들 사이를 지나...','버드들은 집으로 돌아왔어요.','케이크도 무사히 도착했답니다.','안녕, 꼬마 버드!','내일은 또 새로운 모험이 기다려요.','하지만 먼저...','케이크!'],
+zh:['在高高的云朵上面，有个小小的地方，叫小芽岛。','小芽们就是在这里长大的。','一点点阳光，一点点雨水，然后……','啵！','今天，小芽们要去野餐啦！','他们什么都带齐了。','嗯……差不多都带齐了。','呜呼——！','哎呀，小芽们。这里离家好远好远。','不过，有一条回家的路。','越过大海，穿过沙丘，再爬上高山……','……有一枚火箭在等着！','他们需要一点点帮助。','我们来给他们带路，好吗？','出发！','火箭山',
+ '穿过沙滩，潜过海底，','翻过高山，飞越星空……','小芽们找到了回家的路。','蛋糕也平安到家啦。','你好呀，小小芽！','明天，还会有新的冒险。','不过，先……','吃蛋糕！']
 };
 /* MOVIE.play('intro'|'ending',onDone) starts a movie; while MOVIE.on the frame loop calls MOVIE.render(t,dt) instead of the normal render.
    Every pose is a pure function of the movie time, so the timeline can be skipped, replayed or jumped (MOVIE._seek) at will. */
 const MOVIE=(()=>{
   const TX=MTXT[LANG]||MTXT.en,PI=Math.PI,api={on:false,play,render,skip,_seek,_dur:0,_hold:false};
-  let q=null,el=null,kind='',mt=0,prevT=0,dur=0,done=null,shots=null,subs=null,bubs=null,cues=null,curShot=0,nb=0,fadeA=0,titleA=0,bars=0,safeT=10,camK=1;
+  let q=null,el=null,kind='',mt=0,prevT=0,dur=0,done=null,shots=null,subs=null,bubs=null,cues=null,curShot=0,nb=0,fadeA=0,titleA=0,bars=0,safeT=10,camK=1,pUp=.2;
   const ui={sub:-2,subA:-1,b:[-2,-2],bw:[0,0],bh:[0,0],bA:[-1,-1],fade:-1,title:-1,skip:-1};
   const sat=x=>x<0?0:x>1?1:x,ss=(a,b,x)=>{x=sat((x-a)/(b-a));return x*x*(3-2*x);};
   const back=u=>{u=sat(u)-1;return 1+2.70158*u*u*u+1.70158*u*u;},land=v=>v<0?1:1-.3*Math.exp(-7*v)*Math.cos(16*v),rr=(i,k)=>h2(i*31+k*17+5,k*101+i*7+3);
@@ -1811,7 +1833,7 @@ const MOVIE=(()=>{
   const SL=[-24,18.5,-9, 0,18.5,-9, 24,18.5,-9, -13,15,9, 13,15,9],SEAT=[2,3,1,0,4];           // basket slots; SEAT[bud] = its slot
   const GP=[-52,84, -78,70, -100,88, -124,72, -34,66];                                    // where the five stand on the beach
   const TS=[24,20,-.15, -46,48,1.1, 0,20,0, -24,20,.15, 46,48,-1.1];                      // seats around the picnic table: x,z,ry per bud
-  const RA=[PGX,7,PGZ, PGX+6,1,PGZ-4, BX-26,1,BZ+31, BX-26,19.5,BZ+25.5, BX-26,19.5,BZ+22, BX-26,9,BZ+15],RB=[PGX,7,PGZ, PGX+6,1,PGZ-4, PGX+24,1,PGZ-13, PGX+38,1,PGZ-3, PGX+52,1,PGZ-14, PGX+66,1,PGZ-7],RN=24,RP=new Float32Array((RN+1)*3);
+  const RA=[PGX,7,PGZ, PGX+3,2.4,PGZ-2.5, PGX+11,1.2,PGZ-7, BX-40,1.2,BZ+37, BX-28,1.6,BZ+30.5, BX-26,9,BZ+26.6, BX-26,19,BZ+26.3, BX-26,21.3,BZ+23.6, BX-26,18.4,BZ+20.4, BX-26,10,BZ+17.5],RB=[PGX,7,PGZ, PGX+3,2.4,PGZ-2.5, PGX+11,1.2,PGZ-7, PGX+22,1.2,PGZ-4, PGX+33,1.2,PGZ-12, PGX+44,1.2,PGZ-8, PGX+54,1.2,PGZ-17, PGX+63,1.2,PGZ-14, PGX+70,1.2,PGZ-20, PGX+74,1.2,PGZ-18],RN=48,RP=new Float32Array((RN+1)*3);
   const bh=(x,z)=>2+vn(x*.012+5,z*.012)*7-ss(-110,-330,z)*46-ss(-1500,-1900,x)*30-ss(700,1000,x)*30;
 
   /* ---------- building the sets and the cast (once) ---------- */
@@ -1929,9 +1951,12 @@ const MOVIE=(()=>{
       mesh(merge(p),fm,ps,0);
       const n=260,sp=new Float32Array(n*3);for(let i=0;i<n;i++){const a=rr(i,40)*TAU,e=.04+rr(i,41)*1.2;sp[i*3]=Math.cos(a)*Math.cos(e)*5000;sp[i*3+1]=Math.sin(e)*5000;sp[i*3+2]=Math.sin(a)*Math.cos(e)*5000;}
       const g=new T3.BufferGeometry();g.setAttribute('position',new T3.BufferAttribute(sp,3));const st=new T3.Points(g,new T3.PointsMaterial({color:0xffffff,size:2.4*dpr,sizeAttenuation:false,fog:false}));st.frustumCulled=false;ps.add(st);
-      const wm=new T3.MeshBasicMaterial({color:0xc8ffe6,side:T3.DoubleSide,transparent:true,opacity:.92,fog:false}),wg=part(sph(8,5),'#ffffff',M(5.2,0,0,5.4,.25,4)),wg2=part(sph(8,5),'#ffffff',M(3.6,0,-4.2,3.6,.25,2.6));
-      const mb=merge([part(sph(8,6),'#fffaf0',M(0,0,0,1.9,1.9,3.6)),part(sph(8,6),'#fff0d0',M(0,.4,3.6,1.7,1.7,1.7)),part(sph(5,4),'#33201a',M(-.8,.9,4.9,.45,.45,.3)),part(sph(5,4),'#33201a',M(.8,.9,4.9,.45,.45,.3)),rod(-.6,1.4,4.2,-2.2,4,6,.22,'#fff0d0'),rod(.6,1.4,4.2,2.2,4,6,.22,'#fff0d0')]),wgm=merge([wg,wg2]);
-      o.moths=[];for(let i=0;i<3;i++){const g2=grp(ps),b=mesh(mb,mm,g2,0),wl=mesh(wgm,wm,g2,0),wr=mesh(wgm,wm,g2,0);wr.scale.x=-1;wl.receiveShadow=wr.receiveShadow=false;o.moths.push({g:g2,wl,wr});}}
+      const wm=new T3.MeshBasicMaterial({vertexColors:true,side:T3.DoubleSide,transparent:true,opacity:.9,fog:false,depthWrite:false}),bm=new T3.MeshStandardMaterial({vertexColors:true,roughness:.9,emissive:0xfff0c0,emissiveIntensity:.25});
+      const fw=merge([part(sph(12,5),'#b4f2d2',M(6.6,0,1.9,6.6,.16,3.5,0,-.32,0)),part(sph(8,4),'#6fc8a4',M(7.2,.12,4.6,6.2,.2,.8,0,-.32,0)),part(cyl(1.15,1.15,.5,10),'#ff9ab8',M(7.6,.2,1.6)),part(cyl(.5,.5,.6,8),'#ffffff',M(7.6,.26,1.6))]);
+      const hw=merge([part(sph(12,5),'#d8ffea',M(4.6,0,-3.6,4.4,.16,3.1,0,.5,0)),part(sph(6,4),'#b4f2d2',M(5.8,0,-8,.9,.14,2.8,0,.22,0)),part(cyl(.9,.9,.5,10),'#ffb0c8',M(4.8,.2,-3.6))]);
+      const mb=[part(sph(10,8),'#fff4d8',M(0,0,-2.6,1.5,1.5,3.5)),part(sph(10,8),'#ffffff',M(0,.25,1.1,2.2,2.1,2.3)),part(sph(8,6),'#fff0d0',M(0,.4,3.5,1.45,1.35,1.3)),part(sph(5,4),'#33201a',M(-.85,.8,4.5,.42,.48,.3)),part(sph(5,4),'#33201a',M(.85,.8,4.5,.42,.48,.3))];
+      for(const sd of[-1,1]){mb.push(rod(sd*.6,1.3,4,sd*2.7,3.6,6.6,.2,'#ffe9a8'));for(let k=1;k<=3;k++)mb.push(part(sph(5,3),'#ffe9a8',M(sd*(.6+k*.56),1.3+k*.62,4+k*.7,1-k*.16,.22,.42,0,sd*.6,0)));}
+      const mbg=merge(mb);o.moths=[];for(let i=0;i<3;i++){const g2=grp(ps);mesh(mbg,bm,g2,0);const w=(geo,sx)=>{const m=mesh(geo,wm,g2,0);m.scale.x=sx;m.receiveShadow=false;return m;};o.moths.push({g:g2,fr:w(fw,1),fl:w(fw,-1),hr:w(hw,1),hl:w(hw,-1)});}}
 
     /* --- the cast --- */
     const item=(b,geo,mat)=>{const m=new T3.Mesh(geo,mat||mm);m.castShadow=true;m.visible=false;b.up.add(m);b.it.push(m);return m;};
@@ -1961,7 +1986,7 @@ const MOVIE=(()=>{
       const em=mesh(merge(ep),rimMat({vertexColors:true,roughness:.6},.16),env);em.receiveShadow=false;o.bal={g,bk,env};actor(g);}
     {const m=new T3.InstancedMesh(part(cyl(1.25,1.25,1,6),'#d8b074'),mm,RN);m.castShadow=true;m.frustumCulled=false;sc.add(m);o.rope=actor(m);o.bow=actor(mesh(merge([part(sph(6,5),'#d8b074',M(0,0,0,2,2,2)),part(new T3.TorusGeometry(2.6,.9,5,10),'#d8b074',M(-3.4,1,0,1,1,1,0,0,.4)),part(new T3.TorusGeometry(2.6,.9,5,10),'#d8b074',M(3.4,1,0,1,1,1,0,0,-.4)),rod(-.8,-1,0,-2.4,-6,.5,.9,'#d8b074'),rod(.8,-1,0,2.6,-5.4,.5,.9,'#d8b074')]),mm));}
     {const m=new T3.InstancedMesh(new T3.SphereGeometry(1,6,4),new T3.MeshLambertMaterial({color:0xffffff}),72);for(let i=0;i<72;i++)m.setColorAt(i,o.col.setRGB(1,1,1));m.frustumCulled=false;m.count=0;sc.add(m);o.bits=m;o.bitD=new T3.Object3D();}
-    o.pal={leaf:[lin('#74d65d'),lin('#a8e070'),lin('#ffd24a'),lin('#ff9ab8'),lin('#fff4e0')],star:[lin('#fff3a0'),lin('#ffffff'),lin('#ffd24a')],sand:[lin('#f6e2a6'),lin('#fff0c8')],rain:[lin('#5fb8f0')],conf:[lin('#ff7b6b'),lin('#ffc93c'),lin('#8fd8f5'),lin('#ff9ab8'),lin('#a8e070'),lin('#ffffff')]};
+    o.pal={leaf:[lin('#74d65d'),lin('#a8e070'),lin('#ffd24a'),lin('#ff9ab8'),lin('#fff4e0')],star:[lin('#fff3a0'),lin('#ffffff'),lin('#ffd24a')],sand:[lin('#f6e2a6'),lin('#fff0c8')],rain:[lin('#5fb8f0')],smoke:[lin('#fbf7f0'),lin('#ece6dc')],conf:[lin('#ff7b6b'),lin('#ffc93c'),lin('#8fd8f5'),lin('#ff9ab8'),lin('#a8e070'),lin('#ffffff')]};
     /* the flowers the Buds grow in: stem, closed bloom, open bloom */
     {const stem=merge([shade(cyl(1.1,1.5,15,7),'#2f8a3a','#74d65d',M(0,7.5,0)),part(sph(8,5),'#59c36a',M(-5,5,1,5.4,.9,2.6,0,0,.5)),part(sph(8,5),'#74d65d',M(5,7,-1,5,.9,2.4,0,0,-.5))]);o.fl=[];
       [['#ff9ab8','#ffd0e0'],['#b08ae0','#e0d0ff'],['#ffb04a','#ffe6a0']].forEach((c,i)=>{const g=grp(),cg2=[shade(blobGeo(9.5,10,8,i+2,.25),c[0],c[1],M(0,22,0,1,1.25,1))],og=[part(cyl(5.4,5.4,2,14),'#ffe680',M(0,16.4,0))];
@@ -1971,17 +1996,22 @@ const MOVIE=(()=>{
       o.rainC=actor(mesh(cloudG,new T3.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true,color:0x8fa6d0,emissive:0x3a4a70,emissiveIntensity:.5}),null,0));}
     /* friends: the crab, the turtle, the camel */
     {const g=grp(),c1='#ff6b4a',c2='#e8553a',p=[part(sph(14,10),c1,M(0,7,0,11.5,6.6,8.2)),part(sph(10,8),'#ffb89a',M(0,5.4,3.2,8,4.2,5.6)),rod(-4,12,3,-4.6,17,3.4,.9,c2),rod(4,12,3,4.6,17,3.4,.9,c2),part(sph(8,6),'#ffffff',M(-4.7,18.2,3.6,2.5,2.7,2.3)),part(sph(8,6),'#ffffff',M(4.7,18.2,3.6,2.5,2.7,2.3)),part(sph(6,5),'#33201a',M(-4.6,18.4,5.5,1.2,1.4,.8)),part(sph(6,5),'#33201a',M(4.6,18.4,5.5,1.2,1.4,.8)),part(sph(6,5),'#ff9ab8',M(-6.6,7.6,6.6,1.7,1.2,.8)),part(sph(6,5),'#ff9ab8',M(6.6,7.6,6.6,1.7,1.2,.8)),part(new T3.TorusGeometry(2.3,.5,5,10,PI),'#7a2a22',M(0,7.9,7.9,1,1,1,PI,0,0))];
-      for(const sd of[-1,1])for(let k=-1;k<=1;k++)p.push(rod(sd*9,5.5,k*3.4-1,sd*14.5,6.5,k*5-1,1.1,c2),rod(sd*14.5,6.5,k*5-1,sd*17,0,k*6-1,.5,c2,1.1));
-      mesh(merge(p),mm,g);const claw=sd=>{const pv=grp(g);pv.position.set(sd*9.5,8,4.5);mesh(merge([rod(0,0,0,sd*5,4,2,1.3,c2),part(sph(10,8),c1,M(sd*7.6,7.4,2.6,3.6,4.6,2.6,0,0,-sd*.4)),part(sph(8,6),c1,M(sd*4.6,9.6,2.6,1.6,3,1.6,0,0,sd*.5))]),mm,pv);return pv;};
-      o.crab={g,cl:claw(-1),cr:claw(1)};actor(g);}
+      mesh(merge(p),mm,g);const legs=[];
+      for(const sd of[-1,1]){const lg=merge([rod(0,0,0,sd*5.6,1.3,0,1.1,c2),rod(sd*5.6,1.3,0,sd*8.2,-5.8,0,.5,c2,1.1)]);for(let k=-1;k<=1;k++){const pv=grp(g);pv.position.set(sd*9,5.8,k*3.6-1);mesh(lg,mm,pv);legs.push({pv,sd,by:-sd*k*.42,ph:(k+1+(sd>0?1:0))%2*PI});}}
+      const claw=sd=>{const pv=grp(g);pv.position.set(sd*9.5,8,4.5);mesh(merge([rod(0,0,0,sd*5,4,2,1.3,c2),part(sph(10,8),c1,M(sd*7.6,7.4,2.6,3.6,4.6,2.6,0,0,-sd*.4))]),mm,pv);const th=grp(pv);th.position.set(sd*5.4,8.2,2.6);mesh(part(sph(8,6),c1,M(-sd*.9,2.5,0,1.6,3,1.6,0,0,sd*.5)),mm,th);return{pv,th,sd};};
+      o.crab={g,cl:claw(-1),cr:claw(1),legs};actor(g);}
     {const gp=goalParts('boat');o.turtle=actor(mesh(merge(gp.g),mm));}
-    {const g=grp(),c1='#d9a35c',c2='#e8bd7c',c3='#b9853f',p=[part(sph(14,10),c1,M(0,27,0,17,10,9.5)),part(sph(10,8),c2,M(-6,37.5,0,6.6,7.4,6)),part(sph(10,8),c2,M(7.4,37,0,6,6.6,5.6)),rod(13,29,0,23,45,0,3.1,c1,4.4),rod(-16.4,29,0,-21,19,0,.7,c3),part(sph(6,5),c3,M(-21.4,17.6,0,1.5,2.2,1.5)),part(box(10,13,20.4),'#ff7b6b',M(.6,29.6,0)),part(box(2,13.2,20.8),'#fff4e0',M(-2,29.6,0)),part(box(2,13.2,20.8),'#fff4e0',M(3.2,29.6,0)),part(box(10.6,1.6,21),'#ffc93c',M(.6,23.4,0))];
+    {const g=grp(),c1='#d9a35c',c2='#e8bd7c',c3='#b9853f',p=[part(sph(14,10),c1,M(0,27,0,17,10,9.5)),part(sph(10,8),c2,M(-6,37.5,0,6.6,7.4,6)),part(sph(10,8),c2,M(7.4,37,0,6,6.6,5.6)),rod(13,29,0,23,45,0,3.1,c1,4.4),part(box(10,13,20.4),'#ff7b6b',M(.6,29.6,0)),part(box(2,13.2,20.8),'#fff4e0',M(-2,29.6,0)),part(box(2,13.2,20.8),'#fff4e0',M(3.2,29.6,0)),part(box(10.6,1.6,21),'#ffc93c',M(.6,23.4,0))];
       for(const sx of[-10,10.5])for(const sz of[-4.8,4.8])p.push(rod(sx,22,sz,sx+(sx<0?-1:1),2,sz,1.7,c1,2.5),part(sph(6,5),c3,M(sx+(sx<0?-1:1),1.4,sz,2.4,1.6,2.6)));
-      mesh(merge(p),mm,g);const hd=grp(g);hd.position.set(23,45,0);
-      mesh(merge([part(sph(10,8),c1,M(3,2.4,0,6,4.8,4.6)),part(sph(10,8),c2,M(8.4,.6,0,4.2,3.5,3.8)),part(sph(6,5),'#33201a',M(4.6,4.2,3.9,1,1.3,.6)),part(sph(6,5),'#33201a',M(4.6,4.2,-3.9,1,1.3,.6)),part(sph(5,4),'#ffffff',M(4.9,4.7,4.3,.4,.4,.3)),part(sph(6,5),c3,M(-.6,6.8,3,1.2,2.2,1)),part(sph(6,5),c3,M(-.6,6.8,-3,1.2,2.2,1)),part(sph(6,5),'#ff9ab8',M(7,1.4,3.4,1.4,1,.6)),part(sph(5,4),'#7a4a2a',M(11.6,1.6,1.3,.5,.5,.4)),part(sph(5,4),'#7a4a2a',M(11.6,1.6,-1.3,.5,.5,.4)),part(sph(6,5),c3,M(1.6,7,0,2.4,1.6,2))]),mm,hd);
-      o.camel={g,hd};actor(g);}
+      const body=mesh(merge(p),mm,g),tail=grp(g);tail.position.set(-16.2,29.5,0);mesh(merge([rod(0,0,0,-4.6,-10,0,.7,c3),part(sph(6,5),c3,M(-5,-11.6,0,1.5,2.3,1.5))]),mm,tail);
+      const hd=grp(g);hd.position.set(23,45,0);
+      mesh(merge([part(sph(10,8),c1,M(3,2.4,0,6,4.8,4.6)),part(sph(10,8),c2,M(8.4,1.5,0,4.2,2.9,3.8)),part(sph(6,5),'#ff9ab8',M(7,1.6,3.4,1.4,1,.6)),part(sph(6,5),'#ff9ab8',M(7,1.6,-3.4,1.4,1,.6)),part(sph(5,4),'#7a4a2a',M(11.8,2.4,1.3,.5,.5,.4)),part(sph(5,4),'#7a4a2a',M(11.8,2.4,-1.3,.5,.5,.4)),part(sph(6,5),c3,M(1.6,7,0,2.4,1.6,2))]),mm,hd);
+      const eye=grp(hd);eye.position.set(4.7,4.3,0);mesh(merge([part(sph(6,5),'#33201a',M(0,0,3.9,1,1.4,.6)),part(sph(6,5),'#33201a',M(0,0,-3.9,1,1.4,.6)),part(sph(5,4),'#ffffff',M(.3,.5,4.4,.4,.4,.3)),part(sph(5,4),'#ffffff',M(.3,.5,-4.4,.4,.4,.3))]),mm,eye,0);
+      const jaw=grp(hd);jaw.position.set(4.4,-.6,0);mesh(merge([part(sph(10,6),c2,M(4,-.4,0,3.9,1.7,3.3)),part(sph(6,4),'#7a4a2a',M(6.4,.9,0,1.6,.3,2.2))]),mm,jaw,0);
+      const ears=[];for(const sd of[-1,1]){const e=grp(hd);e.position.set(-.6,5.4,sd*3);mesh(part(sph(6,5),c3,M(0,1.6,0,1.2,2.3,1)),mm,e,0);ears.push(e);}
+      o.camel={g,hd,body,tail,eye,jaw,ears};actor(g);}
     for(const m of[isl,o.sky,bch,o.padM,o.padS])o.act.push(m);
-    for(const arr of[RA,RB]){const n=arr.length/3,cu=[0];for(let i=1;i<n;i++)cu.push(cu[i-1]+Math.hypot(arr[i*3]-arr[i*3-3],arr[i*3+1]-arr[i*3-2],arr[i*3+2]-arr[i*3-1]));arr.cu=cu;}
+    const pose=a=>{const pts=[];for(let i=0;i<a.length;i+=3)pts.push(V3(a[i],a[i+1],a[i+2]));const sp=new T3.CatmullRomCurve3(pts,false,'centripetal').getSpacedPoints(RN),out=new Float32Array((RN+1)*3);sp.forEach((p,i)=>{out[i*3]=p.x;out[i*3+1]=Math.max(1.2,p.y);out[i*3+2]=p.z;});return out;};o.rpA=pose(RA);o.rpB=pose(RB);
   }
 
   /* ---------- helpers used by the shots (no allocations) ---------- */
@@ -1995,7 +2025,7 @@ const MOVIE=(()=>{
   function camAt(lx,ly,lz,yaw,pit,w,h,wp){
     const c=q.cam,asp=vw/vh,port=asp<1,fov=port?44:34;if(c.fov!==fov||c.aspect!==asp){c.fov=fov;c.aspect=asp;c.updateProjectionMatrix();}
     const tv=Math.tan(fov*PI/360),d=Math.max((port&&wp?wp:w)/(2*tv*asp),h/(2*tv*(1-2*bars)))*camK,cp=Math.cos(pit);
-    c.position.set(lx+Math.sin(yaw)*cp*d,ly+Math.sin(pit)*d,lz+Math.cos(yaw)*cp*d);q.look.set(lx,ly-d*tv*(port?.02:.1),lz);c.lookAt(q.look);
+    c.position.set(lx+Math.sin(yaw)*cp*d,ly+Math.sin(pit)*d,lz+Math.cos(yaw)*cp*d);q.look.set(lx,ly+d*tv*(port?pUp:-.1),lz);c.lookAt(q.look);
   }
   function camMix(px,py,pz,lx,ly,lz,k){const c=q.cam;c.position.set(lerp(c.position.x,px,k),lerp(c.position.y,py,k),lerp(c.position.z,pz,k));q.look.set(lerp(q.look.x,lx,k),lerp(q.look.y,ly,k),lerp(q.look.z,lz,k));c.lookAt(q.look);}
   function bud(b,x,y,z,ry,par){
@@ -2026,14 +2056,19 @@ const MOVIE=(()=>{
     const c=1-ss(0,.35,open),k=open<=0?0:back(open);f.cl.visible=c>.01;f.cl.scale.set(c+(1-c)*.2+wig*Math.sin(mt*14)*.25,c,c+(1-c)*.2+wig*Math.sin(mt*14)*.25);f.op.visible=k>.01;f.op.scale.set(k,Math.max(.01,k),k);}
   function bal(x,y,z,swing,sag,es){const b=q.bal;b.g.visible=true;b.g.position.set(x,y,z);b.g.rotation.set(0,0,swing);b.env.rotation.set(0,0,sag);b.env.scale.setScalar(es);b.bk.scale.set(1,1,1);}
   function rp(i,x,y,z){RP[i*3]=x;RP[i*3+1]=y;RP[i*3+2]=z;}
-  function poly(a,s,i,k){const cu=a.cu,n=cu.length,L=s*cu[n-1];let j=1;while(j<n-1&&cu[j]<L)j++;const u=sat((L-cu[j-1])/(cu[j]-cu[j-1]||1)),o=j*3;
-    RP[i*3]+=lerp(a[o-3],a[o],u)*k;RP[i*3+1]+=lerp(a[o-2],a[o+1],u)*k;RP[i*3+2]+=lerp(a[o-1],a[o+2],u)*k;}
-  function ropeFlush(){const m=q.rope,v=q.v,d=q.v2;m.visible=true;for(let i=0;i<RN;i++){const o=i*3;d.set(RP[o+3]-RP[o],RP[o+4]-RP[o+1],RP[o+5]-RP[o+2]);const l=d.length()||.001;v.set((RP[o]+RP[o+3])/2,(RP[o+1]+RP[o+4])/2,(RP[o+2]+RP[o+5])/2);q.qt.setFromUnitVectors(q.up,d.multiplyScalar(1/l));d.set(1,l*1.06,1);q.mx.compose(v,q.qt,d);m.setMatrixAt(i,q.mx);}m.instanceMatrix.needsUpdate=true;}
+  function ropeFlush(){const m=q.rope,v=q.v,d=q.v2;m.visible=true;for(let i=0;i<RN;i++){const o=i*3;d.set(RP[o+3]-RP[o],RP[o+4]-RP[o+1],RP[o+5]-RP[o+2]);const l=d.length()||.001;v.set((RP[o]+RP[o+3])/2,(RP[o+1]+RP[o+4])/2,(RP[o+2]+RP[o+5])/2);q.qt.setFromUnitVectors(q.up,d.multiplyScalar(1/l));d.set(1,l*1.5,1);q.mx.compose(v,q.qt,d);m.setMatrixAt(i,q.mx);}m.instanceMatrix.needsUpdate=true;}
   /* the anchor rope of the intro: k=0 draped into the basket, k=1 lying loose in the grass */
-  function ropeIntro(k,bnc){for(let i=0;i<=RN;i++){const s=i/RN;rp(i,0,0,0);poly(RA,s,i,1-k);poly(RB,s,i,k);RP[i*3+1]+=Math.sin(s*PI)*bnc+Math.sin(k*PI)*s*s*10;}ropeFlush();}
+  function ropeIntro(k,bnc){const a=q.rpA,b=q.rpB;for(let i=0;i<=RN;i++){const s=i/RN,j=i*3;rp(i,lerp(a[j],b[j],k),lerp(a[j+1],b[j+1],k)+Math.sin(s*PI)*bnc+Math.sin(k*PI)*s*s*10,lerp(a[j+2],b[j+2],k));}ropeFlush();}
   /* a hanging rope between two points */
   function ropeSag(ax,ay,az,bx,by,bz,sag,gy){for(let i=0;i<=RN;i++){const s=i/RN;rp(i,lerp(ax,bx,s),Math.max(gy,lerp(ay,by,s)-sag*arc(s)),lerp(az,bz,s));}ropeFlush();}
-  function crab(x,y,z,ry,la,ra,scut){const c=q.crab;c.g.visible=true;c.g.position.set(x,y+Math.abs(Math.sin(mt*14))*scut*1.6,z);c.g.rotation.set(0,ry,Math.sin(mt*14)*.09*scut);c.cl.rotation.set(0,0,la);c.cr.rotation.set(0,0,ra);}
+  /* the crab: la/ra raise the claws, scut 0..1 is how hard the legs scuttle, snip opens and shuts the pincers */
+  function crab(x,y,z,ry,la,ra,scut,snip){const c=q.crab,w=mt*17,m=.18+.82*scut;c.g.visible=true;c.g.position.set(x,y+Math.abs(Math.sin(w))*scut*1.3+Math.sin(mt*2.6)*.35,z);c.g.rotation.set(0,ry,Math.sin(w)*.07*scut+Math.sin(mt*2.6)*.03);
+    for(let i=0;i<6;i++){const l=c.legs[i],ph=w*(scut>.3?1:.35)+l.ph;l.pv.rotation.set(0,l.by+Math.cos(ph)*.3*m,l.sd*Math.max(0,Math.sin(ph))*.55*m);}
+    const sn=Math.max(0,Math.sin(mt*13))*(snip||0);c.cl.pv.rotation.set(0,0,la);c.cr.pv.rotation.set(0,0,ra);c.cl.th.rotation.z=.15+sn*.7;c.cr.th.rotation.z=-.15-sn*.7;}
+  function camel(x,y,z,ry,s,t){const c=q.camel,ch=Math.sin(t*10);c.g.visible=true;c.g.position.set(x,y,z);c.g.rotation.y=ry;c.g.scale.setScalar(s);c.body.scale.y=1+Math.sin(t*2.4)*.012;
+    c.hd.rotation.set(0,-.55*ss(.25,.9,t),Math.sin(t*2.2)*.05-.04);c.jaw.position.set(4.4,-.6-Math.abs(ch)*.5,ch*.9);c.jaw.rotation.z=-Math.abs(ch)*.1;
+    c.eye.scale.y=1-.9*arc(sat((t-.95)/.22));c.ears[0].rotation.x=-.35-arc(sat((t-.45)/.25))*.9;c.ears[1].rotation.x=.35+arc(sat((t-.6)/.25))*.9;c.tail.rotation.set(Math.sin(t*7)*.6,0,.15+Math.sin(t*3.5)*.12);}
+  function mothPos(i,t,v){const a=t*.9+i*2.1;return v.set(Math.sin(a)*(20+i*6)+(i-1)*14,17+i*8+Math.sin(a*2)*4+Math.sin(t*5.5+i)*1.2,Math.sin(a*2)*9+4-i*5);}
   function petals(n,seed,t,cx,cz,r,top,pal){for(let i=0;i<n;i++){const f=((t*.16+rr(i,seed))%1),a=rr(i,seed+1)*TAU,d=Math.sqrt(rr(i,seed+2))*r;bit(cx+Math.cos(a)*d+Math.sin(t*2+i)*8,top*(1-f)+2,cz+Math.sin(a)*d,2.4,.5,1.5,t*3+i,t*2.3+i,pal[i%pal.length]);}}
   /* the five in their basket; mode 0 calm, 1 wobbling in the wind, 2 ducked down */
   function crew(t,mode,duck){const B=q.buds,g=q.bal.g;for(let i=0;i<5;i++){const s=SEAT[i]*3,b=bud(B[i],SL[s],SL[s+1]-(duck||0),SL[s+2],0,g);
@@ -2041,7 +2076,11 @@ const MOVIE=(()=>{
       else b.g.position.y+=Math.abs(Math.sin(t*2.6+i*1.4))*.9;}
     const c=B[2];c.cake.visible=true;c.cake.position.set(0,20.5,0);c.cake.rotation.z=mode===1?Math.sin(t*5.2)*.14:Math.sin(t*2)*.03;c.sprout.visible=false;c.al.position.set(-6.4,17.6,1);c.ar.position.set(6.4,17.6,1);}
   function munch(b,t){const k=Math.sin(t*8)*.5+.5;b.ar.position.set(5.2,8.2+k*.8,6.4);b.bite.visible=true;b.bite.position.set(3.2,8.4+k*.8,8.8);b.bite.rotation.set(1.2,0,.3);b.up.rotation.x=Math.sin(t*16)*.03;eyes(b,.55+.45*k);}
-  const islandSet=(open)=>{q.isl.visible=true;q.bell.rotation.z=Math.sin(mt*1.3)*.04;flower(0,-70,0,96,1,0,open);flower(1,-112,0,104,1,0,open);flower(2,-36,0,112,1,0,open);};
+  /* little puffs from the chimneys of Buddletop */
+  const HS=[-150,-50,1.25,.5, 152,-62,1.15,-.5, -74,-158,1.1,.25, 88,-150,1.05,-.2];
+  function smoke(){for(let h=0;h<4;h++){const s=HS[h*4+2],ry=HS[h*4+3],cx=HS[h*4]+(-11*Math.cos(ry)-5*Math.sin(ry))*s,cz=HS[h*4+1]+(11*Math.sin(ry)-5*Math.cos(ry))*s;
+    for(let k=0;k<3;k++){const f=(mt*.2+k/3+h*.37)%1,r=(1.5+f*3.6)*(1-ss(.7,1,f))*Math.min(1,f*8);bit(cx+f*f*16+Math.sin(f*6+h)*2.5,54*s+f*40,cz,r,r*.85,r,0,0,q.pal.smoke[k%2]);}}}
+  const islandSet=(open)=>{q.isl.visible=true;smoke();q.bell.rotation.z=Math.sin(mt*1.3)*.04;flower(0,-70,0,96,1,0,open);flower(1,-112,0,104,1,0,open);flower(2,-36,0,112,1,0,open);};
   const skyDay=()=>sky(0x2f86e0,0xa9dcfa,1400,7000),skyEve=()=>sky(0x5878d0,0xffc890,1200,6000),skyBeach=()=>sky(0x1f8fe0,0xb4e6fb,2200,13000);
 
   /* ---------- the intro ---------- */
@@ -2052,8 +2091,8 @@ const MOVIE=(()=>{
     fadeA=1-ss(0,.9,t);
   }
   function i2(t,d){ // the flowers wiggle and pop
-    skyDay();dayI(-70,0,110,200);q.isl.visible=true;q.sun.intensity=1.1+.5*ss(4.2,5,t)*(1-ss(6.4,7.4,t));
-    const u=ss(0,d,t);camAt(lerp(-76,-70,u),23,116,lerp(.3,.12,u),.2,lerp(170,150,u),lerp(104,94,u),lerp(132,120,u));
+    skyDay();dayI(-70,0,110,200);q.isl.visible=true;smoke();q.sun.intensity=1.1+.5*ss(4.2,5,t)*(1-ss(6.4,7.4,t));
+    const u=ss(0,d,t);pUp=.3;camAt(lerp(-76,-70,u),23,116,lerp(.3,.12,u),.2,lerp(170,150,u),lerp(104,94,u),lerp(132,120,u));
     const B=q.buds,wg=.05+.2*ss(.3,2.6,t),tA=2.8,tB=7.6,tC=8.15;
     flower(1,-112,0,104,1,t<tA?wg*1.5:0,(t-tA)/.5);flower(0,-70,0,96,1,t<tB?wg*(t>6?1.9:.8):0,(t-tB)/.4);flower(2,-36,0,112,1,t<tC?wg*(t>6.6?1.7:.6):0,(t-tC)/.4);
     if(t>tA){ // the sleepy one rolls out head over heels
@@ -2141,14 +2180,14 @@ const MOVIE=(()=>{
     const cy=bh(-164,60),e=sat(t/1.3),ce=1-(1-e)*(1-e);
     for(let i=0;i<5;i++){const x=GP[i*2],z=GP[i*2+1],tn=ss(.5+i*.12,1.1+i*.12,t),b=bud(B[i],x,bh(x,z),z,lerp(lerp(PI,-PI/2+.5,tn),-PI+.35,ss(4.5+i*.1,5.2+i*.1,t)));b.g.position.y+=Math.abs(Math.sin(t*2.2+i*1.7))*.7;if(i!==2&&t>1.4&&t<2)b.g.position.y+=arc(sat((t-1.4-i*.05)/.4))*5;lookUp(b,k*.4);}
     cakeHat(B[2]);eyes(B[4],.7);
-    const pt=ss(1.4,1.9,t);crab(lerp(-300,-164,ce),cy,lerp(130,60,ce),lerp(.3,.1,ce)-k*.5,-.2+pt*(1.15+Math.sin(t*7)*.16*(1-k)),.3+Math.sin(t*5)*.25,e<1?1:.12);
+    const pt=ss(1.4,1.9,t);crab(lerp(-300,-164,ce),cy,lerp(130,60,ce),lerp(.46,.1,ce)-k*.5,.2-pt*(1.2+Math.sin(t*10)*.28*(1-k)),-.15+Math.sin(t*5)*.12+.5*arc(sat((t-.2)/.9)),e<1?1:.1,pt);
     camAt(lerp(-158,-146,ss(0,4,t)),31,52,-.16,.09,270,138,190);
-    if(k>0)camMix(port?-30:10,port?80:64,port?560:290,MX*.5,port?150:215,MZ*.5,k);
+    if(k>0)camMix(port?104:10,port?124:64,port?548:290,MX*.5,port?84:215,MZ*.5,k);
     const tw=ss(5.6,6.2,t)*(1+.35*Math.sin(t*8));glint(0,MX,MH+190,MZ,330*tw);
   }
   function i7a(t,d){ // one step, then everyone
     skyBeach();q.bch.visible=true;dayB(-150,0,70,280);wreck(t,-1.12);const B=q.buds,u=ss(0,d,t);
-    camAt(lerp(-112,-150,ss(2,d,t)),16,76,lerp(-.5,-.34,u),.11,lerp(210,250,u),100,lerp(150,170,u));
+    pUp=.3;camAt(lerp(-112,-150,ss(2,d,t)),16,76,lerp(-.5,-.34,u),.11,lerp(210,250,u),100,lerp(150,170,u));
     const ord=[3,2,1,0,4];
     for(let n=0;n<5;n++){const i=ord[n],b=B[i],x0=GP[i*2],z0=GP[i*2+1],go=n===0?2.7:3.05+n*.34,w=Math.max(0,t-go),x=x0-(n===0?16*ss(.8,1.25,t):0)-w*34,z=lerp(z0,78,ss(0,1.6,w));
       bud(b,x,bh(x,z),z,-PI/2+(z0<78?.2:-.2)*(1-ss(.4,1.6,w))*(w>0?1:0));
@@ -2156,22 +2195,22 @@ const MOVIE=(()=>{
       else if(w<=0){b.g.rotation.y=-PI/2;if(t>1.5)wide(b);b.g.position.y+=Math.abs(Math.sin(t*2.2+i*1.7))*.7;}
       if(w>0)walk(b,w*12);if(i===4)eyes(b,.6);}
     cakeHat(B[2]);
-    crab(-170,bh(-170,44),44,.1,-.2+1.1+Math.sin(t*8)*.3,.3,.1);
+    crab(-170,bh(-170,44),44,.1,-.9-Math.sin(t*8)*.35,-.1,.1,.7);
   }
   function i7b(t,d){ // off they go: the title
     skyBeach();q.bch.visible=true;const B=q.buds,port=vw<vh,lx=-250-t*20,ord=[3,2,1,0,4];dayB(lx,0,70,300);wreck(t,-1.12);
     const ym=Math.atan2(-(MX-lx),-(MZ-70)),u=ss(0,d,t);
     camAt(lx,lerp(48,66,u),70,ym+(port?0:.22),lerp(.1,.16,u),lerp(300,380,u),lerp(190,230,u),lerp(200,240,u));
-    if(port)camMix(q.cam.position.x,q.cam.position.y,q.cam.position.z,MX*.3+lx*.7,q.cam.position.y+110,MZ*.3+49,1);
+    if(port)camMix(q.cam.position.x,q.cam.position.y,q.cam.position.z,MX*.3+lx*.7,q.cam.position.y+10,MZ*.3+49,1);
     for(let n=0;n<5;n++){const i=ord[n],b=B[i],x=GP[i*2]-(n===0?16+3.3*34:(2.95-n*.34)*34)-t*34,z=78;bud(b,x,bh(x,z),z,-PI/2);walk(b,t*12+n*1.3);if(n===0&&t>2&&t<4.4){armsUp(b,1,0);b.g.position.y+=Math.abs(Math.sin(t*7))*3;}if(i===4)eyes(b,.6);}
-    cakeHat(B[2]);crab(-170,bh(-170,44),44,-.6,.9+Math.sin(t*8)*.3,.3,.1);
+    cakeHat(B[2]);crab(-170,bh(-170,44),44,-.6,-.9-Math.sin(t*8)*.35,.9+Math.sin(t*8+1)*.35,.1,.7);
     glint(0,MX,MH+190,MZ,300*(1+.35*Math.sin(t*8)));
     titleA=sat((t-.5)/.7);fadeA=ss(d-.6,d-.05,t);
   }
 
   /* ---------- the ending ---------- */
   function tableBuds(t,B){for(let i=0;i<5;i++){const b=bud(B[i],TS[i*3],0,TS[i*3+1],TS[i*3+2]);b.g.position.y+=Math.abs(Math.sin(t*2.4+i*1.9))*.8;}eyes(B[4],.65);return B;}
-  function homeSet(t){skyEve();q.isl.visible=true;q.bell.rotation.z=Math.sin(mt*1.3)*.05;flower(0,-132,0,90,1,0,1);flower(2,-170,0,120,1,0,1);}
+  function homeSet(t){skyEve();q.isl.visible=true;smoke();q.bell.rotation.z=Math.sin(mt*1.3)*.05;flower(0,-132,0,90,1,0,1);flower(2,-170,0,120,1,0,1);}
   function homeBal(t){bal(HBX,7+Math.sin(t*1.6)*2.5,HBZ,Math.sin(t*1.1)*.03,0,1);}
   function looseRope(){ropeSag(HBX-34,26,HBZ+12,HBX-70,2,HBZ+40,30,1.5);}
   function tiedRope(t,sag){ropeSag(HBX-34,7+Math.sin(t*1.6)*2.5+19,HBZ+12,17,21,-21,sag+Math.sin(t*1.6)*3,1.5);}
@@ -2185,26 +2224,29 @@ const MOVIE=(()=>{
   function e2(t,d){ // glimpses of the friends they made
     const n=Math.min(4,Math.floor(t/1.5)),l=t-n*1.5,u=l/1.5;camK=1-.06*u;
     if(n<3){skyBeach();q.bch.visible=true;q.sign.visible=n===0;}
-    if(n===0){dayB(-150,0,60,200);crab(-160,bh(-160,64),64,.25,.9+Math.sin(t*11)*.4,-.9-Math.sin(t*11+1)*.4,.5);camAt(-166,13,60,-.1,.1,96,46,70);}
+    if(n===0){dayB(-150,0,60,200);{const w=ss(.45,.75,l),cx=lerp(-196,-160,ss(0,.6,l));crab(cx,bh(cx,64),64,.2,-(.7+Math.sin(t*11)*.3)*w,(.7+Math.sin(t*11+1.5)*.3)*w,l<.6?1:.1,w);}camAt(-166,13,60,-.1,.1,96,46,70);}
     else if(n===1){dayB(120,0,-300,200);const m=q.turtle;m.visible=true;m.position.set(110,-9+Math.sin(t*3)*1.6,-300);m.rotation.set(Math.sin(t*2.2)*.05,-.5,Math.sin(t*3)*.04);m.scale.setScalar(.8);camAt(118,6,-298,.5,.2,120,58,90);
       for(let i=0;i<6;i++){const f=(l*.9+i*.17)%1;bit(146+rr(i,95)*10,-4+f*26,-292+rr(i,96)*10,1.2,1.2,1.2,0,0,q.pal.star[1]);}}
-    else if(n===2){dayB(330,0,40,200);const c=q.camel;c.g.visible=true;c.g.position.set(330,bh(330,40)-.5,40);c.g.rotation.y=-.35;c.g.scale.setScalar(1.15);c.hd.rotation.z=Math.sin(t*5)*.14-.05;camAt(336,33,40,.25,.07,140,98,104);}
+    else if(n===2){dayB(330,0,40,200);camel(330,bh(330,40)-.5,40,-.35,1.15,l);camAt(336,33,40,.25,.07,140,98,104);}
     else if(n===3){sky(0x3f8fe0,0xdff0ff,1500,8000);q.padM.visible=true;lite(0,0,0,-.5,.7,.5,200,0xfff4e0,1.3,0xe6f6ff,0x9aa8a0,.95);
       const b=bud(q.inv,4,0,24,-.2);b.coat.visible=true;b.tool.visible=true;wave(b,1,t*10);b.tool.position.copy(b.ar.position).y+=2;b.tool.rotation.z=-.3+Math.sin(t*10)*.3;hops(b,l,.6,5,0);camAt(8,22,10,.18,.1,120,74,92);}
-    else{sky(0x050818,0x1b2658,1500,9000);q.padS.visible=true;lite(0,0,0,.5,.6,.5,200,0xcfe0ff,.9,0x8fa8ff,0x404868,.5);
-      for(let i=0;i<3;i++){const m=q.moths[i],a=t*1.7+i*2.1,f=Math.sin(t*22+i*2)*.75;m.g.position.set(Math.cos(a)*(20+i*7),16+i*7+Math.sin(t*3+i*2)*4,Math.sin(a)*14+4);m.g.rotation.set(.2,-a,0);m.wl.rotation.z=f;m.wr.rotation.z=-f;m.g.scale.setScalar(1.6);glint(i,m.g.position.x,m.g.position.y,m.g.position.z-3,8+Math.sin(t*5+i)*1.5);}
-      camAt(0,20,4,.1,.1,100,62,80);}
+    else{sky(0x050818,0x1b2658,1500,9000);q.padS.visible=true;lite(0,0,0,.5,.6,.5,200,0xcfe0ff,.8,0x8fa8ff,0x404868,.45);
+      for(let i=0;i<3;i++){const m=q.moths[i],v=q.v,f=Math.sin(l*24+i*2)*.75+.2,f2=Math.sin(l*24+i*2-.7)*.6+.15;
+        for(let k=5;k>0;k--){mothPos(i,l-k*.075,v);const s=(1-k/6)*1.25;bit(v.x,v.y,v.z,s,s,s,l*3+k,l*2+k,q.pal.star[(i+k)%3]);}
+        mothPos(i,l+.05,v);const nx=v.x,ny=v.y,nz=v.z;mothPos(i,l,v);m.g.position.copy(v);m.g.rotation.set(-Math.atan2(ny-v.y,Math.hypot(nx-v.x,nz-v.z))*.6,Math.atan2(nx-v.x,nz-v.z),Math.sin(l*3+i)*.12);m.g.scale.setScalar(1.2);
+        m.fr.rotation.z=f;m.fl.rotation.z=-f;m.hr.rotation.z=f2;m.hl.rotation.z=-f2;glint(i,v.x,v.y,v.z,4.5+Math.sin(l*6+i)*.8);}
+      camAt(4,25,2,.1,.08,92,56,70);}
     fadeA=Math.max(ss(.16,0,l)*(n>0?.9:1),ss(1.34,1.5,l)*.9);
   }
   function e3(t,d){ // home
     homeSet(t);eve(0,0,30,260);homeBal(t);looseRope();flower(1,FX,0,FZ,.55,0,0);const B=tableBuds(t,q.buds),u=ss(0,d,t);
-    camAt(0,22,36,lerp(-.16,.1,u),.2,lerp(210,180,u),lerp(118,104,u),lerp(150,132,u));
+    pUp=.3;camAt(0,22,36,lerp(-.16,.1,u),.2,lerp(210,180,u),lerp(118,104,u),lerp(150,132,u));
     for(let i=0;i<5;i++){hops(B[i],t+i*.23,1.15,7,0);if(i!==2)armsUp(B[i],.5+.5*Math.sin(t*5.4+i*1.3));}
     cakeHat(B[2]);fadeA=ss(.16,0,t)*.9;
   }
   function e4(t,d){ // the cake made it too
     homeSet(t);eve(0,0,40,220);const B=tableBuds(t,q.buds),u=ss(0,d,t),c=B[2],b0=B[0],ck=q.cakeT,br=q.berry,tC=1.1,tB=3.5;
-    camAt(2,13,40,lerp(.1,-.08,u),.3,lerp(124,108,u),lerp(66,58,u),lerp(104,96,u));
+    pUp=.42;camAt(2,13,40,lerp(.1,-.08,u),.3,lerp(124,108,u),lerp(66,58,u),lerp(104,96,u));
     // the cake comes off the head and onto the table
     const kc=sat((t-tC)/.7);armsUp(c,ss(.5,1,t)*(1-ss(tC+.5,tC+1,t)));hop(c,t,tC-.1,.5,6);
     if(kc<=0){cakeHat(c);c.cake.position.y+=ss(.5,1,t)*4;}
@@ -2221,7 +2263,7 @@ const MOVIE=(()=>{
   const FX=-88,FZ=30,NX=-80,NZ=62,HBX=126,HBZ=12;
   function e5(t,d){ // POP: hello, little Bud
     homeSet(t);eve(-20,0,30,240);cakeOnTable();const B=tableBuds(t,q.buds),u=ss(0,d,t),tP=2.1,nb2=q.baby;
-    camAt(lerp(-40,-26,ss(2,4,t)),lerp(13,17,ss(2,4,t)),34,lerp(.34,.16,u),.2,lerp(124,180,ss(1.8,3.6,t)),lerp(70,96,ss(1.8,3.6,t)),lerp(100,128,ss(1.8,3.6,t)));
+    pUp=.36;camAt(lerp(-40,-26,ss(2,4,t)),lerp(13,17,ss(2,4,t)),34,lerp(.34,.16,u),.2,lerp(124,180,ss(1.8,3.6,t)),lerp(70,96,ss(1.8,3.6,t)),lerp(100,128,ss(1.8,3.6,t)));
     flower(1,FX,0,FZ,.55,t<tP?.08+.3*ss(.2,tP,t):0,(t-tP)/.4);
     const nt=ss(.9,1.5,t);for(let i=0;i<5;i++){const b=B[i];b.g.rotation.y=lerp(TS[i*3+2],Math.atan2(NX-TS[i*3],NZ-TS[i*3+1]),nt*(i===4?.6:.85));if(t>tP&&t<tP+.5){wide(b);b.g.position.y+=arc(sat((t-tP-i*.03)/.4))*6;}if(t>3.3){wave(b,i%2?1:-1,t*10+i);hops(b,t+i*.2,.9,3.5,0);}}
     eyes(B[4],t>tP?1:.65);
@@ -2232,7 +2274,7 @@ const MOVIE=(()=>{
   }
   function e6(t,d){ // the balloon is tied up this time
     homeSet(t);eve(40,0,30,300);cakeOnTable();const B=tableBuds(t,q.buds),u=ss(0,d,t),nb2=q.baby,b4=B[4];homeBal(t);flower(1,FX,0,FZ,.55,0,1);
-    const cm=ss(1.5,2.9,t);camAt(lerp(-62,44,cm),lerp(13,26,cm),lerp(56,10,cm),lerp(.1,.3,cm)-u*.08,.16,lerp(104,190,cm),lerp(58,112,cm),lerp(84,150,cm));
+    const cm=ss(1.5,2.9,t);pUp=.36;camAt(lerp(-62,44,cm),lerp(13,26,cm),lerp(56,10,cm),lerp(.1,.3,cm)-u*.08,.16,lerp(104,190,cm),lerp(58,112,cm),lerp(84,150,cm));
     const b=bud(nb2,NX,0,NZ,.9);b.ar.position.set(11.4,11.5+Math.sin(t*9)*.6,3);hops(b,t,.55,5,0);wide(b);
     for(let i=0;i<4;i++){B[i].g.rotation.y=lerp(TS[i*3+2],1.2,ss(.5+i*.1,1.2+i*.1,t)*(i===1?.5:.8));}
     // the careful one carries the rope end to the tree and ties it
@@ -2248,7 +2290,7 @@ const MOVIE=(()=>{
   function e7(t,d){ // but first... CAKE!
     homeSet(t);eve(0,0,30,300);cakeOnTable();const B=tableBuds(t,q.buds),u=ss(0,d,t),nb2=q.baby;homeBal(t);flower(1,FX,0,FZ,.55,0,1);
     tiedRope(t,16);q.bow.visible=true;q.bow.position.set(17,21,-20);q.bow.scale.setScalar(1.25);q.bow.rotation.set(0,.4,0);
-    camAt(0,lerp(22,40,u),34,lerp(-.1,.1,u),lerp(.2,.3,u),lerp(170,300,u),lerp(100,200,u),lerp(132,210,u));
+    pUp=.32;camAt(0,lerp(22,40,u),34,lerp(-.1,.1,u),lerp(.2,.3,u),lerp(170,300,u),lerp(100,200,u),lerp(132,210,u));
     const b=bud(nb2,-26,0,66,2.6);
     for(let i=0;i<6;i++){const c=i<5?B[i]:b;if(t>.3){hops(c,t-.3+i*.07,.72,i<5?12:9,0);armsUp(c,1,Math.sin(t*12+i)*.6);wide(c);}}
     q.bell.rotation.z=Math.sin(t*6.5)*.4*ss(.3,.8,t);
@@ -2291,6 +2333,7 @@ const MOVIE=(()=>{
     el={root:$('mv'),fade:$('mvFade'),sub:$('mvSub'),b:[$('mvB0'),$('mvB1')],title:$('mvTitle'),skip:$('mvSkip')};
     if(!$('mvLogo').firstChild)'TUMBLEBUDS'.split('').forEach((ch,i)=>{const s=document.createElement('span');s.textContent=ch;s.style.animationDelay=(i*.09)+'s';$('mvLogo').append(s);});
     $('mvTSub').textContent=tr(64);el.skip.textContent=tr(1);
+    if(LANG==='ja'||LANG==='ko'){el.sub.style.wordBreak='keep-all';el.sub.style.overflowWrap='anywhere';}   // these two are written with spaces between phrases: wrap there, not inside a word
   }
   function resetUi(){ui.sub=-2;ui.subA=-1;ui.b[0]=ui.b[1]=-2;ui.bA[0]=ui.bA[1]=-1;ui.fade=-1;ui.title=-1;ui.skip=-1;el.sub.style.opacity=0;el.b[0].style.opacity=0;el.b[1].style.opacity=0;el.title.style.opacity=0;el.fade.style.opacity=0;el.skip.style.opacity=0;}
   function overlay(){
@@ -2328,7 +2371,7 @@ const MOVIE=(()=>{
     if(!api._hold)mt+=dt;if(mt>=dur){finish();return;}
     const D=DEF[kind],T0=D.t0;let i=curShot;if(i>=shots.length||mt<T0[i])i=0;while(i<shots.length-1&&mt>=T0[i+1])i++;curShot=i;
     const A=q.act;for(let j=0;j<A.length;j++)A[j].visible=false;q.sign.visible=true;
-    nb=0;fadeA=0;titleA=0;camK=1;bars=clamp(Math.min(mt/.6,(dur-mt)/.6),0,1)*(vw>vh?.085:.03);
+    nb=0;fadeA=0;titleA=0;camK=1;pUp=.2;bars=clamp(Math.min(mt/.6,(dur-mt)/.6),0,1)*(vw>vh?.085:.03);
     shots[i][0](mt-T0[i],shots[i][1]);
     const bt=q.bits;bt.count=nb;bt.visible=nb>0;if(nb){bt.instanceMatrix.needsUpdate=true;bt.instanceColor.needsUpdate=true;}
     q.dome.position.copy(q.cam.position);windU.value=mt;
@@ -2684,7 +2727,7 @@ function frame(ms){
 
 /* ---------- boot ---------- */
 /* build.js raises the last number and stamps the time on every build */
-const VERSION='0.4.16',BUILT='2026-11-11 10:10 UTC';
+const VERSION='0.4.17',BUILT='2026-11-11 10:17 UTC';
 document.querySelectorAll('.verT').forEach(e=>{e.textContent='DEMO · v'+VERSION+(BUILT?' · '+BUILT:'');});
 'TUMBLEBUDS'.split('').forEach((ch,i)=>{const s=document.createElement('span');s.textContent=ch;s.style.animationDelay=(i*.09)+'s';$('logo').append(s);});
 if(/[?&]all\b/.test(location.search))SAVE.all=1;
