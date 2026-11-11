@@ -208,6 +208,7 @@ button:focus-visible{outline:3px solid var(--coral);outline-offset:2px}
       <button class="mbtn" id="pRestart" data-t="35">Restart level</button>
       <button class="mbtn" id="pSettings" data-t="42">Settings</button>
       <button class="mbtn" id="pMap" data-t="58">World map</button>
+      <button class="mbtn" id="pTitle" data-t="73">Main menu</button>
     </div>
     <div class="sub verT"></div>
   </div>
@@ -230,10 +231,10 @@ button:focus-visible{outline:3px solid var(--coral);outline-offset:2px}
 "use strict";
 //#SIM-START
 const W=1600,H=520,WATER_Y=452,D=10,MAXUP=7,MAXDN=5,SPAWN_EVERY=84;
-let TOTAL=20,NEED=12,TIME_LIMIT=5*60*60,MAXFALL=140,FALLV=3,LVL=0;
+let TOTAL=20,NEED=12,TIME_LIMIT=5*60*60,MAXFALL=140,FALLV=3,GRAV=.11,LVL=0;
 const HATCH={x:130,y:96},EXIT={x:1492,y:370};
 const solid=new Uint8Array(W*H);let solid0=null;
-const G={buds:[],spawned:0,saved:0,lost:0,tick:0,ended:false,counts:{}};
+const G={buds:[],items:[],spawned:0,saved:0,lost:0,tick:0,ended:false,counts:{}};
 const FX={carve(){},plank(){},ev(){}};
 function S(x,y){x|=0;y|=0;if(x<0||x>=W)return 1;if(y<0||y>=H)return 0;return solid[y*W+x];}
 function wav(x){return Math.round(2.5*Math.sin(x*0.045)+1.5*Math.sin(x*0.11+1));}
@@ -250,39 +251,59 @@ const LEVELS=[
 {w:0,n:10,need:6,t:3,c:{bash:2},hx:140,ex:760,e:'blanket',s:[[330,'bash']],b(){
   land(0,W,300,H);pillar(0,50,184,312);pillar(430,500,220,312);pillar(900,960,200,312);}},
 {w:0,n:10,need:6,t:3,c:{dig:2},hx:330,ex:820,s:[[400,'dig']],b(){
-  land(0,W,330,H);pillar(0,50,214,342);block(210,560,200,232);block(210,240,150,330);block(530,560,150,292);pillar(1000,1060,225,342);}},
+  land(0,W,330,H);pillar(0,50,214,342);block(210,560,200,232);block(210,240,150,340);block(530,560,150,292);pillar(1000,1060,225,342);}},
 {w:0,n:10,need:7,t:4,c:{build:4},hx:130,ex:1180,s:[[385,'build'],[820,'build']],b(){
   land(0,430,300,H);pillar(0,50,184,312);ramp(430,500,300,340);land(500,860,275,H);ramp(860,930,275,315);land(930,W,250,H);pillar(1320,1380,150,262);}},
+{w:0,n:8,need:6,t:3,c:{climb:8},hx:140,ex:900,s:[[330,'climb']],b(){
+  land(0,W,310,H);pillar(0,50,194,322);block(440,490,215,322);pillar(1040,1100,205,322);}},
+{w:0,n:10,need:7,t:3,c:{tramp:2},hx:140,ex:900,s:[[425,'tramp']],b(){
+  land(0,480,320,H,1);pillar(0,50,204,332);land(480,W,262,H);pillar(1040,1100,157,274);}},
 {w:0,n:8,need:6,t:3,c:{float:8},hx:150,ex:900,e:'boat',s:[[420,'float']],b(){
   land(0,560,150,H,1);pillar(0,50,34,162);land(560,W,335,H);pillar(1040,1100,230,347);}},
 {w:1,n:10,need:8,t:4,c:{stop:2,build:2},hx:140,ex:1000,s:[[280,'stop'],[540,'build']],b(){
   land(0,600,300,H);pillar(0,50,184,312);land(655,W,300,H);pillar(1150,1210,190,312);}},
+{w:1,n:8,need:6,t:3,c:{bub:8},hx:140,ex:900,s:[[420,'bub']],b(){
+  land(0,480,340,H,1);pillar(0,50,224,352);land(480,W,245,H);pillar(1040,1100,140,257);}},
 {w:1,n:12,need:9,t:4,c:{bash:2,dig:2},hx:140,ex:1150,s:[[330,'bash'],[625,'dig']],b(){
   land(0,760,260,H);pillar(0,50,144,272);pillar(420,490,170,272);block(760,900,120,H);land(900,W,352,H);cut(600,900,318,350);pillar(1300,1360,240,364);}},
 {w:1,n:12,need:9,t:5,c:{stop:1,build:2,bash:1},hx:140,ex:1250,s:[[420,'build'],[900,'bash']],b(){
   land(0,W,300,H);pillar(0,50,184,312);pillar(520,760,262,312);pillar(960,1030,190,312);pillar(1400,1460,190,312);}},
+{w:1,n:8,need:6,t:4,c:{bub:10,bash:2},hx:140,ex:1100,s:[[330,'bash'],[560,'bub']],b(){
+  land(0,600,300,H,1);pillar(0,50,184,312);pillar(400,470,205,312);land(645,W,300,H,1);pillar(1250,1310,190,312);}},
 {w:1,n:12,need:9,t:5,c:{stop:2,build:4},hx:140,ex:1250,s:[[200,'stop'],[270,'build']],b(){
   land(0,400,360,H,1);pillar(0,50,244,372);land(400,640,324,H,1);land(640,860,288,H,1);land(915,W,288,H);pillar(1450,1510,178,300);}},
 {w:2,n:20,need:14,t:5,c:{stop:2,build:3,bash:2},hx:130,ex:1420,e:'tent',s:[[560,'bash']],b(){
   land(0,W,320,H);pillar(0,50,204,332);hill(220,520,320,45);pillar(600,680,215,332);cut(820,880,280,H);hill(960,1260,320,55);pillar(1520,1580,210,332);}},
+{w:2,n:8,need:6,t:3,c:{run:8},hx:140,ex:1080,s:[[330,'run']],b(){
+  land(0,W,330,H,1);pillar(0,50,214,342);for(let i=0;i<6;i++)land(420+i*34,760,318-i*12,H,1);ramp(760,900,258,330);pillar(1240,1300,225,342);}},
 {w:2,n:20,need:15,t:5,c:{stop:1,dig:4,bash:2},hx:400,ex:1200,s:[],b(){
-  land(0,W,340,H);block(300,322,96,340);block(538,560,96,300);block(322,538,150,172);block(322,538,215,237);block(322,538,280,302);pillar(800,880,225,352);pillar(0,50,224,352);pillar(1400,1460,230,352);}},
+  land(0,W,340,H);block(300,322,96,350);block(538,560,96,300);block(322,538,150,172);block(322,538,215,237);block(322,538,280,302);pillar(800,880,225,352);pillar(0,50,224,352);pillar(1400,1460,230,352);}},
 {w:2,n:20,need:14,t:5,c:{stop:2,build:2,dig:2,bash:2},hx:140,ex:1350,s:[],b(){
   land(0,700,225,H);pillar(0,50,109,237);block(700,1150,100,H);land(1150,W,352,H);cut(560,1150,315,350);block(800,830,315,350);cut(900,1060,255,350);cut(950,1000,350,H);cut(962,988,100,256);pillar(1500,1560,245,364);}},
+{w:2,n:12,need:9,t:4,c:{bomb:3},hx:330,ex:1150,s:[[400,'bomb']],b(){
+  land(0,W,350,H);pillar(0,50,234,362);block(230,560,255,266);block(230,252,205,360);block(538,560,205,312);pillar(1300,1360,245,362);}},
 {w:2,n:20,need:15,t:5,c:{stop:2,float:2,build:3,bash:1},hx:140,ex:1300,e:'kite',s:[],b(){
   land(0,520,160,H,1);block(520,532,160,185);pillar(0,50,46,172);land(520,W,330,H);pillar(760,830,215,342);pillar(1450,1510,220,342);}},
 {w:3,n:20,need:12,t:5,c:{stop:3,build:5,dig:3,bash:3,float:3},hx:130,ex:1492,e:'house',s:[],b(){
   land(0,560,220,H);pillar(0,50,104,232);pillar(380,440,108,232);land(610,640,205,H);land(640,900,205,250);land(640,840,295,H);land(840,1330,385,H);pillar(1180,1250,250,397);land(1380,1600,370,H);pillar(1560,1600,250,382);}},
 {w:3,sn:1,n:20,need:15,t:5,c:{stop:2,build:2,bash:2},hx:900,ex:150,s:[],b(){
   land(0,W,330,H);pillar(1000,1080,210,342);pillar(640,720,220,342);cut(430,490,280,H);land(0,430,290,H);pillar(0,50,174,302);}},
+{w:3,n:8,need:6,t:3,c:{jet:10},hx:140,ex:1000,e:'rocket',s:[[480,'jet']],b(){
+  land(0,540,300,H,1);pillar(0,50,184,312);land(600,W,300,H,1);pillar(1150,1210,190,312);}},
 {w:3,sn:1,n:20,need:15,t:5,c:{stop:2,build:2,dig:2,bash:1},hx:180,ex:1450,s:[],b(){
   land(0,W,400,H,1);block(100,900,160,185);block(100,122,60,160);block(878,900,60,160);block(300,1100,280,305);block(300,322,185,280);block(700,760,185,280);cut(1200,1260,380,H);pillar(1540,1600,290,412);}},
+{w:3,sn:1,n:20,need:15,t:5,c:{stop:2,tramp:2,bomb:2,build:2},hx:140,ex:1350,s:[],b(){
+  land(0,W,340,H,1);pillar(0,50,224,352);block(460,760,280,291);block(460,474,280,340);block(760,790,150,291);cut(900,960,320,H);pillar(1500,1560,235,352);}},
 {w:3,sn:1,n:20,need:18,t:5,c:{stop:2,build:2,dig:2,bash:2},hx:150,ex:1380,e:'rocket',s:[],b(){
   land(0,500,160,H,1);pillar(0,50,44,172);land(500,W,345,H);land(880,W,320,H);cut(820,880,300,H);pillar(1500,1560,210,332);}},
 {w:4,g:1,n:20,need:14,t:5,c:{stop:2,build:4,bash:1},hx:130,ex:1380,e:'rocket',s:[],b(){
   land(0,W,320,H);pillar(0,50,204,332);hill(250,400,320,-30);pillar(480,550,215,332);land(700,W,280,H,1);land(900,W,240,H,1);cut(1080,1160,200,H);pillar(1500,1560,130,252);}},
+{w:4,g:1,n:12,need:9,t:4,c:{tramp:2,jet:14},hx:140,ex:1200,e:'rocket',s:[[395,'tramp']],b(){
+  land(0,480,340,H,1);pillar(0,50,224,352);land(480,W,235,H,1);cut(760,860,215,H);pillar(1350,1410,130,247);}},
 {w:4,g:1,fl:1,n:20,need:14,t:6,c:{stop:2,build:5,bash:1,float:2},hx:180,ex:1220,e:'rocket',s:[],b(){
   isle(60,360,200,60);isle(420,640,170,60);isle(720,980,310,60);isle(1050,1320,275,70);pillar(60,100,110,206);pillar(840,900,225,316);pillar(1280,1320,185,281);}},
+{w:4,g:1,n:10,need:8,t:4,c:{climb:5,bub:6},hx:140,ex:950,e:'rocket',s:[],b(){
+  land(0,W,320,H);pillar(0,50,204,332);block(460,520,205,332);pillar(1100,1160,215,332);}},
 {w:5,n:20,need:16,t:5,c:{stop:2,build:4,dig:1,bash:2,float:1},hx:150,ex:1420,e:'gate',s:[],b(){
   land(0,420,150,H,1);pillar(0,50,36,162);land(420,W,340,H);pillar(620,690,230,352);land(900,W,315,H,1);cut(840,900,300,H);land(1100,W,275,H,1);land(1290,W,235,H,1);pillar(1540,1600,120,247);}},
 {w:5,n:20,need:16,t:6,c:{stop:2,build:3,dig:1,bash:2,float:1},hx:140,ex:1450,e:'tree',tod:[.42,.84],s:[],b(){
@@ -290,13 +311,13 @@ const LEVELS=[
 ];
 function buildLevel(i){
   LVL=i;const L=LEVELS[i];solid.fill(0);L.b();
-  TOTAL=L.n;NEED=L.need;TIME_LIMIT=L.t*3600;MAXFALL=L.g?240:140;FALLV=L.g?2:3;
+  TOTAL=L.n;NEED=L.need;TIME_LIMIT=L.t*3600;MAXFALL=L.g?240:140;FALLV=L.g?2:3;GRAV=L.g?.075:.11;
   HATCH.x=L.hx;HATCH.y=Math.max(14,surfaceY(L.hx)-120);EXIT.x=L.ex;EXIT.y=surfaceY(L.ex);
   solid0=solid.slice();
 }
 function resetSim(){
-  solid.set(solid0);G.buds=[];G.spawned=0;G.saved=0;G.lost=0;G.tick=0;G.ended=false;
-  G.counts=Object.assign({stop:0,build:0,dig:0,bash:0,float:0},LEVELS[LVL].c);
+  solid.set(solid0);G.buds=[];G.items=[];G.spawned=0;G.saved=0;G.lost=0;G.tick=0;G.ended=false;
+  G.counts=Object.assign({stop:0,build:0,dig:0,bash:0,float:0,tramp:0,jet:0,run:0,bomb:0,bub:0,climb:0},LEVELS[LVL].c);
 }
 function carve(x,y,w,h){
   const x0=Math.max(0,x),x1=Math.min(W,x+w),y0=Math.max(0,y),y1=Math.min(H,y+h);
@@ -312,29 +333,36 @@ function kill(c,how){c.gone=true;G.lost++;FX.ev(how,c);}
 function canAssign(c,sk){
   if(!c||c.gone||c.st==='exit')return false;
   if(!(G.counts[sk]>0))return false;
-  if(sk==='float')return !c.float&&c.st!=='stop';
-  if(c.st==='fall'||c.st==='stop')return false;
+  if(sk==='float'||sk==='run'||sk==='climb')return !c[sk]&&c.st!=='stop';
+  if(sk==='bub')return c.st==='walk'||c.st==='fall';
+  if(c.st!=='walk'&&(sk==='tramp'||sk==='jet'||sk==='bomb'))return false;
+  if(c.st==='fall'||c.st==='stop'||c.st==='fly'||c.st==='bub'||c.st==='clm'||c.st==='bomb')return false;
   return c.st!==sk;
 }
 function assign(c,sk){
   if(!canAssign(c,sk))return false;
   G.counts[sk]--;
-  if(sk==='float')c.float=true;else{c.st=sk;c.w=0;c.planks=0;c.air=false;c.did=false;c.pre=0;}
+  if(sk==='float'||sk==='run'||sk==='climb')c[sk]=true;
+  else if(sk==='tramp'){const it={x:c.x+c.dir*5,y:c.y,t:0};G.items.push(it);FX.ev('item',it);}
+  else if(sk==='jet')launch(c,c.dir*2.2,-2.6,1);
+  else{c.st=sk;c.w=0;c.planks=0;c.air=false;c.did=false;c.pre=0;}
   FX.ev('assign',c);return true;
 }
+/* a bud in the air on a ballistic arc: off a bounce pad or on a rocket */
+function launch(c,vx,vy,jet){c.st='fly';c.fx=c.x;c.fy=c.y;c.vx=vx;c.vy=vy;c.fall=0;c.jet=jet;FX.ev(jet?'jet':'boing',c);}
 function release(c){if(c.st!=='stop')return false;c.st='walk';FX.ev('assign',c);return true;}
 function walkStep(c){
   for(const s of G.buds){
     if(s.st!=='stop'||s===c||Math.abs(s.y-c.y)>=14)continue;
     const d=(s.x-c.x)*c.dir;if(d>0&&d<=8){c.dir=-c.dir;return 'turn';}
   }
-  const nx=c.x+c.dir;
+  const nx=c.x+c.dir,MU=c.run?MAXUP*2:MAXUP;
   if(S(nx,c.y-1)){
-    let up=1;while(up<=MAXUP&&S(nx,c.y-1-up))up++;
-    if(up>MAXUP){
+    let up=1;while(up<=MU&&S(nx,c.y-1-up))up++;
+    if(up>MU){
       /* planks are steps, never walls: a bud under a bridge walks on through it */
-      let ur=0;while(ur<=MAXUP&&S(nx,c.y-1-ur)===1)ur++;
-      if(ur>MAXUP){c.dir=-c.dir;return 'wall';}
+      let ur=0;while(ur<=MU&&S(nx,c.y-1-ur)===1)ur++;
+      if(ur>MU){if(c.climb&&c.st==='walk'&&nx>=0&&nx<W){c.st='clm';return 'climb';}c.dir=-c.dir;return 'wall';}
       c.y-=ur;c.x=nx;return 'ok';
     }
     c.y-=up;c.x=nx;
@@ -363,7 +391,34 @@ function upd(c){
   }
   if(c.st!=='stop'&&Math.abs(c.x-EXIT.x)<6&&Math.abs(c.y-EXIT.y)<16){c.st='exit';c.w=0;G.saved++;FX.ev('saved',c);return;}
   switch(c.st){
-    case 'walk':if(c.age%2===0)walkStep(c);break;
+    case 'walk':if(c.run||c.age%2===0){walkStep(c);if(c.st==='walk')for(const it of G.items)if(Math.abs(it.x-c.x)<=2&&Math.abs(it.y-c.y)<=6){it.t=G.tick;launch(c,c.dir*.9,-4.4,0);break;}}break;
+    case 'fly':{
+      c.vy=Math.min(c.vy+GRAV,3.4);let nx=c.fx+c.vx,ny=c.fy+c.vy;
+      if(S(Math.round(nx),Math.round(c.fy)-3)||S(Math.round(nx),Math.round(c.fy)-12))nx=c.fx;
+      if(c.vy<0&&S(Math.round(nx),Math.round(ny)-19)){c.vy=0;ny=c.fy;}
+      if(c.vy>0){
+        const rx=Math.round(nx);let hit=-1;for(let y=Math.round(c.fy);y<=Math.round(ny);y++)if(S(rx,y)){hit=y;break;}
+        c.fall+=c.vy;
+        if(hit>=0){c.x=rx;c.y=hit;if(c.fall>MAXFALL&&!c.float){kill(c,'splat');return;}FX.ev('land',c);c.st='walk';c.fall=0;c.jet=0;return;}
+      }
+      c.fx=nx;c.fy=ny;c.x=Math.round(nx);c.y=Math.round(ny);
+      if(c.y>WATER_Y+8){kill(c,'drown');return;}
+      break;}
+    case 'bub':{
+      if(c.age%2)break;
+      if(S(c.x,c.y-21)||c.w>=(GRAV<.1?170:120)||c.y<26){c.st='fall';c.fall=0;FX.ev('pop',c);break;}
+      c.y--;c.w++;if(!S(c.x+c.dir,c.y-2)&&!S(c.x+c.dir,c.y-14))c.x+=c.dir;
+      break;}
+    case 'clm':{
+      if(c.age%2)break;
+      if(!S(c.x+c.dir,c.y-1)){c.x+=c.dir;c.st='walk';break;}
+      if(S(c.x,c.y-21)||c.y<26){c.dir=-c.dir;c.st='fall';c.fall=0;break;}
+      c.y--;break;}
+    case 'bomb':{
+      if(++c.w<70)break;
+      for(let dy=-18;dy<=18;dy++){const hw=Math.round(Math.sqrt(18*18-dy*dy));carve(c.x+c.dir*6-hw,c.y-6+dy,hw*2+1,1);}
+      FX.ev('boom',c);c.st='walk';if(!S(c.x,c.y)){c.st='fall';c.fall=0;}
+      break;}
     case 'stop':if(!S(c.x,c.y)){c.st='fall';c.fall=0;}break;
     case 'dig':{
       if(c.age%4)break;
@@ -421,12 +476,13 @@ let rs=12345;function rnd(){rs=(Math.imul(rs,1664525)+1013904223)|0;return(rs>>>
 /* ---------- i18n ---------- */
 const SAVE=(()=>{try{return JSON.parse(localStorage.getItem('tumblebuds')||'{}')||{};}catch(e){return {};}})();
 if(!Array.isArray(SAVE.stars))SAVE.stars=[];
-const CFG=Object.assign({sfx:1,music:1,gfx:'auto',view:0,lang:''},SAVE.cfg||{});SAVE.cfg=CFG;if(SAVE.v!==3){SAVE.v=3;CFG.view=0;}
+const CFG=Object.assign({sfx:1,music:1,gfx:'auto',view:0,lang:''},SAVE.cfg||{});SAVE.cfg=CFG;if(!(SAVE.v>=3)){SAVE.v=3;CFG.view=0;}
+if(SAVE.v<4){const mp=[0,1,2,5,6,8,9,11,12,14,15,17,18,19,21,23,24,26,28,29],n=[];SAVE.stars.forEach((q,i)=>{if(q&&mp[i]!=null)n[mp[i]]=q;});SAVE.stars=n;SAVE.v=4;}
 function persist(){try{localStorage.setItem('tumblebuds',JSON.stringify(SAVE));}catch(e){}}
 const LNAMES={en:'English',de:'Deutsch',fr:'Français',es:'Español',it:'Italiano',pt:'Português',nl:'Nederlands',pl:'Polski',tr:'Türkçe',ru:'Русский',ja:'日本語',ko:'한국어',zh:'中文'};
-const TXT={"en":["Level one","tap to skip","Little steps. Big adventures. Together!","Pick a skill","Tap a bud","Drag to look around","Tap a halted bud to wake it","Play","Play again","Finish","Halt","Bridge","Dig","Tunnel","Parasol","No {0} left","Pick a skill, then tap a bud","Awake again!","Pick a skill first","That bud can’t do that right now","Paused — you can still give orders","Go!","Every bud is home!","Home sweet home!","The hollow is too quiet","{0} of {1} buds made it home.","You need {0}.","Halt a bud to hold the crowd, then wake it once the path is safe.","perfect run","Tip: Halt one bud first, send a single scout ahead.","Level {0}","Could not load the 3D engine. Check your connection and reload.","This game needs WebGL, which is not available in this browser.","Game speed","Pause","Restart level","Sound","Full screen","Buds home / needed","Time left","Install app","Levels","Settings","Back","Music","Graphics","Auto","High","Low","Camera","Classic","Diagonal","Wide-angle","Language","Reset progress","Progress reset","Coming soon","presents","World map","Resume","Menu","Trail","Next level","Finish level {0} first","The Journey Home","{0} buds · bring {1} home","All levels unlocked"],"de":["Level eins","Tippen zum Überspringen","Kleine Schritte. Große Abenteuer. Zusammen!","Fähigkeit wählen","Bud antippen","Ziehen zum Umsehen","Wartenden Bud antippen, um ihn zu wecken","Spielen","Nochmal","Fertig","Halt","Brücke","Graben","Tunnel","Schirm","Kein {0} mehr übrig","Fähigkeit wählen, dann Bud antippen","Wieder wach!","Erst eine Fähigkeit wählen","Das kann dieser Bud gerade nicht","Pause – Befehle gehen trotzdem","Los!","Alle Buds sind zu Hause!","Trautes Heim!","Im Tal ist es zu still","{0} von {1} Buds haben es nach Hause geschafft.","Du brauchst {0}.","Halte einen Bud an, um die Gruppe zu stoppen, und wecke ihn, sobald der Weg sicher ist.","perfekter Lauf","Tipp: Erst einen Bud anhalten, dann einen einzelnen Kundschafter vorschicken.","Level {0}","Die 3D-Engine konnte nicht geladen werden. Verbindung prüfen und neu laden.","Dieses Spiel braucht WebGL, das in diesem Browser nicht verfügbar ist.","Tempo","Pause","Level neu starten","Ton","Vollbild","Buds zu Hause / benötigt","Restzeit","App installieren","Level","Einstellungen","Zurück","Musik","Grafik","Auto","Hoch","Niedrig","Kamera","Klassisch","Diagonal","Weitwinkel","Sprache","Fortschritt löschen","Fortschritt gelöscht","Demnächst","präsentiert","Weltkarte","Weiter","Menü","Pfad","Nächstes Level","Schließe zuerst Level {0} ab","Die Reise nach Hause","{0} Buds · bring {1} nach Hause","Alle Level freigeschaltet"],"fr":["Niveau un","touchez pour passer","Petits pas. Grandes aventures. Ensemble !","Choisissez une action","Touchez un Bud","Glissez pour explorer","Touchez un Bud arrêté pour le réveiller","Jouer","Rejouer","Terminer","Stop","Pont","Creuser","Tunnel","Ombrelle","Plus de {0}","Choisissez une action, puis touchez un Bud","Réveillé !","Choisissez d’abord une action","Ce Bud ne peut pas faire ça maintenant","Pause — vous pouvez encore donner des ordres","C’est parti !","Tous les Buds sont rentrés !","Enfin à la maison !","Le vallon est trop calme","{0} Buds sur {1} sont rentrés.","Il en faut {0}.","Arrêtez un Bud pour retenir le groupe, puis réveillez-le quand la voie est sûre.","sans faute","Astuce : arrêtez d’abord un Bud, puis envoyez un seul éclaireur.","Niveau {0}","Impossible de charger le moteur 3D. Vérifiez votre connexion et rechargez.","Ce jeu nécessite WebGL, indisponible dans ce navigateur.","Vitesse","Pause","Recommencer","Son","Plein écran","Buds rentrés / requis","Temps restant","Installer l’app","Niveaux","Réglages","Retour","Musique","Graphismes","Auto","Élevé","Faible","Caméra","Classique","Diagonale","Grand angle","Langue","Effacer la progression","Progression effacée","Bientôt","présente","Carte du monde","Reprendre","Menu","Sentier","Niveau suivant","Terminez d’abord le niveau {0}","Le voyage du retour","{0} Buds · ramenez-en {1}"],"es":["Nivel uno","toca para saltar","Pasitos pequeños. Grandes aventuras. ¡Juntos!","Elige una habilidad","Toca un Bud","Arrastra para mirar","Toca un Bud detenido para despertarlo","Jugar","Otra vez","Terminar","Alto","Puente","Cavar","Túnel","Sombrilla","No queda {0}","Elige una habilidad y toca un Bud","¡Despierto otra vez!","Primero elige una habilidad","Ese Bud no puede hacer eso ahora","En pausa: aún puedes dar órdenes","¡Vamos!","¡Todos los Buds están en casa!","¡Hogar, dulce hogar!","El valle está demasiado callado","{0} de {1} Buds llegaron a casa.","Necesitas {0}.","Detén un Bud para frenar al grupo y despiértalo cuando el camino sea seguro.","partida perfecta","Consejo: detén primero un Bud y envía un solo explorador.","Nivel {0}","No se pudo cargar el motor 3D. Revisa tu conexión y recarga.","Este juego necesita WebGL, que no está disponible en este navegador.","Velocidad","Pausa","Reiniciar nivel","Sonido","Pantalla completa","Buds en casa / necesarios","Tiempo restante","Instalar app","Niveles","Ajustes","Atrás","Música","Gráficos","Auto","Alto","Bajo","Cámara","Clásica","Diagonal","Gran angular","Idioma","Borrar progreso","Progreso borrado","Próximamente","presenta","Mapa del mundo","Continuar","Menú","Sendero","Siguiente nivel","Primero completa el nivel {0}","El viaje a casa","{0} Buds · lleva {1} a casa"],"it":["Livello uno","tocca per saltare","Piccoli passi. Grandi avventure. Insieme!","Scegli un’abilità","Tocca un Bud","Trascina per guardare","Tocca un Bud fermo per svegliarlo","Gioca","Rigioca","Fine","Alt","Ponte","Scava","Tunnel","Ombrello","{0} esaurito","Scegli un’abilità, poi tocca un Bud","Di nuovo sveglio!","Prima scegli un’abilità","Questo Bud non può farlo adesso","In pausa: puoi ancora dare ordini","Via!","Tutti i Buds sono a casa!","Casa dolce casa!","La valle è troppo silenziosa","{0} Buds su {1} sono arrivati a casa.","Ne servono {0}.","Ferma un Bud per trattenere il gruppo, poi sveglialo quando la strada è sicura.","partita perfetta","Consiglio: ferma prima un Bud, poi manda avanti un solo esploratore.","Livello {0}","Impossibile caricare il motore 3D. Controlla la connessione e ricarica.","Questo gioco richiede WebGL, non disponibile in questo browser.","Velocità","Pausa","Ricomincia livello","Audio","Schermo intero","Buds a casa / necessari","Tempo rimasto","Installa app","Livelli","Impostazioni","Indietro","Musica","Grafica","Auto","Alta","Bassa","Camera","Classica","Diagonale","Grandangolo","Lingua","Azzera progressi","Progressi azzerati","Prossimamente","presenta","Mappa del mondo","Riprendi","Menu","Sentiero","Livello successivo","Prima completa il livello {0}","Il viaggio verso casa","{0} Buds · portane {1} a casa"],"pt":["Nível um","toque para pular","Passinhos pequenos. Grandes aventuras. Juntos!","Escolha uma habilidade","Toque num Bud","Arraste para olhar","Toque num Bud parado para acordá-lo","Jogar","De novo","Concluir","Parar","Ponte","Cavar","Túnel","Sombrinha","Acabou: {0}","Escolha uma habilidade e toque num Bud","Acordado de novo!","Escolha uma habilidade primeiro","Esse Bud não pode fazer isso agora","Em pausa — ainda pode dar ordens","Vai!","Todos os Buds estão em casa!","Lar, doce lar!","O vale está quieto demais","{0} de {1} Buds chegaram em casa.","Você precisa de {0}.","Pare um Bud para segurar o grupo e acorde-o quando o caminho estiver seguro.","jogo perfeito","Dica: pare um Bud primeiro e mande um único batedor.","Nível {0}","Não foi possível carregar o motor 3D. Verifique a conexão e recarregue.","Este jogo precisa de WebGL, indisponível neste navegador.","Velocidade","Pausa","Reiniciar nível","Som","Tela cheia","Buds em casa / necessários","Tempo restante","Instalar app","Níveis","Ajustes","Voltar","Música","Gráficos","Auto","Alto","Baixo","Câmera","Clássica","Diagonal","Grande angular","Idioma","Apagar progresso","Progresso apagado","Em breve","apresenta","Mapa do mundo","Continuar","Menu","Trilha","Próximo nível","Conclua primeiro o nível {0}","A viagem para casa","{0} Buds · leve {1} para casa"],"nl":["Level één","tik om over te slaan","Kleine stapjes. Grote avonturen. Samen!","Kies een vaardigheid","Tik op een Bud","Sleep om rond te kijken","Tik op een wachtende Bud om hem te wekken","Spelen","Opnieuw","Klaar","Halt","Brug","Graven","Tunnel","Parasol","Geen {0} meer","Kies een vaardigheid en tik op een Bud","Weer wakker!","Kies eerst een vaardigheid","Dat kan deze Bud nu niet","Gepauzeerd — je kunt nog opdrachten geven","Start!","Alle Buds zijn thuis!","Oost west, thuis best!","Het dal is te stil","{0} van de {1} Buds zijn thuisgekomen.","Je hebt er {0} nodig.","Laat een Bud wachten om de groep tegen te houden en wek hem als de weg veilig is.","perfecte ronde","Tip: laat eerst één Bud wachten en stuur één verkenner vooruit.","Level {0}","De 3D-engine kon niet worden geladen. Controleer je verbinding en laad opnieuw.","Dit spel heeft WebGL nodig en dat is niet beschikbaar in deze browser.","Snelheid","Pauze","Level herstarten","Geluid","Volledig scherm","Buds thuis / nodig","Resterende tijd","App installeren","Levels","Instellingen","Terug","Muziek","Graphics","Auto","Hoog","Laag","Camera","Klassiek","Diagonaal","Groothoek","Taal","Voortgang wissen","Voortgang gewist","Binnenkort","presenteert","Wereldkaart","Verder","Menu","Pad","Volgend level","Voltooi eerst level {0}","De reis naar huis","{0} Buds · breng er {1} thuis"],"pl":["Poziom pierwszy","dotknij, aby pominąć","Małe kroczki. Wielkie przygody. Razem!","Wybierz umiejętność","Dotknij Buda","Przeciągnij, aby się rozejrzeć","Dotknij stojącego Buda, aby go obudzić","Graj","Jeszcze raz","Koniec","Stop","Most","Kop","Tunel","Parasol","Brak: {0}","Wybierz umiejętność i dotknij Buda","Znowu nie śpi!","Najpierw wybierz umiejętność","Ten Bud nie może tego teraz zrobić","Pauza — nadal możesz wydawać polecenia","Start!","Wszystkie Budy są w domu!","Nie ma jak w domu!","W dolinie jest zbyt cicho","{0} z {1} Budów dotarło do domu.","Potrzebujesz {0}.","Zatrzymaj Buda, aby wstrzymać grupę, i obudź go, gdy droga będzie bezpieczna.","perfekcyjna gra","Rada: najpierw zatrzymaj jednego Buda i wyślij jednego zwiadowcę.","Poziom {0}","Nie udało się wczytać silnika 3D. Sprawdź połączenie i odśwież.","Ta gra wymaga WebGL, które nie jest dostępne w tej przeglądarce.","Prędkość","Pauza","Restart poziomu","Dźwięk","Pełny ekran","Budy w domu / potrzebne","Pozostały czas","Zainstaluj","Poziomy","Ustawienia","Wstecz","Muzyka","Grafika","Auto","Wysoka","Niska","Kamera","Klasyczna","Ukośna","Szeroki kąt","Język","Usuń postępy","Postępy usunięte","Wkrótce","przedstawia","Mapa świata","Wznów","Menu","Ścieżka","Następny poziom","Najpierw ukończ poziom {0}","Podróż do domu","Budy: {0} · doprowadź {1} do domu"],"tr":["Birinci bölüm","geçmek için dokun","Küçük adımlar. Büyük maceralar. Hep birlikte!","Bir yetenek seç","Bir Bud’a dokun","Bakmak için sürükle","Duran Bud’a dokunup uyandır","Oyna","Tekrar oyna","Bitir","Dur","Köprü","Kaz","Tünel","Şemsiye","{0} kalmadı","Bir yetenek seç, sonra bir Bud’a dokun","Yine uyandı!","Önce bir yetenek seç","Bu Bud şu an bunu yapamaz","Duraklatıldı — yine de emir verebilirsin","Başla!","Bütün Bud’lar evde!","Evim güzel evim!","Vadi fazla sessiz","{1} Bud’dan {0} tanesi eve ulaştı.","{0} gerekli.","Grubu tutmak için bir Bud’u durdur, yol güvenli olunca uyandır.","kusursuz oyun","İpucu: önce bir Bud’u durdur, sonra tek bir öncü gönder.","Bölüm {0}","3D motoru yüklenemedi. Bağlantını kontrol edip yenile.","Bu oyun WebGL gerektirir; bu tarayıcıda kullanılamıyor.","Hız","Duraklat","Bölümü yeniden başlat","Ses","Tam ekran","Evdeki / gereken Bud","Kalan süre","Uygulamayı yükle","Bölümler","Ayarlar","Geri","Müzik","Grafik","Otomatik","Yüksek","Düşük","Kamera","Klasik","Çapraz","Geniş açı","Dil","İlerlemeyi sıfırla","İlerleme sıfırlandı","Yakında","sunar","Dünya haritası","Devam et","Menü","Patika","Sonraki bölüm","Önce {0}. bölümü bitir","Eve Yolculuk","{0} Bud · {1} tanesini eve ulaştır"],"ru":["Уровень первый","коснитесь, чтобы пропустить","Маленькие шаги. Большие приключения. Вместе!","Выберите навык","Коснитесь малыша","Тяните, чтобы осмотреться","Коснитесь стоящего малыша, чтобы разбудить","Играть","Ещё раз","Готово","Стоп","Мост","Копать","Тоннель","Зонтик","Не осталось: {0}","Выберите навык, затем коснитесь малыша","Снова не спит!","Сначала выберите навык","Этот малыш сейчас так не может","Пауза — команды всё ещё доступны","Вперёд!","Все малыши дома!","Дом, милый дом!","В долине слишком тихо","Домой добрались: {0} из {1}.","Нужно {0}.","Остановите малыша, чтобы задержать толпу, и разбудите, когда путь станет безопасным.","идеальное прохождение","Совет: сначала остановите одного малыша и отправьте вперёд одного разведчика.","Уровень {0}","Не удалось загрузить 3D-движок. Проверьте соединение и обновите страницу.","Игре нужен WebGL, который недоступен в этом браузере.","Скорость","Пауза","Начать заново","Звук","На весь экран","Дома / нужно","Осталось времени","Установить","Уровни","Настройки","Назад","Музыка","Графика","Авто","Высокая","Низкая","Камера","Классика","Диагональ","Широкий угол","Язык","Сбросить прогресс","Прогресс сброшен","Скоро","представляет","Карта мира","Продолжить","Меню","Тропа","Следующий уровень","Сначала пройдите уровень {0}","Путешествие домой","Малышей: {0} · довести домой: {1}"],"ja":["レベル1","タップでスキップ","ちいさな一歩。おおきな冒険。みんないっしょ！","スキルを選ぶ","バッズをタップ","ドラッグで見わたす","止まったバッズをタップで起こす","プレイ","もう一度","終了","とまれ","はし","ほる","トンネル","パラソル","{0}はもうありません","スキルを選んでバッズをタップ","また起きた！","先にスキルを選んでね","このバッズは今それができません","一時停止中 — 指示は出せます","スタート！","みんなおうちに帰れた！","おかえりなさい！","谷がしずかすぎる…","{1}匹中{0}匹がおうちに帰れました。","{0}匹必要です。","バッズを止めて群れを待たせ、道が安全になったら起こそう。","パーフェクト","ヒント：まず1匹を止めて、1匹だけ先に行かせよう。","レベル{0}","3Dエンジンを読み込めませんでした。接続を確認して再読み込みしてください。","このゲームにはWebGLが必要ですが、このブラウザでは使えません。","ゲーム速度","一時停止","リスタート","サウンド","全画面","帰宅 / 必要数","残り時間","アプリをインストール","レベル","設定","戻る","音楽","グラフィック","自動","高","低","カメラ","クラシック","ななめ","ワイド","言語","進行状況をリセット","リセットしました","近日公開","プレゼンツ","ワールドマップ","再開","メニュー","トレイル","次のレベル","先にレベル{0}をクリアしてね","おうちへの旅","バッズ{0}匹 · {1}匹をおうちへ"],"ko":["레벨 1","탭하여 건너뛰기","작은 발걸음. 커다란 모험. 모두 함께!","스킬 선택","버드를 탭","드래그해서 둘러보기","멈춘 버드를 탭해 깨우기","플레이","다시 하기","완료","멈춤","다리","파기","터널","양산","{0} 없음","스킬을 고른 뒤 버드를 탭하세요","다시 깨어났어요!","먼저 스킬을 고르세요","이 버드는 지금 할 수 없어요","일시정지 — 명령은 내릴 수 있어요","출발!","모든 버드가 집에 왔어요!","즐거운 우리 집!","골짜기가 너무 조용해요","{1}마리 중 {0}마리가 집에 도착했어요.","{0}마리가 필요해요.","버드 하나를 멈춰 무리를 세우고, 길이 안전해지면 깨우세요.","퍼펙트","팁: 먼저 한 마리를 멈추고 정찰병 하나만 보내세요.","레벨 {0}","3D 엔진을 불러오지 못했어요. 연결을 확인하고 새로고침하세요.","이 게임에는 WebGL이 필요하지만 이 브라우저에서는 사용할 수 없어요.","게임 속도","일시정지","레벨 다시 시작","소리","전체 화면","귀가 / 필요","남은 시간","앱 설치","레벨","설정","뒤로","음악","그래픽","자동","높음","낮음","카메라","클래식","대각선","광각","언어","진행 상황 초기화","초기화했어요","곧 공개","제공","월드 맵","계속하기","메뉴","오솔길","다음 레벨","먼저 레벨 {0}을 완료하세요","집으로 가는 여행","버드 {0}마리 · {1}마리를 집으로"],"zh":["第一关","点按跳过","小小的脚步，大大的冒险，大家一起！","选择技能","点按小芽","拖动查看四周","点按停下的小芽可唤醒它","开始","再玩一次","完成","停止","搭桥","挖掘","隧道","阳伞","没有{0}了","先选技能，再点按小芽","又醒啦！","请先选择技能","这只小芽现在做不了","已暂停 — 仍可下达指令","出发！","所有小芽都到家了！","温馨的家！","山谷太安静了","{1} 只小芽中有 {0} 只回到了家。","需要 {0} 只。","让一只小芽停下拦住大家，等路安全后再唤醒它。","完美通关","提示：先让一只小芽停下，再派一只去探路。","第 {0} 关","无法加载 3D 引擎。请检查网络后重新加载。","本游戏需要 WebGL，但当前浏览器不支持。","游戏速度","暂停","重新开始","声音","全屏","已回家 / 所需","剩余时间","安装应用","关卡","设置","返回","音乐","画质","自动","高","低","视角","经典","斜视","广角","语言","重置进度","进度已重置","敬请期待","出品","世界地图","继续","菜单","小径","下一关","请先通过第 {0} 关","回家之旅","{0} 只小芽 · 带 {1} 只回家"]};
+const TXT={"en":["Level one","tap to skip","Little steps. Big adventures. Together!","Pick a skill","Tap a bud","Drag to look around","Tap a halted bud to wake it","Play","Play again","Finish","Halt","Bridge","Dig","Tunnel","Parasol","No {0} left","Pick a skill, then tap a bud","Awake again!","Pick a skill first","That bud can’t do that right now","Paused — you can still give orders","Go!","Every bud is home!","Home sweet home!","The hollow is too quiet","{0} of {1} buds made it home.","You need {0}.","Halt a bud to hold the crowd, then wake it once the path is safe.","perfect run","Tip: Halt one bud first, send a single scout ahead.","Level {0}","Could not load the 3D engine. Check your connection and reload.","This game needs WebGL, which is not available in this browser.","Game speed","Pause","Restart level","Sound","Full screen","Buds home / needed","Time left","Install app","Levels","Settings","Back","Music","Graphics","Auto","High","Low","Camera","Classic","Diagonal","Wide-angle","Language","Reset progress","Progress reset","Coming soon","presents","World map","Resume","Menu","Trail","Next level","Finish level {0} first","The Journey Home","{0} buds · bring {1} home","All levels unlocked","Bounce","Rocket","Sprint","Boom","Bubble","Climb","Main menu"],"de":["Level eins","Tippen zum Überspringen","Kleine Schritte. Große Abenteuer. Zusammen!","Fähigkeit wählen","Bud antippen","Ziehen zum Umsehen","Wartenden Bud antippen, um ihn zu wecken","Spielen","Nochmal","Fertig","Halt","Brücke","Graben","Tunnel","Schirm","Kein {0} mehr übrig","Fähigkeit wählen, dann Bud antippen","Wieder wach!","Erst eine Fähigkeit wählen","Das kann dieser Bud gerade nicht","Pause – Befehle gehen trotzdem","Los!","Alle Buds sind zu Hause!","Trautes Heim!","Im Tal ist es zu still","{0} von {1} Buds haben es nach Hause geschafft.","Du brauchst {0}.","Halte einen Bud an, um die Gruppe zu stoppen, und wecke ihn, sobald der Weg sicher ist.","perfekter Lauf","Tipp: Erst einen Bud anhalten, dann einen einzelnen Kundschafter vorschicken.","Level {0}","Die 3D-Engine konnte nicht geladen werden. Verbindung prüfen und neu laden.","Dieses Spiel braucht WebGL, das in diesem Browser nicht verfügbar ist.","Tempo","Pause","Level neu starten","Ton","Vollbild","Buds zu Hause / benötigt","Restzeit","App installieren","Level","Einstellungen","Zurück","Musik","Grafik","Auto","Hoch","Niedrig","Kamera","Klassisch","Diagonal","Weitwinkel","Sprache","Fortschritt löschen","Fortschritt gelöscht","Demnächst","präsentiert","Weltkarte","Weiter","Menü","Pfad","Nächstes Level","Schließe zuerst Level {0} ab","Die Reise nach Hause","{0} Buds · bring {1} nach Hause","Alle Level freigeschaltet","Hüpfen","Rakete","Sprint","Bumm","Blase","Klettern","Hauptmenü"],"fr":["Niveau un","touchez pour passer","Petits pas. Grandes aventures. Ensemble !","Choisissez une action","Touchez un Bud","Glissez pour explorer","Touchez un Bud arrêté pour le réveiller","Jouer","Rejouer","Terminer","Stop","Pont","Creuser","Tunnel","Ombrelle","Plus de {0}","Choisissez une action, puis touchez un Bud","Réveillé !","Choisissez d’abord une action","Ce Bud ne peut pas faire ça maintenant","Pause — vous pouvez encore donner des ordres","C’est parti !","Tous les Buds sont rentrés !","Enfin à la maison !","Le vallon est trop calme","{0} Buds sur {1} sont rentrés.","Il en faut {0}.","Arrêtez un Bud pour retenir le groupe, puis réveillez-le quand la voie est sûre.","sans faute","Astuce : arrêtez d’abord un Bud, puis envoyez un seul éclaireur.","Niveau {0}","Impossible de charger le moteur 3D. Vérifiez votre connexion et rechargez.","Ce jeu nécessite WebGL, indisponible dans ce navigateur.","Vitesse","Pause","Recommencer","Son","Plein écran","Buds rentrés / requis","Temps restant","Installer l’app","Niveaux","Réglages","Retour","Musique","Graphismes","Auto","Élevé","Faible","Caméra","Classique","Diagonale","Grand angle","Langue","Effacer la progression","Progression effacée","Bientôt","présente","Carte du monde","Reprendre","Menu","Sentier","Niveau suivant","Terminez d’abord le niveau {0}","Le voyage du retour","{0} Buds · ramenez-en {1}","","Rebond","Fusée","Sprint","Boum","Bulle","Grimper","Menu principal"],"es":["Nivel uno","toca para saltar","Pasitos pequeños. Grandes aventuras. ¡Juntos!","Elige una habilidad","Toca un Bud","Arrastra para mirar","Toca un Bud detenido para despertarlo","Jugar","Otra vez","Terminar","Alto","Puente","Cavar","Túnel","Sombrilla","No queda {0}","Elige una habilidad y toca un Bud","¡Despierto otra vez!","Primero elige una habilidad","Ese Bud no puede hacer eso ahora","En pausa: aún puedes dar órdenes","¡Vamos!","¡Todos los Buds están en casa!","¡Hogar, dulce hogar!","El valle está demasiado callado","{0} de {1} Buds llegaron a casa.","Necesitas {0}.","Detén un Bud para frenar al grupo y despiértalo cuando el camino sea seguro.","partida perfecta","Consejo: detén primero un Bud y envía un solo explorador.","Nivel {0}","No se pudo cargar el motor 3D. Revisa tu conexión y recarga.","Este juego necesita WebGL, que no está disponible en este navegador.","Velocidad","Pausa","Reiniciar nivel","Sonido","Pantalla completa","Buds en casa / necesarios","Tiempo restante","Instalar app","Niveles","Ajustes","Atrás","Música","Gráficos","Auto","Alto","Bajo","Cámara","Clásica","Diagonal","Gran angular","Idioma","Borrar progreso","Progreso borrado","Próximamente","presenta","Mapa del mundo","Continuar","Menú","Sendero","Siguiente nivel","Primero completa el nivel {0}","El viaje a casa","{0} Buds · lleva {1} a casa","","Rebote","Cohete","Sprint","Bum","Burbuja","Trepar","Menú principal"],"it":["Livello uno","tocca per saltare","Piccoli passi. Grandi avventure. Insieme!","Scegli un’abilità","Tocca un Bud","Trascina per guardare","Tocca un Bud fermo per svegliarlo","Gioca","Rigioca","Fine","Alt","Ponte","Scava","Tunnel","Ombrello","{0} esaurito","Scegli un’abilità, poi tocca un Bud","Di nuovo sveglio!","Prima scegli un’abilità","Questo Bud non può farlo adesso","In pausa: puoi ancora dare ordini","Via!","Tutti i Buds sono a casa!","Casa dolce casa!","La valle è troppo silenziosa","{0} Buds su {1} sono arrivati a casa.","Ne servono {0}.","Ferma un Bud per trattenere il gruppo, poi sveglialo quando la strada è sicura.","partita perfetta","Consiglio: ferma prima un Bud, poi manda avanti un solo esploratore.","Livello {0}","Impossibile caricare il motore 3D. Controlla la connessione e ricarica.","Questo gioco richiede WebGL, non disponibile in questo browser.","Velocità","Pausa","Ricomincia livello","Audio","Schermo intero","Buds a casa / necessari","Tempo rimasto","Installa app","Livelli","Impostazioni","Indietro","Musica","Grafica","Auto","Alta","Bassa","Camera","Classica","Diagonale","Grandangolo","Lingua","Azzera progressi","Progressi azzerati","Prossimamente","presenta","Mappa del mondo","Riprendi","Menu","Sentiero","Livello successivo","Prima completa il livello {0}","Il viaggio verso casa","{0} Buds · portane {1} a casa","","Salto","Razzo","Sprint","Bum","Bolla","Scalare","Menu principale"],"pt":["Nível um","toque para pular","Passinhos pequenos. Grandes aventuras. Juntos!","Escolha uma habilidade","Toque num Bud","Arraste para olhar","Toque num Bud parado para acordá-lo","Jogar","De novo","Concluir","Parar","Ponte","Cavar","Túnel","Sombrinha","Acabou: {0}","Escolha uma habilidade e toque num Bud","Acordado de novo!","Escolha uma habilidade primeiro","Esse Bud não pode fazer isso agora","Em pausa — ainda pode dar ordens","Vai!","Todos os Buds estão em casa!","Lar, doce lar!","O vale está quieto demais","{0} de {1} Buds chegaram em casa.","Você precisa de {0}.","Pare um Bud para segurar o grupo e acorde-o quando o caminho estiver seguro.","jogo perfeito","Dica: pare um Bud primeiro e mande um único batedor.","Nível {0}","Não foi possível carregar o motor 3D. Verifique a conexão e recarregue.","Este jogo precisa de WebGL, indisponível neste navegador.","Velocidade","Pausa","Reiniciar nível","Som","Tela cheia","Buds em casa / necessários","Tempo restante","Instalar app","Níveis","Ajustes","Voltar","Música","Gráficos","Auto","Alto","Baixo","Câmera","Clássica","Diagonal","Grande angular","Idioma","Apagar progresso","Progresso apagado","Em breve","apresenta","Mapa do mundo","Continuar","Menu","Trilha","Próximo nível","Conclua primeiro o nível {0}","A viagem para casa","{0} Buds · leve {1} para casa","","Pulo","Foguete","Sprint","Bum","Bolha","Escalar","Menu principal"],"nl":["Level één","tik om over te slaan","Kleine stapjes. Grote avonturen. Samen!","Kies een vaardigheid","Tik op een Bud","Sleep om rond te kijken","Tik op een wachtende Bud om hem te wekken","Spelen","Opnieuw","Klaar","Halt","Brug","Graven","Tunnel","Parasol","Geen {0} meer","Kies een vaardigheid en tik op een Bud","Weer wakker!","Kies eerst een vaardigheid","Dat kan deze Bud nu niet","Gepauzeerd — je kunt nog opdrachten geven","Start!","Alle Buds zijn thuis!","Oost west, thuis best!","Het dal is te stil","{0} van de {1} Buds zijn thuisgekomen.","Je hebt er {0} nodig.","Laat een Bud wachten om de groep tegen te houden en wek hem als de weg veilig is.","perfecte ronde","Tip: laat eerst één Bud wachten en stuur één verkenner vooruit.","Level {0}","De 3D-engine kon niet worden geladen. Controleer je verbinding en laad opnieuw.","Dit spel heeft WebGL nodig en dat is niet beschikbaar in deze browser.","Snelheid","Pauze","Level herstarten","Geluid","Volledig scherm","Buds thuis / nodig","Resterende tijd","App installeren","Levels","Instellingen","Terug","Muziek","Graphics","Auto","Hoog","Laag","Camera","Klassiek","Diagonaal","Groothoek","Taal","Voortgang wissen","Voortgang gewist","Binnenkort","presenteert","Wereldkaart","Verder","Menu","Pad","Volgend level","Voltooi eerst level {0}","De reis naar huis","{0} Buds · breng er {1} thuis","","Stuiter","Raket","Sprint","Boem","Bubbel","Klimmen","Hoofdmenu"],"pl":["Poziom pierwszy","dotknij, aby pominąć","Małe kroczki. Wielkie przygody. Razem!","Wybierz umiejętność","Dotknij Buda","Przeciągnij, aby się rozejrzeć","Dotknij stojącego Buda, aby go obudzić","Graj","Jeszcze raz","Koniec","Stop","Most","Kop","Tunel","Parasol","Brak: {0}","Wybierz umiejętność i dotknij Buda","Znowu nie śpi!","Najpierw wybierz umiejętność","Ten Bud nie może tego teraz zrobić","Pauza — nadal możesz wydawać polecenia","Start!","Wszystkie Budy są w domu!","Nie ma jak w domu!","W dolinie jest zbyt cicho","{0} z {1} Budów dotarło do domu.","Potrzebujesz {0}.","Zatrzymaj Buda, aby wstrzymać grupę, i obudź go, gdy droga będzie bezpieczna.","perfekcyjna gra","Rada: najpierw zatrzymaj jednego Buda i wyślij jednego zwiadowcę.","Poziom {0}","Nie udało się wczytać silnika 3D. Sprawdź połączenie i odśwież.","Ta gra wymaga WebGL, które nie jest dostępne w tej przeglądarce.","Prędkość","Pauza","Restart poziomu","Dźwięk","Pełny ekran","Budy w domu / potrzebne","Pozostały czas","Zainstaluj","Poziomy","Ustawienia","Wstecz","Muzyka","Grafika","Auto","Wysoka","Niska","Kamera","Klasyczna","Ukośna","Szeroki kąt","Język","Usuń postępy","Postępy usunięte","Wkrótce","przedstawia","Mapa świata","Wznów","Menu","Ścieżka","Następny poziom","Najpierw ukończ poziom {0}","Podróż do domu","Budy: {0} · doprowadź {1} do domu","","Skok","Rakieta","Sprint","Bum","Bańka","Wspinacz","Menu główne"],"tr":["Birinci bölüm","geçmek için dokun","Küçük adımlar. Büyük maceralar. Hep birlikte!","Bir yetenek seç","Bir Bud’a dokun","Bakmak için sürükle","Duran Bud’a dokunup uyandır","Oyna","Tekrar oyna","Bitir","Dur","Köprü","Kaz","Tünel","Şemsiye","{0} kalmadı","Bir yetenek seç, sonra bir Bud’a dokun","Yine uyandı!","Önce bir yetenek seç","Bu Bud şu an bunu yapamaz","Duraklatıldı — yine de emir verebilirsin","Başla!","Bütün Bud’lar evde!","Evim güzel evim!","Vadi fazla sessiz","{1} Bud’dan {0} tanesi eve ulaştı.","{0} gerekli.","Grubu tutmak için bir Bud’u durdur, yol güvenli olunca uyandır.","kusursuz oyun","İpucu: önce bir Bud’u durdur, sonra tek bir öncü gönder.","Bölüm {0}","3D motoru yüklenemedi. Bağlantını kontrol edip yenile.","Bu oyun WebGL gerektirir; bu tarayıcıda kullanılamıyor.","Hız","Duraklat","Bölümü yeniden başlat","Ses","Tam ekran","Evdeki / gereken Bud","Kalan süre","Uygulamayı yükle","Bölümler","Ayarlar","Geri","Müzik","Grafik","Otomatik","Yüksek","Düşük","Kamera","Klasik","Çapraz","Geniş açı","Dil","İlerlemeyi sıfırla","İlerleme sıfırlandı","Yakında","sunar","Dünya haritası","Devam et","Menü","Patika","Sonraki bölüm","Önce {0}. bölümü bitir","Eve Yolculuk","{0} Bud · {1} tanesini eve ulaştır","","Zıpla","Roket","Koşu","Bum","Balon","Tırman","Ana menü"],"ru":["Уровень первый","коснитесь, чтобы пропустить","Маленькие шаги. Большие приключения. Вместе!","Выберите навык","Коснитесь малыша","Тяните, чтобы осмотреться","Коснитесь стоящего малыша, чтобы разбудить","Играть","Ещё раз","Готово","Стоп","Мост","Копать","Тоннель","Зонтик","Не осталось: {0}","Выберите навык, затем коснитесь малыша","Снова не спит!","Сначала выберите навык","Этот малыш сейчас так не может","Пауза — команды всё ещё доступны","Вперёд!","Все малыши дома!","Дом, милый дом!","В долине слишком тихо","Домой добрались: {0} из {1}.","Нужно {0}.","Остановите малыша, чтобы задержать толпу, и разбудите, когда путь станет безопасным.","идеальное прохождение","Совет: сначала остановите одного малыша и отправьте вперёд одного разведчика.","Уровень {0}","Не удалось загрузить 3D-движок. Проверьте соединение и обновите страницу.","Игре нужен WebGL, который недоступен в этом браузере.","Скорость","Пауза","Начать заново","Звук","На весь экран","Дома / нужно","Осталось времени","Установить","Уровни","Настройки","Назад","Музыка","Графика","Авто","Высокая","Низкая","Камера","Классика","Диагональ","Широкий угол","Язык","Сбросить прогресс","Прогресс сброшен","Скоро","представляет","Карта мира","Продолжить","Меню","Тропа","Следующий уровень","Сначала пройдите уровень {0}","Путешествие домой","Малышей: {0} · довести домой: {1}","","Батут","Ракета","Спринт","Бум","Пузырь","Лезть","Главное меню"],"ja":["レベル1","タップでスキップ","ちいさな一歩。おおきな冒険。みんないっしょ！","スキルを選ぶ","バッズをタップ","ドラッグで見わたす","止まったバッズをタップで起こす","プレイ","もう一度","終了","とまれ","はし","ほる","トンネル","パラソル","{0}はもうありません","スキルを選んでバッズをタップ","また起きた！","先にスキルを選んでね","このバッズは今それができません","一時停止中 — 指示は出せます","スタート！","みんなおうちに帰れた！","おかえりなさい！","谷がしずかすぎる…","{1}匹中{0}匹がおうちに帰れました。","{0}匹必要です。","バッズを止めて群れを待たせ、道が安全になったら起こそう。","パーフェクト","ヒント：まず1匹を止めて、1匹だけ先に行かせよう。","レベル{0}","3Dエンジンを読み込めませんでした。接続を確認して再読み込みしてください。","このゲームにはWebGLが必要ですが、このブラウザでは使えません。","ゲーム速度","一時停止","リスタート","サウンド","全画面","帰宅 / 必要数","残り時間","アプリをインストール","レベル","設定","戻る","音楽","グラフィック","自動","高","低","カメラ","クラシック","ななめ","ワイド","言語","進行状況をリセット","リセットしました","近日公開","プレゼンツ","ワールドマップ","再開","メニュー","トレイル","次のレベル","先にレベル{0}をクリアしてね","おうちへの旅","バッズ{0}匹 · {1}匹をおうちへ","","ジャンプ","ロケット","ダッシュ","ドカン","バブル","のぼる","メインメニュー"],"ko":["레벨 1","탭하여 건너뛰기","작은 발걸음. 커다란 모험. 모두 함께!","스킬 선택","버드를 탭","드래그해서 둘러보기","멈춘 버드를 탭해 깨우기","플레이","다시 하기","완료","멈춤","다리","파기","터널","양산","{0} 없음","스킬을 고른 뒤 버드를 탭하세요","다시 깨어났어요!","먼저 스킬을 고르세요","이 버드는 지금 할 수 없어요","일시정지 — 명령은 내릴 수 있어요","출발!","모든 버드가 집에 왔어요!","즐거운 우리 집!","골짜기가 너무 조용해요","{1}마리 중 {0}마리가 집에 도착했어요.","{0}마리가 필요해요.","버드 하나를 멈춰 무리를 세우고, 길이 안전해지면 깨우세요.","퍼펙트","팁: 먼저 한 마리를 멈추고 정찰병 하나만 보내세요.","레벨 {0}","3D 엔진을 불러오지 못했어요. 연결을 확인하고 새로고침하세요.","이 게임에는 WebGL이 필요하지만 이 브라우저에서는 사용할 수 없어요.","게임 속도","일시정지","레벨 다시 시작","소리","전체 화면","귀가 / 필요","남은 시간","앱 설치","레벨","설정","뒤로","음악","그래픽","자동","높음","낮음","카메라","클래식","대각선","광각","언어","진행 상황 초기화","초기화했어요","곧 공개","제공","월드 맵","계속하기","메뉴","오솔길","다음 레벨","먼저 레벨 {0}을 완료하세요","집으로 가는 여행","버드 {0}마리 · {1}마리를 집으로","","점프","로켓","달리기","펑","방울","오르기","메인 메뉴"],"zh":["第一关","点按跳过","小小的脚步，大大的冒险，大家一起！","选择技能","点按小芽","拖动查看四周","点按停下的小芽可唤醒它","开始","再玩一次","完成","停止","搭桥","挖掘","隧道","阳伞","没有{0}了","先选技能，再点按小芽","又醒啦！","请先选择技能","这只小芽现在做不了","已暂停 — 仍可下达指令","出发！","所有小芽都到家了！","温馨的家！","山谷太安静了","{1} 只小芽中有 {0} 只回到了家。","需要 {0} 只。","让一只小芽停下拦住大家，等路安全后再唤醒它。","完美通关","提示：先让一只小芽停下，再派一只去探路。","第 {0} 关","无法加载 3D 引擎。请检查网络后重新加载。","本游戏需要 WebGL，但当前浏览器不支持。","游戏速度","暂停","重新开始","声音","全屏","已回家 / 所需","剩余时间","安装应用","关卡","设置","返回","音乐","画质","自动","高","低","视角","经典","斜视","广角","语言","重置进度","进度已重置","敬请期待","出品","世界地图","继续","菜单","小径","下一关","请先通过第 {0} 关","回家之旅","{0} 只小芽 · 带 {1} 只回家","","弹跳","火箭","冲刺","爆破","泡泡","攀爬","主菜单"]};
 const LANG=(()=>{const q=(location.search.match(/[?&]lang=([a-z]{2})/)||[])[1];for(const l of [q,CFG.lang].concat(navigator.languages||[navigator.language||'en'])){const c=String(l||'').slice(0,2).toLowerCase();if(TXT[c])return c;}return 'en';})();
-function tr(i,a,b){return (TXT[LANG][i]||TXT.en[i]).replace('{0}',a).replace('{1}',b);}
+function tr(i,a,b){return (TXT[LANG][i]||TXT.en[i]||'').replace('{0}',a).replace('{1}',b);}
 document.documentElement.lang=LANG;
 document.querySelectorAll('[data-t]').forEach(e=>{e.textContent=tr(+e.dataset.t);});
 document.querySelectorAll('[data-ta]').forEach(e=>{e.setAttribute('aria-label',tr(+e.dataset.ta));});
@@ -1018,7 +1074,11 @@ const SFX={
   spawn(){tone(880,.07,'sine',.08,0,1.5);},
   win(){[72,76,79,84,88].forEach((n,i)=>tone(mt(n),.5,'triangle',.2,i*.13));},
   lose(){[67,63,60,55].forEach((n,i)=>tone(mt(n),.5,'triangle',.16,i*.2));},
-  ui(){tone(740,.05,'triangle',.1);}
+  ui(){tone(740,.05,'triangle',.1);},
+  boing(){tone(170,.28,'sine',.22,0,3.2);tone(340,.2,'triangle',.08,.02,2.4);},
+  jet(){noise(.55,.22,800,.6);tone(220,.5,'sawtooth',.05,0,2.2);},
+  pop(){tone(880,.07,'sine',.14,0,1.7);noise(.04,.1,3000,2);},
+  boom(){noise(.5,.42,150,.5);tone(84,.45,'sine',.32,0,.4);}
 };
 function sfx(n,a){if(AC&&soundOn)SFX[n](a);}
 
@@ -1034,6 +1094,11 @@ FX.ev=(n,c)=>{
   else if(n==='dig'){for(let i=0;i<2;i++)P(x+(Math.random()-.5)*12,y+2,(Math.random()-.5)*1.6,-1-Math.random()*1.4,26,1.3+Math.random(),Math.random()<.5?'#c98a56':'#8a5540','dot',.12);sfx('dig');}
   else if(n==='bash'){for(let i=0;i<2;i++)P(x+c.dir*9,y-4-Math.random()*14,-c.dir*(.4+Math.random()*1.6),-Math.random()*1.5,28,1.3+Math.random()*1.2,Math.random()<.5?'#c98a56':'#e2c49a','dot',.12);sfx('bash');}
   else if(n==='plank'){burst(x+c.dir*4,y+2,3,['#ffe2a8','#fff'],'dot',.8,.02,16,1.2);sfx('plank');}
+  else if(n==='item'){burst(x,y,6,['#fff','#ffd0e0'],'star',1.4,0,24,3);sfx('plank');}
+  else if(n==='boing'){P(x,y+4,0,0,20,12,'#fff','ring');sfx('boing');}
+  else if(n==='jet'){burst(x,y,8,['#ffb04a','#fff3a0'],'star',1.8,0,26,4);sfx('jet');}
+  else if(n==='pop'){P(x,y-8,0,0,18,16,'#d8f6ff','ring');burst(x,y-8,6,['#d8f6ff','#fff'],'dot',1.4,.03,24,1.6);sfx('pop');}
+  else if(n==='boom'){burst(x,y,22,['#e8504a','#ffd24a','#fff','#c98a56'],'dot',3,.06,46,2.6);burst(x,y-4,10,['#fff3a0','#ffb04a'],'star',2.4,0,30,5);P(x,y-6,0,0,24,26,'#fff','ring');shake=6;flash=.1;sfx('boom');}
   else if(n==='assign'){P(x,y-9,0,0,24,16,'#fff','ring');burst(x,y-10,7,['#fff3a0','#fff','#ffd0e0'],'star',1.5,0,30,3.6);sfx('assign');}
   else if(n==='spawn'){burst(HATCH.x,HATCH.y+4,5,['#74d65d','#b6ee8a'],'petal',1,.03,40,2.5);sfx('spawn');}
 };
@@ -1157,7 +1222,7 @@ function rimMat(opts,rim){
   m.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <tonemapping_fragment>','gl_FragColor.rgb+=pow(1.-clamp(dot(normalize(vViewPosition),normal),0.,1.),2.6)*'+rim.toFixed(2)+';\n#include <tonemapping_fragment>');};
   return m;
 }
-let hatchG=null,propMat=null,glowMat=null,bubMat=null,balloon=null;const MAXBUDS=20;
+let hatchG=null,propMat=null,glowMat=null,bubMat=null,balloon=null,padMesh=null;const MAXBUDS=20;
 function initProps(){
   budMat=rimMat({vertexColors:true,roughness:.7},.12);
   propMat=new T3.MeshStandardMaterial({vertexColors:true,roughness:.8});glowMat=new T3.MeshBasicMaterial({color:0xffdc7a});
@@ -1171,6 +1236,10 @@ function initProps(){
   BG.hammer=merge([part(cyl(.65,.65,9,6),'#9a6238',M(0,4.5,0)),part(box(4,4,7.4),'#c9552f',M(0,10,0))]);
   BG.hat=merge([part(new T3.SphereGeometry(1,16,8,0,TAU,0,Math.PI/2),'#ffd24a',M(0,13.6,0,7.3,6,7)),part(cyl(8.6,8.6,.8,18),'#f0b92e',M(0,13.8,1.2))]);
   BG.sign=merge([part(cyl(.6,.6,10,6),'#9a6238',M(0,5,0)),part(cyl(4.3,4.3,1,18),'#ff5a5a',M(0,12.5,0,1,1,1,Math.PI/2,0,0)),part(box(5.4,1.7,1.3),'#ffffff',M(0,12.5,0))]);
+  BG.jet=merge([part(cyl(2.6,2.6,11,10),'#f4f2ea',M(0,0,0)),part(new T3.ConeGeometry(2.6,5,10),'#e8504a',M(0,8,0)),part(box(8,4,1),'#e8504a',M(0,-4,0)),part(box(1,4,8),'#e8504a',M(0,-4,0))]);
+  BG.band=part(new T3.TorusGeometry(7.1,1.1,6,18),'#e8504a',M(0,13.6,0,1,1,1,Math.PI/2,0,0));
+  BG.cap=merge([part(new T3.SphereGeometry(1,16,8,0,TAU,0,Math.PI/2),'#4f8fe8',M(0,13.4,0,7.4,5.4,7.1)),part(sph(6,5),'#ffffff',M(0,19,0,1.3,1.3,1.3))]);
+  BG.berry=merge([part(sph(10,8),'#e8504a',M(0,7,0,3.8,3.8,3.8)),part(cyl(.4,.4,3,5),'#3c9a48',M(0,11.6,0)),part(sph(6,5),'#ffd24a',M(0,13.6,0,1.1,1.1,1.1))]);
   const cn=new T3.SphereGeometry(1,16,8,0,TAU,0,Math.PI/2).toNonIndexed();cn.applyMatrix4(M(0,15,0,13,8.5,13));
   {const n=cn.attributes.position.count,c=new Float32Array(n*3),a=lin('#ff8fb0'),b=lin('#ffffff'),pa=cn.attributes.position.array;for(let i=0;i<n;i+=3){const mx=(pa[i*3]+pa[i*3+3]+pa[i*3+6])/3,mz=(pa[i*3+2]+pa[i*3+5]+pa[i*3+8])/3,k=Math.floor((Math.atan2(mz,mx)+Math.PI)/(TAU/8))%2?a:b;for(let q=0;q<3;q++){c[(i+q)*3]=k.r;c[(i+q)*3+1]=k.g;c[(i+q)*3+2]=k.b;}}cn.setAttribute('color',new T3.BufferAttribute(c,3));}
   BG.parasol=merge([part(cyl(.5,.5,22,6),'#9a6238',M(0,11,0)),cn,part(sph(8,6),'#ffd24a',M(0,23.8,0,1.5,1.5,1.5))]);
@@ -1180,6 +1249,7 @@ function initProps(){
     const mk=(geo,par,sh)=>{const m=new T3.Mesh(geo,budMat);m.castShadow=!!sh;par.add(m);return m;};
     const o={g,up,body:mk(BG.body,up,1),eyes:mk(BG.eyes,up),al:mk(BG.arm,up),ar:mk(BG.arm,up),sprout:mk(BG.sprout,up),hat:mk(BG.hat,up,1),tool:mk(BG.pick,up,1),sol:mk(BG.parasol,up,1),fl:mk(BG.foot,g),fr:mk(BG.foot,g),ry:0,vy:null};
     o.bub=new T3.Mesh(bubG,bubMat);o.bub.position.y=11;o.bub.visible=false;g.add(o.bub);
+    o.jetm=mk(BG.jet,up,1);o.jetm.position.set(0,9,-8.5);o.band=mk(BG.band,up);o.cap=mk(BG.cap,up);
     o.eyes.position.set(0,11,6.45);o.body.layers.enable(1);o.sprout.position.set(0,17.3,0);g.visible=false;scene.add(g);buds3.push(o);
   }
   // the picnic basket the buds hop out of, hanging under its balloon
@@ -1190,6 +1260,7 @@ function initProps(){
   balloon=new T3.Mesh(merge([part(sph(22,16),'#ffffff',M(0,136,0,40,46,40)),part(cyl(15,11,12,14),'#ffffff',M(0,91,0))]),rimMat({vertexColors:true,roughness:.55,color:0xff7b6b},.2));balloon.castShadow=true;hatchG.add(balloon);
   for(const sd of[-1,1]){const pv=new T3.Group();pv.position.set(sd*28,4,0);const f=new T3.Mesh(part(box(27,3.5,36),'#c98a50',M(-sd*13.5,0,0)),propMat);f.castShadow=true;pv.add(f);hatchG.add(pv);hatchFlaps.push({pv,sd});}
   scene.add(hatchG);
+  padMesh=new T3.InstancedMesh(merge([part(cyl(10,10,1.6,18),'#e8504a',M(0,5.2,0,1,1,1.7)),part(cyl(7,7,1.8,18),'#fff4e0',M(0,5.3,0,1,1,1.7)),part(cyl(.7,.7,5,5),'#6f6a70',M(-8,2.5,10)),part(cyl(.7,.7,5,5),'#6f6a70',M(8,2.5,10)),part(cyl(.7,.7,5,5),'#6f6a70',M(-8,2.5,-10)),part(cyl(.7,.7,5,5),'#6f6a70',M(8,2.5,-10))]),propMat,12);padMesh.count=0;padMesh.castShadow=true;padMesh.frustumCulled=false;scene.add(padMesh);
   ring=new T3.Mesh(new T3.TorusGeometry(11,1,8,30),new T3.MeshBasicMaterial({color:0xffffff}));ring.rotation.x=-Math.PI/2;ring.visible=false;scene.add(ring);
   arrow=new T3.Mesh(new T3.ConeGeometry(4,8,10),new T3.MeshBasicMaterial({color:0xff7b6b}));arrow.rotation.x=Math.PI;arrow.visible=false;scene.add(arrow);
 }
@@ -1264,6 +1335,7 @@ function loadProps(){
     else if(k==='build'){g.moveTo(10,48);g.lineTo(26,48);g.moveTo(26,34);g.lineTo(42,34);g.moveTo(42,20);g.lineTo(56,20);}
     else if(k==='stop'){g.arc(32,32,19,0,TAU);g.moveTo(21,32);g.lineTo(43,32);}
     else if(k==='float'){g.arc(32,30,20,Math.PI,TAU);g.closePath();g.moveTo(32,30);g.lineTo(32,52);}
+    else if(k!=='dig'){g.font='900 48px sans-serif';g.textAlign='center';g.fillText('!',32,50);}
     else{g.moveTo(32,12);g.lineTo(32,34);g.moveTo(20,34);g.lineTo(44,34);g.lineTo(32,52);g.closePath();g.fill();}
     g.stroke();
     const tx=new T3.CanvasTexture(c);tx.encoding=T3.sRGBEncoding;
@@ -1272,8 +1344,9 @@ function loadProps(){
     const face=new T3.Mesh(new T3.PlaneGeometry(17,13),new T3.MeshLambertMaterial({map:tx}));face.position.set(0,22,.9);grp.add(face);LG.add(grp);
   }
 }
+const VST={fly:'fall',bub:'fall',clm:'walk',bomb:'stop'};
 function animBud(o,c){
-  const t=c.age,ph=t*.3+c.seed*10,st=c.st,dir=c.dir,work=(st==='bash'&&c.did)||st==='dig'||st==='build',walk=st==='walk'||(st==='bash'&&!c.did);
+  const t=c.age,ph=t*(c.run?.55:.3)+c.seed*10,st=VST[c.st]||c.st,dir=c.dir,work=(st==='bash'&&c.did)||st==='dig'||st==='build',walk=st==='walk'||(st==='bash'&&!c.did);
   o.g.visible=true;
   const ty=-c.y;if(o.vy==null||st==='fall'||Math.abs(ty-o.vy)>12)o.vy=ty;else o.vy+=(ty-o.vy)*.4;
   if(st==='exit'){const k=c.w/36;o.g.position.set(lerp(c.x,EXIT.x,k),ty+Math.sin(k*Math.PI)*9,-k*20+bz(c.x));o.g.scale.setScalar(1-k*.8);}
@@ -1291,7 +1364,7 @@ function animBud(o,c){
   o.al.position.set(-7.5,8.2,1.5-sw*1.8);o.ar.position.set(7.5,8.2,1.5+sw*1.8);
   o.tool.visible=true;o.tool.rotation.set(0,0,0);
   if(st==='fall'){o.tool.visible=false;if(c.float){o.al.position.set(-1.7,16.3,1.5);o.ar.position.set(1.7,16.3,1.5);}else{o.al.position.set(-7.9,15.2,1);o.ar.position.set(7.9,15.2,1);}}
-  else if(st==='stop'){o.tool.geometry=BG.sign;o.tool.position.set(10.6,8.6,1.5);o.al.position.set(-10.6,9.6,1);o.ar.position.set(10.6,9.6,1.5);}
+  else if(st==='stop'){o.tool.geometry=c.st==='bomb'?BG.berry:BG.sign;o.tool.position.set(10.6,8.6,1.5);o.al.position.set(-10.6,9.6,1);o.ar.position.set(10.6,9.6,1.5);}
   else if(st==='bash'){o.tool.geometry=BG.pick;if(c.did){const k=Math.sin(t*.42)*.5+.5;o.tool.position.set(6.6,8.6,4.5);o.tool.rotation.x=.1+k*1.5;o.ar.position.set(6.6,8.6,4.5);}else{o.tool.position.set(6.8,7.5,1.5);o.tool.rotation.set(-.5,0,-.25);o.ar.position.set(6.8,7.8,1.5);}}
   else if(st==='dig'){const dy=Math.sin(t*.4)*2.2;o.tool.geometry=BG.shovel;o.tool.position.set(0,8+dy,8.6);o.tool.rotation.x=.12;o.ar.position.set(2.6,11+dy,8.2);o.al.position.set(-2.6,8+dy,8.2);}
   else if(st==='build'){const k=Math.sin(t*.29)*.5+.5;o.tool.geometry=BG.hammer;o.tool.position.set(6.6,8.6,4.5);o.tool.rotation.x=-.3+k*1.6;o.ar.position.set(6.6,8.6,4.5);}
@@ -1301,6 +1374,11 @@ function animBud(o,c){
     if(st==='fall'){const op=clamp((c.fall-10)/14,0,1);o.sol.position.set(0,13,1.5);o.sol.scale.set(.25+.75*op,1,.25+.75*op);o.sol.rotation.set(0,t*.02,Math.sin(t*.09)*.12);}
     else{o.sol.position.set(-2.5,3,-6.8);o.sol.scale.set(.2,.62,.2);o.sol.rotation.set(-.3,0,.25);}
   }
+  o.bub.visible=!!TC.bubble||c.st==='bub';o.bub.scale.setScalar(c.st==='bub'?1.3:1);
+  o.jetm.visible=c.st==='fly'&&!!c.jet;o.band.visible=!!c.run;o.cap.visible=!!c.climb&&st!=='build';
+  if(c.st==='clm'){o.up.rotation.x=-.5;o.g.rotation.y=dir*1.45+yawAt(c.x);}
+  if(c.st==='bomb')o.g.scale.setScalar(1+Math.sin(c.w*.5)*.0012*c.w);
+  if(o.jetm.visible){o.up.rotation.z=-dir*.5;if(Math.random()<.8)P(c.x-dir*9,c.y-9,-dir*(1+Math.random()*1.5),.4+Math.random(),16,2.6,Math.random()<.5?'#ffb04a':'#fff3a0','star');}
 }
 
 /* ---------- ambient ---------- */
@@ -1310,20 +1388,12 @@ const flies=[];for(let i=0;i<40;i++)flies.push({x:Math.random()*W,y:70+Math.rand
 let menuOpen=false,setBack='title';
 let mode='title',paused=false,speed=1,sel=null,introT=0,endShown=false,hover=null,T=0;
 /* the story: world names, level names, opening and closing lines (other languages fall back to English) */
-const LTXT={
-en:{w:['Sunny Shores','Bubble Bay','Doodle Dunes','Rocket Mountain','Starry Skies'],
- n:['A Sandy Landing','The Wobbly Sandcastle','Crab Crossing','The Bubble Boat','Bubbles for Everybody','The Seaweed Wiggle','The Sleepy Shell','Up, Up, Bubble!','Sand in Our Shoes','The Tippy Towers','The Hidden Water Garden','The Kite Express','The Fluffy Foothills','Snowball Shortcut','The Inventor’s Workshop','Everybody Aboard!','A Little Moon Stop','The Star Garden','There’s Our Tree!','Home for Supper'],
- o:['Hello, beach! Let’s get everybody off the balloon.','Someone built a castle right across our path!','The crabs are having a parade. Can we cross their pools?','To reach Rocket Mountain, we must cross the sea!','A bubble for you, and a bubble for you!','This garden has very wiggly plants.','A giant shell is taking a nap in our way.','Those big bubbles are going to the surface. Let’s catch a ride!','That mountain is still far away. Follow the camel!','These rocks look like giant stacks of pancakes!','Our camel friend knows a cool place for a picnic.','These big desert kites can carry us to the mountains!','Up we go! Even the sheep are wearing fluffy coats.','Snow! Let’s make footprints all the way up.','Hello, Buds! Going up? My rocket could use your help!','Find a seat, little Buds. Next stop: the sky!','The rocket needs a rest. Who wants a moon walk?','Moon moths grow glowing stars here. Let’s follow their lights!','Look! Buddletop! We can see the Home Tree!','The bell is ringing. Let’s bring everybody home!'],
- e:['All together? Off we go!','Thank you for visiting, little knights!','Goodbye, crabs! Lovely sideways walking!','Next stop: under the waves!','Walking underwater feels very bouncy!','Wiggle, wiggle. Through we go!','Shhh. Let’s let it sleep.','Hello again, sunshine!','Does everybody have sand in their socks?','Now we’re thinking about pancakes.','A drink, a snack, and a little splash!','Hold on to your picnic hats!','We’re getting closer to the clouds!','Cold toes. Happy Buds.','Lights on. Rocket ready!','Three… two… one… WHEEEEE!','One small step. One very big bounce!','Thank you, moon moths. Time to go home!','We’re almost home. Can you hear the bell?','Every Bud is home!']},
-de:{w:['Sonnenstrand','Blubberbucht','Kritzeldünen','Raketenberg','Sternenhimmel'],
- n:['Sandige Landung','Die wackelige Sandburg','Krabbenkreuzung','Das Blubberboot','Blasen für alle','Der Seegras-Wackler','Die schläfrige Muschel','Hoch, hoch, Blase!','Sand in den Schuhen','Die Kippeltürme','Der versteckte Wassergarten','Der Drachen-Express','Die flauschigen Vorberge','Schneeball-Abkürzung','Die Erfinderwerkstatt','Alle an Bord!','Ein kleiner Mondstopp','Der Sternengarten','Da ist unser Baum!','Zum Abendessen daheim'],
- o:['Hallo, Strand! Holen wir alle aus dem Ballon.','Jemand hat eine Burg mitten auf unseren Weg gebaut!','Die Krabben machen eine Parade. Kommen wir über ihre Tümpel?','Zum Raketenberg müssen wir übers Meer!','Eine Blase für dich, und eine Blase für dich!','In diesem Garten wackeln die Pflanzen ganz schön.','Eine riesige Muschel hält ein Nickerchen auf unserem Weg.','Die großen Blasen steigen nach oben. Wir fahren mit!','Der Berg ist noch weit weg. Folgt dem Kamel!','Diese Felsen sehen aus wie riesige Pfannkuchenstapel!','Unser Kamelfreund kennt einen kühlen Platz fürs Picknick.','Die großen Wüstendrachen tragen uns zu den Bergen!','Auf geht’s! Sogar die Schafe tragen flauschige Mäntel.','Schnee! Wir machen Fußspuren bis ganz nach oben.','Hallo, Buds! Nach oben? Meine Rakete braucht eure Hilfe!','Sucht euch einen Platz, kleine Buds. Nächster Halt: Himmel!','Die Rakete braucht eine Pause. Wer will auf dem Mond spazieren?','Mondmotten züchten hier leuchtende Sterne. Folgen wir ihren Lichtern!','Schaut! Buddletop! Da ist der Heimatbaum!','Die Glocke läutet. Bringen wir alle nach Hause!'],
- e:['Alle beisammen? Los geht’s!','Danke für den Besuch, kleine Ritter!','Tschüss, Krabben! Schön seitwärts gelaufen!','Nächster Halt: unter den Wellen!','Unter Wasser läuft es sich ganz hüpfig!','Wackel, wackel. Durch sind wir!','Psst. Lassen wir sie schlafen.','Hallo, Sonnenschein!','Haben alle Sand in den Socken?','Jetzt denken wir an Pfannkuchen.','Ein Schluck, ein Happen und ein kleiner Platsch!','Haltet eure Picknickhüte fest!','Wir kommen den Wolken näher!','Kalte Zehen. Fröhliche Buds.','Licht an. Rakete startklar!','Drei … zwei … eins … HUIIII!','Ein kleiner Schritt. Ein riesiger Hüpfer!','Danke, Mondmotten. Zeit, nach Hause zu fliegen!','Fast zu Hause. Hört ihr die Glocke?','Alle Buds sind zu Hause!']}};
+const LTXT={"en":{"w":["Sunny Shores","Bubble Bay","Doodle Dunes","Rocket Mountain","Starry Skies"],"n":["A Sandy Landing","The Wobbly Sandcastle","Crab Crossing","The Lookout Rock","Beach Ball Bounce","The Bubble Boat","Bubbles for Everybody","The Bubble Lift","The Seaweed Wiggle","The Sleepy Shell","The Deep Blue Gap","Up, Up, Bubble!","Sand in Our Shoes","Race the Camel","The Tippy Towers","The Hidden Water Garden","Pop-Berry Canyon","The Kite Express","The Fluffy Foothills","Snowball Shortcut","Test Flight","The Inventor’s Workshop","The Snowy Ski Jump","Everybody Aboard!","A Little Moon Stop","Moon Hop","The Star Garden","Comet Climbers","There’s Our Tree!","Home for Supper"],"o":["Hello, beach! Let’s get everybody off the balloon.","Someone built a castle right across our path!","The crabs are having a parade. Can we cross their pools?","What a big rock! Who can climb to the top?","Boing! This bouncy pad goes all the way up!","To reach Rocket Mountain, we must cross the sea!","A bubble for you, and a bubble for you!","Blow a bubble and float up, up, up!","This garden has very wiggly plants.","A giant shell is taking a nap in our way.","That gap is deep. Good thing bubbles can fly!","Those big bubbles are going to the surface. Let’s catch a ride!","That mountain is still far away. Follow the camel!","These steps are tall! Fast feet can make it.","These rocks look like giant stacks of pancakes!","Our camel friend knows a cool place for a picnic.","Pop-berries go BOOM — and make handy holes!","These big desert kites can carry us to the mountains!","Up we go! Even the sheep are wearing fluffy coats.","Snow! Let’s make footprints all the way up.","The inventor has tiny rockets for us. Whoosh!","Hello, Buds! Going up? My rocket could use your help!","Bounce up, pop through, and mind the gap!","Find a seat, little Buds. Next stop: the sky!","The rocket needs a rest. Who wants a moon walk?","On the moon, a little bounce goes a long way!","Moon moths grow glowing stars here. Let’s follow their lights!","A climb for you, a bubble for you. Everybody up!","Look! Buddletop! We can see the Home Tree!","The bell is ringing. Let’s bring everybody home!"],"e":["All together? Off we go!","Thank you for visiting, little knights!","Goodbye, crabs! Lovely sideways walking!","What a view! We can see the whole beach!","Again! Again! … Okay, onward.","Next stop: under the waves!","Walking underwater feels very bouncy!","Pop! Everybody made it to the top.","Wiggle, wiggle. Through we go!","Shhh. Let’s let it sleep.","Floaty, floaty, safe and sound.","Hello again, sunshine!","Does everybody have sand in their socks?","Phew! Even the camel is out of breath.","Now we’re thinking about pancakes.","A drink, a snack, and a little splash!","Boom! That was the loudest snack ever.","Hold on to your picnic hats!","We’re getting closer to the clouds!","Cold toes. Happy Buds.","Best. Flight. Ever.","Lights on. Rocket ready!","Nobody fell in the snow. Almost nobody.","Three… two… one… WHEEEEE!","One small step. One very big bounce!","So high! We nearly touched a star.","Thank you, moon moths. Time to go home!","Up and over. The rocket is waiting!","We’re almost home. Can you hear the bell?","Every Bud is home!"]},"de":{"w":["Sonnenstrand","Blubberbucht","Kritzeldünen","Raketenberg","Sternenhimmel"],"n":["Sandige Landung","Die wackelige Sandburg","Krabbenkreuzung","Der Ausguckfelsen","Strandball-Hüpfer","Das Blubberboot","Blasen für alle","Der Blasenlift","Der Seegras-Wackler","Die schläfrige Muschel","Die tiefblaue Lücke","Hoch, hoch, Blase!","Sand in den Schuhen","Wettlauf mit dem Kamel","Die Kippeltürme","Der versteckte Wassergarten","Die Knallbeeren-Schlucht","Der Drachen-Express","Die flauschigen Vorberge","Schneeball-Abkürzung","Testflug","Die Erfinderwerkstatt","Die Schneeschanze","Alle an Bord!","Ein kleiner Mondstopp","Mondhüpfer","Der Sternengarten","Kometenkletterer","Da ist unser Baum!","Zum Abendessen daheim"],"o":["Hallo, Strand! Holen wir alle aus dem Ballon.","Jemand hat eine Burg mitten auf unseren Weg gebaut!","Die Krabben machen eine Parade. Kommen wir über ihre Tümpel?","Was für ein großer Felsen! Wer klettert hinauf?","Boing! Mit dem Hüpfkissen geht es ganz nach oben!","Zum Raketenberg müssen wir übers Meer!","Eine Blase für dich, und eine Blase für dich!","Blas eine Blase und schwebe hoch, hoch, hoch!","In diesem Garten wackeln die Pflanzen ganz schön.","Eine riesige Muschel hält ein Nickerchen auf unserem Weg.","Die Lücke ist tief. Gut, dass Blasen fliegen können!","Die großen Blasen steigen nach oben. Wir fahren mit!","Der Berg ist noch weit weg. Folgt dem Kamel!","Die Stufen sind hoch! Schnelle Füße schaffen das.","Diese Felsen sehen aus wie riesige Pfannkuchenstapel!","Unser Kamelfreund kennt einen kühlen Platz fürs Picknick.","Knallbeeren machen BUMM — und praktische Löcher!","Die großen Wüstendrachen tragen uns zu den Bergen!","Auf geht’s! Sogar die Schafe tragen flauschige Mäntel.","Schnee! Wir machen Fußspuren bis ganz nach oben.","Der Erfinder hat kleine Raketen für uns. Wusch!","Hallo, Buds! Nach oben? Meine Rakete braucht eure Hilfe!","Hoch hüpfen, durchknallen und Vorsicht an der Lücke!","Sucht euch einen Platz, kleine Buds. Nächster Halt: Himmel!","Die Rakete braucht eine Pause. Wer will auf dem Mond spazieren?","Auf dem Mond reicht ein kleiner Hüpfer ganz weit!","Mondmotten züchten hier leuchtende Sterne. Folgen wir ihren Lichtern!","Klettern für dich, eine Blase für dich. Alle nach oben!","Schaut! Buddletop! Da ist der Heimatbaum!","Die Glocke läutet. Bringen wir alle nach Hause!"],"e":["Alle beisammen? Los geht’s!","Danke für den Besuch, kleine Ritter!","Tschüss, Krabben! Schön seitwärts gelaufen!","Was für eine Aussicht! Man sieht den ganzen Strand!","Nochmal! Nochmal! … Na gut, weiter.","Nächster Halt: unter den Wellen!","Unter Wasser läuft es sich ganz hüpfig!","Plopp! Alle sind oben angekommen.","Wackel, wackel. Durch sind wir!","Psst. Lassen wir sie schlafen.","Schwebe, schwebe, heil gelandet.","Hallo, Sonnenschein!","Haben alle Sand in den Socken?","Puh! Sogar das Kamel ist außer Atem.","Jetzt denken wir an Pfannkuchen.","Ein Schluck, ein Happen und ein kleiner Platsch!","Bumm! Das war der lauteste Snack aller Zeiten.","Haltet eure Picknickhüte fest!","Wir kommen den Wolken näher!","Kalte Zehen. Fröhliche Buds.","Bester. Flug. Aller Zeiten.","Licht an. Rakete startklar!","Niemand ist in den Schnee gefallen. Fast niemand.","Drei … zwei … eins … HUIIII!","Ein kleiner Schritt. Ein riesiger Hüpfer!","So hoch! Fast hätten wir einen Stern berührt.","Danke, Mondmotten. Zeit, nach Hause zu fliegen!","Drüber und weiter. Die Rakete wartet!","Fast zu Hause. Hört ihr die Glocke?","Alle Buds sind zu Hause!"]}};
 const LT=LTXT[LANG]||LTXT.en,NLV=LEVELS.length;
 const worldName=i=>LT.w[Math.min(4,LEVELS[i].w)];
 function unlocked(i){return i===0||!!SAVE.all||SAVE.stars[i-1]>0;}
 function curLevel(){for(let i=0;i<NLV;i++)if(!(SAVE.stars[i]>0))return i;return NLV-1;}
-const SK=[['stop',tr(10)],['build',tr(11)],['dig',tr(12)],['bash',tr(13)],['float',tr(14)]];
+const SK=[['stop',tr(10)],['build',tr(11)],['dig',tr(12)],['bash',tr(13)],['float',tr(14)],['tramp',tr(67)],['jet',tr(68)],['run',tr(69)],['bomb',tr(70)],['bub',tr(71)],['climb',tr(72)]];
 const skillEls={};
 function buildSkillBar(){
   const bar=$('skills');
@@ -1341,9 +1411,17 @@ function drawSkillIcons(t){
   for(const [k] of SK){
     const e=skillEls[k],g=e.g;if(e.b.hidden)continue;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,104,104);
     const act=sel===k,tt=act?t*60:40;
-    g.setTransform(k==='float'?2.75:3.3,0,0,k==='float'?2.75:3.3,52,k==='float'?97:86);
-    const pose=k==='float'?'fall':k;
-    drawBud(g,{pose,dir:1,t:tt,seed:.3,float:k==='float',fall:40});
+    {const sc=k==='float'?2.75:k==='bub'||k==='tramp'||k==='jet'||k==='climb'?2.7:3.3;g.setTransform(sc,0,0,sc,52,k==='float'?97:k==='bub'?90:86);}
+    const pose=k==='float'||k==='tramp'||k==='jet'||k==='bub'?'fall':k==='run'||k==='climb'?'walk':k==='bomb'?'stand':k;
+    if(k==='tramp'){const sq=act?Math.abs(Math.sin(tt*.12)):.6;g.strokeStyle='#6f6a70';g.lineWidth=1.4;g.beginPath();g.moveTo(-9,1);g.lineTo(-9,5);g.moveTo(9,1);g.lineTo(9,5);g.stroke();g.fillStyle='#e8504a';g.strokeStyle='#7a2a22';g.lineWidth=1;g.beginPath();g.ellipse(0,1,12,2.8,0,0,TAU);g.fill();g.stroke();g.fillStyle='#fff4e0';g.beginPath();g.ellipse(0,.8,7.5,1.6,0,0,TAU);g.fill();g.translate(0,-3-sq*7);}
+    if(k==='jet'){g.translate(0,-5);g.save();g.rotate(.25);g.fillStyle='#ffb04a';g.beginPath();g.moveTo(-11,-3);g.lineTo(-7,-3);g.lineTo(-9,4+(act?Math.sin(tt*.9)*2:0));g.closePath();g.fill();g.fillStyle='#f4f2ea';g.strokeStyle='#7a4a2c';g.lineWidth=.9;g.beginPath();g.rect(-11.5,-15,5,12);g.fill();g.stroke();g.fillStyle='#e8504a';g.beginPath();g.moveTo(-11.5,-15);g.lineTo(-9,-20);g.lineTo(-6.5,-15);g.closePath();g.fill();g.stroke();g.restore();}
+    if(k==='climb'){g.fillStyle='#b89a70';g.strokeStyle='#7a5c3e';g.lineWidth=1;g.beginPath();g.rect(9.5,-25,5,28);g.fill();g.stroke();for(let q=0;q<4;q++){g.beginPath();g.moveTo(9.5,-20+q*7);g.lineTo(14.5,-20+q*7);g.stroke();}g.translate(-1,-5-(act?(tt*.15)%4:0));}
+    if(k==='run'){g.strokeStyle='rgba(90,53,36,.55)';g.lineWidth=1.4;g.lineCap='round';g.beginPath();for(let q=0;q<3;q++){g.moveTo(-15-q*1.5,-15+q*5);g.lineTo(-10.5,-15+q*5);}g.stroke();g.translate(2,0);}
+    drawBud(g,{pose,dir:1,t:k==='run'?tt*1.8:tt,seed:.3,float:k==='float',fall:40});
+    if(k==='run'){g.strokeStyle='#e8504a';g.lineWidth=2.2;g.beginPath();g.moveTo(-7,-14.5);g.quadraticCurveTo(0,-16.5,7,-14.5);g.stroke();g.beginPath();g.moveTo(-7,-14.5);g.lineTo(-11,-12.5);g.moveTo(-7,-14.5);g.lineTo(-10.5,-16);g.lineWidth=1.6;g.stroke();}
+    if(k==='climb'){g.fillStyle='#4f8fe8';g.strokeStyle='#2a5aa8';g.lineWidth=1;g.beginPath();g.ellipse(0,-14.2,6.6,5.2,0,Math.PI,TAU);g.closePath();g.fill();g.stroke();}
+    if(k==='bomb'){const pu=act?1+Math.sin(tt*.3)*.15:1;g.fillStyle='#e8504a';g.strokeStyle='#7a2a22';g.lineWidth=1;g.beginPath();g.arc(10,-9,3.8*pu,0,TAU);g.fill();g.stroke();g.strokeStyle='#3c9a48';g.lineWidth=1.2;g.beginPath();g.moveTo(10,-12.8);g.quadraticCurveTo(11,-16,13.5,-16.5);g.stroke();g.fillStyle='#ffd24a';g.beginPath();for(let q=0;q<10;q++){const a=q*Math.PI/5,r=q%2?1.2:3;g.lineTo(13.8+Math.cos(a)*r,-17+Math.sin(a)*r);}g.closePath();g.fill();}
+    if(k==='bub'){g.strokeStyle='rgba(120,200,235,.95)';g.fillStyle='rgba(190,235,255,.3)';g.lineWidth=1.5;g.beginPath();g.arc(0,-9.5,13.5,0,TAU);g.fill();g.stroke();g.strokeStyle='rgba(255,255,255,.95)';g.lineWidth=1.6;g.lineCap='round';g.beginPath();g.arc(0,-9.5,10.5,3.5,4.3);g.stroke();}
   }
 }
 let hudCache='';
@@ -1450,16 +1528,17 @@ function buildMap(){
     const m=new T3.Mesh(g,fm);m.receiveShadow=true;sc.add(m);}
   {const w=new T3.Mesh(new T3.PlaneGeometry(9000,5000),new T3.MeshStandardMaterial({color:0x1f9fd2,transparent:true,opacity:.7,roughness:.12,metalness:.15}));w.rotation.x=-Math.PI/2;w.position.set(900,0,0);sc.add(w);}
   // where the twenty levels sit
-  const xz=[[40,10],[130,-30],[225,15],[320,45],[425,25],[520,-25],[620,25],[720,-15],[835,10],[930,-40],[1030,10],[1130,-30],[1240,-20],[1335,-50],[1415,-66],[1498,-72]];
+  const xz=[[30,10],[88,-30],[146,14],[204,-26],[262,20],[322,46],[420,28],[478,-22],[536,26],[594,-24],[652,28],[716,-14],[830,10],[888,-40],[946,8],[1004,-38],[1062,10],[1124,-30],[1238,-18],[1294,-46],[1348,-30],[1400,-60],[1452,-64],[1498,-72]];
   for(const q of xz)MAP.pts.push(V3(q[0],mapH(q[0],q[1])+3,q[1]));
   const MO=V3(1720,430,-60),IS=V3(1990,640,-30);
-  MAP.pts.push(V3(MO.x-34,MO.y+62,MO.z+8),V3(MO.x+28,MO.y+64,MO.z+14),V3(IS.x-42,IS.y+4,IS.z+18),V3(IS.x+26,IS.y+4,IS.z+24));
+  for(const q of[[-45,8],[-16,20],[15,20],[44,8]])MAP.pts.push(V3(MO.x+q[0],MO.y+Math.sqrt(66*66-q[0]*q[0]-q[1]*q[1])+2,MO.z+q[1]));
+  MAP.pts.push(V3(IS.x-42,IS.y+4,IS.z+18),V3(IS.x+26,IS.y+4,IS.z+24));
   const ng=new T3.CylinderGeometry(11,12.5,4,22);
   MAP.pts.forEach((p,i)=>{const m=new T3.Mesh(ng,new T3.MeshStandardMaterial({roughness:.5}));m.position.copy(p).y-=1.5;m.castShadow=m.receiveShadow=true;sc.add(m);
     const cv2=document.createElement('canvas');cv2.width=cv2.height=128;const tx=new T3.CanvasTexture(cv2);tx.encoding=T3.sRGBEncoding;
     const sp=new T3.Sprite(new T3.SpriteMaterial({map:tx,depthTest:false,transparent:true,fog:false}));sp.scale.set(36,36,1);sp.position.copy(p).y+=21;sp.renderOrder=5;sc.add(sp);
     MAP.nodes.push({m,sp,cv:cv2,tx});});
-  {const dots=[];for(let i=0;i<NLV-1;i++){const a=MAP.pts[i],b=MAP.pts[i+1],n=i>=15?12:6;for(let k=1;k<n;k++){const t=k/n,x=lerp(a.x,b.x,t),zz=lerp(a.z,b.z,t);dots.push([x,i>=15?lerp(a.y,b.y,t)+Math.sin(t*Math.PI)*(i===16?10:34):Math.max(mapH(x,zz)+1.6,lerp(a.y,b.y,t)-2),zz,i>=15?1.3:1]);}}
+  {const dots=[];for(let i=0;i<NLV-1;i++){const a=MAP.pts[i],b=MAP.pts[i+1],n=i===23||i===27?12:i>23?4:5;for(let k=1;k<n;k++){const t=k/n,x=lerp(a.x,b.x,t),zz=lerp(a.z,b.z,t);dots.push([x,i>=23?lerp(a.y,b.y,t)+Math.sin(t*Math.PI)*(i===23||i===27?34:5):Math.max(mapH(x,zz)+1.6,lerp(a.y,b.y,t)-2),zz,i>=23?1.3:1]);}}
     inst(new T3.SphereGeometry(2.3,8,6),dots,new T3.MeshStandardMaterial({color:0xfff6e0,roughness:.6}));}
   // scenery of the five worlds
   rs=4242;const L={palm:[],cactus:[],coral:[],kelp:[],pine:[],spine:[],leaf:[],rock:[],cloud:[]};
@@ -1477,12 +1556,12 @@ function buildMap(){
   inst(TREE.pine.g(1),L.pine);inst(TREE.spine.g(1),L.spine);inst(TREE.leaf.g(1),L.leaf);
   inst(shade(blobGeo(6,7,5,3,.7),'#8a8478','#c8c0b0'),L.rock,fm);
   const prop=(kind,x,y,zz,s,ry)=>{const gp=goalParts(kind);add(merge(gp.g),mm,x,y,zz,s,ry);add(merge(gp.l),glowMat,x,y,zz,s,ry,0);};
-  prop('blanket',70,mapH(70,-20),-34,.55,.3);prop('boat',372,-2,74,.6,-.5);prop('tent',878,mapH(878,-50),-50,.6,.2);prop('kite',1168,mapH(1168,10),10,.5,0);
+  prop('blanket',4,mapH(4,-44),-44,.55,.3);prop('boat',372,-2,74,.6,-.5);prop('tent',878,mapH(878,-50),-50,.6,.2);prop('kite',1168,mapH(1168,10),10,.5,0);
   prop('house',1262,mapH(1262,-70),-70,.42,.2);prop('rocket',1530,mapH(1530,-80),-80,.85,0);
   // the moon
   {const mg=new T3.SphereGeometry(66,22,14);add(shade(mg,'#8a8a98','#d8d8e4'),fm,MO.x,MO.y,MO.z,1,0);
     for(const q of[[.2,.5,10],[-.6,.2,14],[.7,-.1,9],[-.1,-.5,12],[.5,.75,7],[-.75,-.4,8]]){const th=q[0]*2,ph=1.1-q[1],n=V3(Math.sin(ph)*Math.sin(th),Math.cos(ph),Math.sin(ph)*Math.cos(th));const m=add(part(new T3.CylinderGeometry(1,1,.6,12),'#74748a'),fm,MO.x+n.x*65.6,MO.y+n.y*65.6,MO.z+n.z*65.6,q[2],0,0);m.quaternion.setFromUnitVectors(V3(0,1,0),n);}
-    prop('rocket',MO.x+2,MO.y+64,MO.z-14,.5,0);}
+    prop('rocket',MO.x+2,MO.y+56,MO.z-34,.5,0);}
   // Buddletop, the floating island
   {add(shade(new T3.ConeGeometry(96,130,9),'#5a4636','#a88a66',M(0,-69,0,1,1,1,Math.PI,0,0)),fm,IS.x,IS.y,IS.z,1,0);
     add(shade(new T3.CylinderGeometry(100,95,10,18),'#5ea048','#a8dc6a',M(0,-3,0)),fm,IS.x,IS.y,IS.z,1,0);
@@ -1612,8 +1691,8 @@ document.addEventListener('gesturestart',e=>e.preventDefault());
 window.addEventListener('keydown',e=>{
   if(mode==='map'&&!$('map').hidden){if(e.key==='ArrowRight')selectLevel(MAP.sel+1);else if(e.key==='ArrowLeft')selectLevel(MAP.sel-1);else if(e.key==='Enter')$('mPlay').click();else if(e.key==='Escape')$('bMapBack').click();return;}
   if(mode!=='play'||(menuOpen&&e.key!=='Escape'))return;
-  const n='12345'.indexOf(e.key);
-  if(n>=0){skillEls[SK[n][0]].b.click();}
+  const n='123456'.indexOf(e.key),vis=SK.filter(k=>!skillEls[k[0]].b.hidden);
+  if(n>=0){if(vis[n])skillEls[vis[n][0]].b.click();}
   else if(e.key===' '){e.preventDefault();$('bPause').click();}
   else if(e.key==='f'||e.key==='F')$('bSpeed').click();
   else if(e.key==='c'||e.key==='C')$('bCam').click();
@@ -1660,6 +1739,7 @@ $('pResume').addEventListener('click',()=>{sfx('ui');menuOpen=false;show(null);}
 $('pRestart').addEventListener('click',()=>{sfx('ui');goLevel(LVL,true);});
 $('pSettings').addEventListener('click',()=>{sfx('ui');openSettings('pause');});
 $('pMap').addEventListener('click',()=>{sfx('ui');toMenu('map');});
+$('pTitle').addEventListener('click',()=>{sfx('ui');toMenu('title');});
 $('bCam').addEventListener('click',()=>{initAudio();CFG.view=((CFG.view|0)+1)%4;persist();sfx('ui');toast(tr(49)+': '+tr(VNAME[CFG.view]));});
 /* studio ident, then the title reveal */
 {const st=$('studio');let done=false;
@@ -1809,6 +1889,7 @@ function render(t,dt){
   updEnv(t);sky.position.copy(cam.position);scene.fog.near=dist+(TC.fog?TC.fog[0]:300);scene.fog.far=dist+(TC.fog?TC.fog[1]:4600);
   for(const o of buds3)o.g.visible=false;
   for(const c of G.buds){const o=buds3[c.id];if(o)animBud(o,c);}
+  {const n=Math.min(12,G.items.length);for(let i=0;i<n;i++){const it=G.items[i],k=it.t&&G.tick-it.t<14?.5+.5*(G.tick-it.t)/14:1;padMesh.setMatrixAt(i,M(it.x,-it.y,bz(it.x),1,k,1,0,yawAt(it.x),0));}if(n||padMesh.count){padMesh.count=n;padMesh.instanceMatrix.needsUpdate=true;}}
   const open=mode==='title'?0:clamp((G.tick-20)/50,0,1)*(G.spawned>=TOTAL&&G.tick>90+TOTAL*SPAWN_EVERY?0:1);
   for(const f of hatchFlaps)f.pv.rotation.z=-f.sd*open*1.25;
   let hv=null;if(mode==='play'&&!cine&&hover&&!ptrs.size)hv=pick(hover.x,hover.y);
@@ -1860,7 +1941,7 @@ function frame(ms){
 
 /* ---------- boot ---------- */
 /* build.js raises the last number and stamps the time on every build */
-const VERSION='0.4.5',BUILT='2026-11-11 08:57 UTC';
+const VERSION='0.4.6',BUILT='2026-11-11 09:24 UTC';
 document.querySelectorAll('.verT').forEach(e=>{e.textContent='DEMO · v'+VERSION+(BUILT?' · '+BUILT:'');});
 'TUMBLEBUDS'.split('').forEach((ch,i)=>{const s=document.createElement('span');s.textContent=ch;s.style.animationDelay=(i*.09)+'s';$('logo').append(s);});
 if(/[?&]all\b/.test(location.search))SAVE.all=1;
