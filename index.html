@@ -1014,6 +1014,7 @@ function fillParticles(t){
 
 /* ---------- audio ---------- */
 let mBus=null;
+let sDst=null,sVol=1;   /* where tone()/noise() play (null = straight to the master, as before) and a level factor; set per effect by sfxRoute() */
 let AC=null,master=null,soundOn=!!CFG.sfx,musicOn=!!CFG.music,musicTimer=null,mStep=0,mNext=0;
 function initAudio(){
   if(AC){if(AC.state!=='running')AC.resume();return;}
@@ -1021,19 +1022,19 @@ function initAudio(){
     /* music bus with a generated hall reverb */
     mBus=AC.createGain();mBus.gain.value=1.2;const rv=AC.createConvolver(),len=Math.floor(AC.sampleRate*3.4),ib=AC.createBuffer(2,len,AC.sampleRate);
     for(let ch=0;ch<2;ch++){const d=ib.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.4)*(i<400?i/400:1);}
-    rv.buffer=ib;const wet=AC.createGain();wet.gain.value=.6;mBus.connect(master);mBus.connect(rv);rv.connect(wet);wet.connect(master);mNext=AC.currentTime+.2;musicTimer=setInterval(music,90);AC.onstatechange=()=>{if(AC&&AC.state==='running')music();};if(AC.state!=='running')AC.resume();}catch(e){AC=null;}
+    rv.buffer=ib;const wet=AC.createGain();wet.gain.value=.6;mBus.connect(master);mBus.connect(rv);rv.connect(wet);wet.connect(master);mNext=AC.currentTime+.2;musicTimer=setInterval(music,90);AC.onstatechange=()=>{if(AC&&AC.state==='running')music();};if(AC.state!=='running')AC.resume();initMix();}catch(e){AC=null;}
 }
 function tone(f,dur,type,vol,when,slide){
   if(!AC)return;const t=AC.currentTime+(when||0),o=AC.createOscillator(),g=AC.createGain();
   o.type=type||'sine';o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,f*slide),t+dur);
-  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.006);g.gain.exponentialRampToValueAtTime(.0008,t+dur);
-  o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.02);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol*sVol,t+.006);g.gain.exponentialRampToValueAtTime(.0008,t+dur);
+  o.connect(g);g.connect(sDst||master);o.start(t);o.stop(t+dur+.02);
 }
 let nbuf=null;
 function noise(dur,vol,freq,q){
   if(!AC)return;if(!nbuf){nbuf=AC.createBuffer(1,AC.sampleRate*.5,AC.sampleRate);const d=nbuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
   const t=AC.currentTime,s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();s.buffer=nbuf;f.type='bandpass';f.frequency.value=freq;f.Q.value=q||1;
-  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0008,t+dur);s.connect(f);f.connect(g);g.connect(master);s.start(t);s.stop(t+dur);
+  g.gain.setValueAtTime(vol*sVol,t);g.gain.exponentialRampToValueAtTime(.0008,t+dur);s.connect(f);f.connect(g);g.connect(sDst||master);s.start(t);s.stop(t+dur);
 }
 const mt=n=>440*Math.pow(2,(n-69)/12);
 const PENTA=[72,74,76,79,81,84],CH=[[48,64,67],[45,60,64],[41,57,60],[43,59,62]];
@@ -1104,17 +1105,18 @@ function themeStep(t,stp){
 }
 let mScore=-1;
 function music(){
+  audTick();
   if(!AC||AC.state!=='running')return;
   const sc=mode==='play'||mode==='end'?0:1;if(sc!==mScore){mScore=sc;mStep=0;mNext=AC.currentTime+(sc?.12:.25);}
   if(mNext<AC.currentTime)mNext=AC.currentTime+.05;
   while(mNext<AC.currentTime+.3){
-    if(musicOn){if(mScore)themeStep(mNext,mStep);else gameStep(mNext,mStep);}
+    if(musicOn){if(mScore)themeStep(mNext,mStep);else(lab('worldMusic')||lab('adaptive')?gameStep2:gameStep)(mNext,mStep);}
     mNext+=mScore?TS:.29;mStep++;
   }
 }
 /* ---------- voice: spoken lines, one small mp3 each (voice/<lang>/<id>.mp3); only in the installed/hosted build ---------- */
 let btOn=false,btTick=null,btN=0;
-function musicLevel(){if(mBus&&AC)mBus.gain.setTargetAtTime(1.2*(VO.n>0?.36:1)*(btOn?.2:1),AC.currentTime,.12);}
+function musicLevel(){if(!mBus||!AC)return;audRoute();const v=lab('voiceMix'),d=VO.n>0;mBus.gain.setTargetAtTime(1.2*(d?(v?.4:.36):1)*(btOn?(lab('adaptive')?.32:.2):1),AC.currentTime,v?(d?.2:.55):.12);}
 const VO={ok:!!document.querySelector('link[rel=manifest]')&&(LANG==='en'||LANG==='de'),g:null,cur:null,q:null,n:0,cache:{},
   load(id){const c=VO.cache;if(!c[id])c[id]=fetch('voice/'+LANG+'/'+id+'.mp3').then(r=>r.ok?r.arrayBuffer():Promise.reject(0)).then(b=>new Promise((res,rej)=>AC.decodeAudioData(b,res,rej))).catch(()=>{delete c[id];return null;});return c[id];},
   /* how: 0 replaces what is being said, 1 waits for the narrator to finish, 2 speaks on top (the Buds) */
@@ -1170,7 +1172,289 @@ const SFX={
   pop(){tone(880,.07,'sine',.14,0,1.7);noise(.04,.1,3000,2);},
   boom(){noise(.5,.42,150,.5);tone(84,.45,'sine',.32,0,.4);}
 };
-function sfx(n,a){if(AC&&soundOn)SFX[n](a);}
+function sfx(n,a){
+  if(!AC||!soundOn)return;
+  const f=!MOVIE.on&&lab(SFXLAB[n]||'sfx2')&&SFX2[n]||SFX[n];if(!f)return;
+  sfxRoute(sC&&!MOVIE.on?sC.x:null);try{f(a);}finally{sDst=null;sVol=1;}
+}
+
+/* ---------- audio, polish pass: mix bus, stereo, ambience, world instruments, adaptive score, new effects ---------- */
+LABDEF.bus='Mix bus + limiter';LABDEF.verb='Effects room reverb';LABDEF.pan='Stereo placement';LABDEF.amb='World ambience';
+LABDEF.worldMusic='World instruments';LABDEF.adaptive='Adaptive music';LABDEF.sfx2='New action sounds';LABDEF.steps='Footsteps + landings';
+LABDEF.stinger='Win/lose stingers';LABDEF.uiSnd='UI + map sounds';LABDEF.voiceMix='Voice mixing';LABDEF.audFix='Audio resume fade';
+let MX=null,sEv=null,sC=null;   /* the mix graph; the sim event being played and its Bud (set around FX.ev) */
+function nb(){if(!nbuf){nbuf=AC.createBuffer(1,AC.sampleRate*.5,AC.sampleRate);const d=nbuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}return nbuf;}
+/* buses (all end in the old master gain): effects through seven fixed stereo lanes, UI, ambience; a short room for the effects;
+   a gentle compressor after the master. Nothing here is audible until a lab switch routes sound through it. */
+function initMix(){
+  if(MX&&MX.ac===AC)return;
+  try{
+    const m={ac:AC,key:-1,sv:-1,sg:-1,ag:-1,ug:-1,amb:null,ambK:'',ambN:0,stepN:0,thF:0,lanes:[]},sr=AC.sampleRate;
+    const pn=v=>{let p;if(AC.createStereoPanner){p=AC.createStereoPanner();p.pan.value=v;}else p=AC.createGain();return p;};
+    m.sBus=AC.createGain();m.uBus=AC.createGain();m.aBus=AC.createGain();m.aBus.gain.value=0;
+    for(const b of[m.sBus,m.uBus,m.aBus])b.connect(master);
+    for(let i=0;i<7;i++){const p=pn((i-3)/3*.7);p.connect(m.sBus);m.lanes.push(p);}
+    m.aL=pn(-.55);m.aR=pn(.55);m.aL.connect(m.aBus);m.aR.connect(m.aBus);
+    const len=Math.floor(sr*.7),ib=AC.createBuffer(2,len,sr);
+    for(let ch=0;ch<2;ch++){const d=ib.getChannelData(ch);let s=0;for(let i=0;i<len;i++){s+=((Math.random()*2-1)-s)*.45;d[i]=s*Math.pow(1-i/len,3.2)*(i<200?i/200:1);}}
+    m.rv=AC.createConvolver();m.rv.buffer=ib;m.send=AC.createGain();m.send.gain.value=0;
+    m.sBus.connect(m.send);m.aL.connect(m.send);m.aR.connect(m.send);m.send.connect(m.rv);m.rv.connect(master);
+    m.comp=AC.createDynamicsCompressor();m.comp.threshold.value=-16;m.comp.knee.value=12;m.comp.ratio.value=6;m.comp.attack.value=.003;m.comp.release.value=.2;
+    m.post=AC.createGain();m.post.gain.value=COMP_POST;m.comp.connect(m.post);m.post.connect(AC.destination);
+    m.shelf=AC.createBiquadFilter();m.shelf.type='highshelf';m.shelf.frequency.value=3200;m.shelf.gain.value=3.5;
+    MX=m;
+    /* every sim event passes through here first, so effects know where they happen and which Bud they belong to */
+    if(!FX.ev.snd){const ev0=FX.ev;FX.ev=(n,c)=>{sEv=n;sC=c;try{if(c)sndEv(n,c);ev0(n,c);}finally{sEv=null;sC=null;}};FX.ev.snd=1;}
+    audRoute();
+  }catch(e){MX=null;}
+}
+const COMP_POST=.6;   /* takes back the make-up gain the browser's compressor adds, so quiet passages keep their old level */
+/* master -> speakers directly (old path) or through the compressor; the narrator joins the same path, with a little air on top */
+function audRoute(){
+  if(!MX)return;const b=lab('bus'),v=lab('voiceMix'),key=(b?1:0)+(v?2:0)+(VO.g?4:0);if(key===MX.key)return;
+  MX.key=key;const out=b?MX.comp:AC.destination;
+  try{master.disconnect(MX.comp);}catch(e){}try{master.disconnect(AC.destination);}catch(e){}
+  master.connect(out);
+  if(VO.g){try{VO.g.disconnect();}catch(e){}try{MX.shelf.disconnect();}catch(e){}if(v){VO.g.connect(MX.shelf);MX.shelf.connect(out);}else VO.g.connect(out);}
+}
+/* pick the output for the next effect: x = where it happens in the level (null: not in the world -> UI bus) */
+function sfxRoute(x){
+  sVol=1;sDst=null;if(!MX)return;
+  const b=lab('bus'),p=lab('pan'),v=lab('verb')&&!lowQ;
+  if(x==null){if(b)sDst=MX.uBus;return;}
+  if(!(b||p||v))return;
+  let u=0;if(p){u=(x-camX)*z/vw*2-1;const a=Math.abs(u);sVol=a<=1?1-.22*a:Math.max(.3,.78-.4*(a-1));u=clamp(u,-1,1);}
+  sDst=MX.lanes[Math.round((u+1)*3)];
+}
+function setG(k,p,v,tc){if(MX[k]!==v){MX[k]=v;p.setTargetAtTime(v,AC.currentTime,tc);}}
+/* runs with the music timer (every 90 ms): routing, bus levels, ambience, footsteps. No timers of its own. */
+function audTick(){
+  if(!MX||!AC)return;
+  try{
+    audRoute();
+    const d=VO.n>0,vm=lab('voiceMix');
+    setG('sv',MX.send.gain,lab('verb')&&!lowQ?.2:0,.05);
+    setG('sg',MX.sBus.gain,vm&&d?.72:1,d?.2:.5);
+    setG('ug',MX.uBus.gain,.85,.05);
+    setG('ag',MX.aBus.gain,(d?.4:1)*(btOn?.3:1),d||btOn?.25:.7);
+    if(AC.state==='running'){ambTick();stepTick();}
+  }catch(e){}
+}
+/* generic voices: a few decaying partials (bells, mallets, chimes) and a filtered noise burst with an optional sweep */
+function bell(dst,f,t,vol,P,att){
+  const g=AC.createGain();g.gain.value=vol;g.connect(dst);
+  for(const p of P){if(f*p[0]>11000)continue;const o=AC.createOscillator(),e=AC.createGain();o.type=p[3]||'sine';o.frequency.value=f*p[0];e.gain.value=0;
+    e.gain.setValueAtTime(0,t);e.gain.linearRampToValueAtTime(p[1],t+(att||.004));e.gain.exponentialRampToValueAtTime(.0004,t+p[2]);o.connect(e);e.connect(g);o.start(t);o.stop(t+p[2]+.03);}
+}
+function nz(dst,t,dur,vol,type,f0,f1,q,att){
+  const s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();s.buffer=nb();s.loop=true;f.type=type;f.Q.value=q||1;g.gain.value=0;
+  f.frequency.setValueAtTime(f0,t);if(f1)f.frequency.exponentialRampToValueAtTime(f1,t+dur);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+(att||.004));g.gain.exponentialRampToValueAtTime(.0006,t+dur);
+  s.connect(f);f.connect(g);g.connect(dst);s.start(t,Math.random()*.4);s.stop(t+dur+.02);
+}
+function sBell(f,vol,P,when,att){bell(sDst||master,f,AC.currentTime+(when||0),vol*sVol,P,att);}
+function sNz(dur,vol,type,f0,f1,q,when,att){nz(sDst||master,AC.currentTime+(when||0),dur,vol*sVol,type,f0,f1,q,att);}
+
+/* --- ambience: one quiet procedural bed per world (looped stereo noise through slow-breathing filters, or a drone), plus rare little events --- */
+let abuf=null;
+function ambBuf(){
+  if(!abuf){const n=Math.floor(AC.sampleRate*3);abuf=AC.createBuffer(2,n,AC.sampleRate);
+    for(let ch=0;ch<2;ch++){const d=abuf.getChannelData(ch);let s=0;for(let i=0;i<n;i++){const w=Math.random()*2-1;s+=(w-s)*.12;d[i]=(w*.35+s*1.6)*(i<2000?i/2000:i>n-2000?(n-i)/2000:1);}}}
+  return abuf;
+}
+function ambBed(k){
+  const t=AC.currentTime,out=AC.createGain(),src=[];out.gain.value=0;out.gain.setValueAtTime(0,t);out.gain.linearRampToValueAtTime(1,t+2.5);out.connect(MX.aBus);
+  const n=AC.createBufferSource();n.buffer=ambBuf();n.loop=true;n.start(t,Math.random()*2);src.push(n);
+  /* a noise layer: filter, level, optional slow level LFO (rate, depth 0..1) and filter-frequency LFO (rate, depth 0..1) */
+  const lay=(type,f,q,vol,lr,ld,fr,fd)=>{
+    const fl=AC.createBiquadFilter(),g=AC.createGain();fl.type=type;fl.frequency.value=f;fl.Q.value=q;g.gain.value=vol;n.connect(fl);fl.connect(g);g.connect(out);
+    if(lr){const o=AC.createOscillator(),og=AC.createGain();o.frequency.value=lr;og.gain.value=vol*ld;o.connect(og);og.connect(g.gain);o.start(t);src.push(o);}
+    if(fr){const o=AC.createOscillator(),og=AC.createGain();o.frequency.value=fr;og.gain.value=f*fd;o.connect(og);og.connect(fl.frequency);o.start(t);src.push(o);}
+  };
+  const dr=(f,vol)=>{const o=AC.createOscillator(),g=AC.createGain();o.frequency.value=f;g.gain.value=vol;o.connect(g);g.connect(out);o.start(t);src.push(o);};
+  if(k==='beach'){lay('lowpass',650,.5,.075,.09,.8);lay('bandpass',2600,.6,.03,.09,.9,.05,.3);}                 /* surf: rumble and hiss swell together */
+  else if(k==='sea'){lay('lowpass',150,.7,.2,.07,.3);lay('bandpass',420,1.2,.055,.13,.6,.05,.4);}              /* deep water rumble */
+  else if(k==='desert'){lay('bandpass',480,1.1,.1,.06,.8,.11,.45);lay('bandpass',1500,.8,.02,.17,.9);}         /* wind gusts */
+  else if(k==='hills'){lay('bandpass',1100,.5,.04,.08,.6,.05,.3);}                                                /* breeze */
+  else if(k==='snow'){lay('bandpass',760,2.2,.085,.05,.7,.07,.35);lay('highpass',5000,.5,.006,.11,.8);}         /* hushed wind */
+  else if(k==='moon'){dr(55,.012);dr(110,.02);dr(110.5,.02);dr(165,.012);dr(220.3,.006);lay('lowpass',300,.5,.03,.04,.5);}  /* low drone, slowly beating */
+  else{lay('bandpass',1500,.5,.03,.07,.6,.04,.3);lay('lowpass',300,.5,.045,.05,.5);}                             /* high breeze around the island */
+  return{out,src};
+}
+function ambStop(b){
+  const t=AC.currentTime,g=b.out.gain;(g.cancelAndHoldAtTime||g.cancelScheduledValues).call(g,t);g.setTargetAtTime(0,t,.5);
+  b.src[0].onended=()=>{try{b.out.disconnect();}catch(e){}};for(const s of b.src)try{s.stop(t+3);}catch(e){}
+}
+function ambEv(k){
+  sDst=Math.random()<.5?MX.aL:MX.aR;sVol=1;let gap=30;
+  try{
+    if(k==='beach'){const n=2+(Math.random()*2|0),f=1300+Math.random()*500;for(let i=0;i<n;i++)tone(f*(1-i*.04),.2,'sine',.03,i*.26,.74);gap=8+Math.random()*10;}          /* far-off gull-like calls */
+    else if(k==='sea'){const n=1+(Math.random()*4|0);for(let i=0;i<n;i++)tone(280+Math.random()*420,.07,'sine',.04,i*(.09+Math.random()*.08),1.9);gap=1.5+Math.random()*4;} /* bubbles */
+    else if(k==='hills'||k==='home'&&Math.random()<.5){const n=3+(Math.random()*3|0),f=2300+Math.random()*900;for(let i=0;i<n;i++)tone(f*(1+(Math.random()-.5)*.25),.08,'sine',.025,i*.11,Math.random()<.5?1.2:.85);gap=4+Math.random()*7;} /* birdsong */
+    else if(k==='home'){sBell(mt(Math.random()<.5?72:67),.03,[[1,1,3.2],[2.4,.35,2],[3.9,.12,1]]);gap=8+Math.random()*8;}                                                      /* distant bell */
+    else if(k==='moon'){const n=1+(Math.random()*2|0);for(let i=0;i<n;i++)sBell(mt(PENTA[Math.random()*6|0]+12),.016,[[1,1,1.6],[2,.2,.8]],i*.3);gap=3+Math.random()*5;}       /* sparkles */
+    else if(k==='snow'){sBell(3000+Math.random()*1500,.008,[[1,1,.5],[1.5,.5,.4]]);gap=9+Math.random()*10;}                                                                      /* ice tinkle */
+  }finally{sDst=null;sVol=1;}
+  return gap;
+}
+function ambTick(){
+  const want=lab('amb')&&soundOn&&(mode==='play'||mode==='end')&&!MOVIE.on?TC.k:'',t=AC.currentTime;
+  if(want!==MX.ambK){if(MX.amb)ambStop(MX.amb);MX.amb=null;MX.ambK=want;if(want)MX.amb=ambBed(want);MX.ambN=t+2+Math.random()*3;}
+  if(MX.amb&&t>MX.ambN&&!btOn&&VO.n===0)MX.ambN=t+ambEv(want);
+}
+
+/* --- footsteps: now and then one of the walking Buds in view makes a tiny step sound that fits the ground --- */
+const SURF={beach:1300,sea:600,desert:1500,hills:900,snow:2400,moon:500,home:900};
+function stepTick(){
+  if(!lab('steps')||!soundOn||mode!=='play'||paused||cine||menuOpen||introT>0||(++MX.stepN&1))return;
+  let n=0,pick=null;const x0=camX,x1=camX+vw/z;
+  for(const c of G.buds)if(c.st==='walk'&&c.x>x0&&c.x<x1&&Math.random()<1/++n)pick=c;
+  if(!pick||Math.random()>.45+.12*n)return;
+  sfxRoute(pick.x);try{SFX2.step();}finally{sDst=null;sVol=1;}
+}
+/* sounds for sim events that had none */
+function sndEv(n,c){
+  if(n==='land'&&c.fall>10)sfx('land',c.fall);
+  else if(n==='saved'&&G.saved===NEED&&lab('adaptive'))mFlourish();
+}
+
+/* --- the in-game tune in each world's own colours (same melody, chords and tempo), and layers that follow the game --- */
+function mNz(t,dur,vol,type,f,q){nz(mBus,t,dur,vol,type,f,0,q);}
+function mDrop(t,f0,f1,dur,vol){const o=AC.createOscillator(),g=AC.createGain();o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+dur);
+  g.gain.value=0;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.004);g.gain.exponentialRampToValueAtTime(.0005,t+dur);o.connect(g);g.connect(mBus);o.start(t);o.stop(t+dur+.03);}
+/* a breathy flute (vib>0) or, with a glide from the previous note and a rounder tone, a theremin-like voice */
+function wind(n,t,vol,dur,glide){
+  const f=mt(n),g=AC.createGain(),o=AC.createOscillator(),o2=AC.createOscillator(),g2=AC.createGain(),l=AC.createOscillator(),lg=AC.createGain(),e=t+dur+.3;
+  g.gain.value=0;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+(glide?.1:.06));g.gain.setValueAtTime(vol,t+dur);g.gain.linearRampToValueAtTime(0,t+dur+.25);
+  if(glide&&MX&&MX.thF>0){o.frequency.setValueAtTime(MX.thF,t);o.frequency.exponentialRampToValueAtTime(f,t+.1);o2.frequency.setValueAtTime(MX.thF*2,t);o2.frequency.exponentialRampToValueAtTime(f*2,t+.1);}
+  else{o.frequency.value=f;o2.frequency.value=f*2;}
+  if(glide&&MX)MX.thF=f;
+  g2.gain.value=glide?.07:.16;l.frequency.value=glide?5.6:5;lg.gain.value=0;lg.gain.setValueAtTime(0,t);lg.gain.linearRampToValueAtTime(glide?16:8,t+.4);l.connect(lg);lg.connect(o.detune);lg.connect(o2.detune);
+  o.connect(g);o2.connect(g2);g2.connect(g);g.connect(mBus);
+  if(!glide){const s=AC.createBufferSource(),bf=AC.createBiquadFilter(),bg=AC.createGain();s.buffer=nb();s.loop=true;bf.type='bandpass';bf.frequency.value=f*2;bf.Q.value=4;bg.gain.value=.3;s.connect(bf);bf.connect(bg);bg.connect(g);s.start(t);s.stop(e);}
+  for(const q of[o,o2,l]){q.start(t);q.stop(e);}
+}
+function oud(n,t,vol){
+  const g=AC.createGain(),lp=AC.createBiquadFilter(),f=mt(n);lp.type='lowpass';lp.Q.value=1.5;lp.frequency.setValueAtTime(3000,t);lp.frequency.exponentialRampToValueAtTime(480,t+.3);
+  g.gain.value=0;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.004);g.gain.exponentialRampToValueAtTime(.0005,t+.8);
+  for(const r of[1,2.004]){const o=AC.createOscillator(),og=AC.createGain();o.type='sawtooth';o.frequency.value=f*r;og.gain.value=r>1?.35:1;o.connect(og);og.connect(lp);o.start(t);o.stop(t+.85);}
+  lp.connect(g);g.connect(mBus);
+}
+const P_PAN=[[1,1,.9],[2,.42,.6],[3.01,.16,.35],[4.02,.08,.2]],P_MAR=[[1,1,.5],[3.9,.25,.14],[9.2,.06,.05]],P_GLS=[[1,1,2.4],[2.76,.32,1.5],[5.4,.12,.7],[8.9,.04,.35]],
+  P_GL2=[[1,1,1.1],[2.76,.2,.5]],P_CEL=[[1,1,1.3],[2,.2,.9],[4,.28,.35],[6,.05,.2]],P_BLP=[[1,1,.9],[2,.1,.4]];
+const WM0={lead:(n,t,v)=>harp(n,t,v,2.4),arp:(n,t,v,l)=>harp(n,t,v,l)};
+const WM={
+  beach:{lead:(n,t,v)=>bell(mBus,mt(n),t,v*WMV.beach[0],P_PAN),arp:(n,t,v)=>bell(mBus,mt(n),t,v*WMV.beach[1],P_MAR),
+    perc(t,st){if(st%2===1)mNz(t,.05,.02,'bandpass',5200,1.2);if(st%8===4)mDrop(t,196,150,.16,.045);}},
+  sea:{lead:(n,t,v)=>bell(mBus,mt(n),t,v*WMV.sea[0],P_GLS),arp:(n,t,v)=>bell(mBus,mt(n),t,v*WMV.sea[1],P_GL2),
+    perc(t,st){if(st%16===12)mDrop(t,520,1100,.07,.02);}},
+  desert:{lead:(n,t,v)=>oud(n-12,t,v*WMV.desert[0]),arp:(n,t,v)=>oud(n,t,v*WMV.desert[1]),
+    perc(t,st){const s=st%8;if(s===0)mDrop(t,110,62,.24,.09);else if(s===3||s===6)mNz(t,.05,.03,'bandpass',2200,2);}},
+  hills:{lead:(n,t,v,d)=>wind(n,t,v*WMV.hills[0],d,0),lead2:(n,t,v)=>harp(n,t,v,2.4),arp:(n,t,v,l)=>harp(n,t,v,l),
+    perc(t,st){if(st%4===2)bell(mBus,1100,t,.016,[[1,1,.05],[2.4,.3,.03]]);}},
+  snow:{lead:(n,t,v)=>bell(mBus,mt(n),t,v*WMV.snow[0],P_CEL),arp:(n,t,v)=>bell(mBus,mt(n)*2,t,v*WMV.snow[1],P_CEL),
+    perc(t,st){if(st%4===0){mNz(t,.04,.014,'bandpass',6500,2);mNz(t+.07,.04,.009,'bandpass',6500,2);}}},
+  moon:{lead:(n,t,v,d)=>wind(n,t,v*WMV.moon[0],d,1),lead2:(n,t,v)=>bell(mBus,mt(n),t,v,P_BLP),arp:(n,t,v)=>bell(mBus,mt(n),t,v*WMV.moon[1],P_BLP)}
+};
+/* level trims per world [lead, arp], set by measuring so every world's score sits at the level of the original */
+const WMV={beach:[1,1.2],sea:[.8,.9],desert:[1.05,1],hills:[.5,1],snow:[.9,.8],moon:[.52,1.1]};
+function gameStep2(t,stp){
+  const st=stp%32,s8=st%8,ph=stp>>5,ch=CH[(stp>>3)&3],A=lab('adaptive'),w=lab('worldMusic')&&WM[TC.k]||WM0;
+  let pass=ph%4,thin=false;
+  /* adaptive: the layers follow the Buds brought home instead of the clock, and bullet time leaves only pad and a sparse lead */
+  if(A){const f=NEED>0?G.saved/NEED:0;pass=f>=1?3:f>=.5?2:f>0||G.tick>2700?1:0;thin=btOn;}
+  if(s8===0){
+    lowBass(ch[0]-12,t,2.32,thin?.12:.2);strings(ch[0]+12,t,2.32,.03,.7);strings(ch[1],t,2.32,.026,.7);strings(ch[2],t,2.32,.026,.7);
+    if(pass>0&&!thin)strings(ch[2]+12,t,2.32,.011,.9);
+    if(pass>1&&!thin&&(st===0||st===16||A&&pass>2))drum(t,.28);
+  }
+  if(!thin){
+    if(s8===4)w.arp(ch[0]+7,t,.04,1.6);
+    if(st%2===1&&(!A||pass>0))w.arp(ch[1+((st>>1)&1)],t,.03,1.3);
+    if(A&&pass>2&&st%2===0&&s8!==0)w.arp(ch[1+((st>>2)&1)]+12,t,.014,1);
+    if(w.perc&&pass>(A?1:0))w.perc(t,st);
+  }
+  const m=MEL[st];
+  if(m>=0&&(ph&1?st%4!==3:true)&&(!thin||st%4===0)){
+    let gp=1;while(gp<4&&MEL[(st+gp)%32]<0)gp++;
+    w.lead(PENTA[m],t,.09,gp*.29-.06);if(pass===3&&!thin)(w.lead2||w.lead)(PENTA[m]-12,t,.04,gp*.29-.06);
+  }
+}
+/* the needed number of Buds is home: a short harp run up the scale with a breath of cymbal */
+function mFlourish(){
+  if(!AC||!musicOn||mScore!==0||AC.state!=='running')return;const t=AC.currentTime+.06;
+  [60,64,67,72,76,79,84,88].forEach((n,i)=>harp(n,t+i*.055,.035+i*.004,1.8));swell(t,.45,.018);
+}
+
+/* --- new effects. Each replaces the old one of the same name while its lab switch is on (sfx2 unless listed in SFXLAB) --- */
+const SFXLAB={win:'stinger',lose:'stinger',ui:'uiSnd',land:'steps',step:'steps'};
+const DIA=[0,2,4,5,7,9,11],P_XY=[[1,1,.3],[3.9,.3,.09],[9.2,.08,.04]],P_CHM=[[1,1,.55],[2,.3,.4],[3,.08,.2]],P_TIK=[[1,1,.07],[2.7,.3,.03]];
+let digN=0,landT=0;
+const SFX2={
+  /* handing out a card: each kind of card answers in its own voice */
+  assign(){
+    const k=sel;
+    if(k==='float'){sNz(.16,.1,'bandpass',500,2600,1.2,0,.03);tone(300,.14,'sine',.1,.05,1.8);}                       /* parasol snaps open */
+    else if(k==='bub'){tone(300,.24,'sine',.13,0,2.6);tone(610,.2,'sine',.04,.03,2.4);sNz(.2,.04,'bandpass',900,1800,2,0,.05);} /* a bubble is blown */
+    else if(k==='stop'){tone(392,.1,'triangle',.14);tone(330,.14,'triangle',.13,.09);}
+    else if(k==='bomb'){sNz(.45,.035,'bandpass',3200,4800,1.5,0,.05);tone(990,.06,'triangle',.11);}                        /* fuse */
+    else if(k==='run'){tone(660,.07,'triangle',.11);tone(880,.07,'triangle',.11,.05);tone(1175,.09,'triangle',.11,.1);}
+    else if(k==='climb'){tone(523,.08,'triangle',.12);tone(784,.12,'triangle',.12,.08);}
+    else if(k==='jet'||k==='tramp')tone(990,.1,'sine',.06);
+    else if(k==='build'||k==='dig'||k==='bash'){sBell(1320,.09,P_TIK);tone(660,.09,'triangle',.13,.03);tone(990,.14,'triangle',.11,.1);}
+    else{tone(660,.09,'triangle',.15);tone(990,.16,'sine',.13,.07);}
+  },
+  nope(){tone(330,.1,'sine',.09);tone(247,.16,'sine',.09,.09);},
+  dig(){const n=performance.now();if(n-lastTick<110)return;lastTick=n;sNz(.07+Math.random()*.03,.15,'bandpass',(SURF[TC.k]||900)*(.7+Math.random()*.6),0,1+Math.random()*1.5);if(digN++&1)tone(95+Math.random()*30,.06,'sine',.07,0,.7);},
+  bash(){const n=performance.now();if(n-lastTick<130)return;lastTick=n;sNz(.06,.17,'bandpass',(SURF[TC.k]||900)*1.6*(.8+Math.random()*.5),0,2.5);tone(150+Math.random()*60,.07,'triangle',.07,0,.8);},
+  /* bridge planks climb a xylophone scale as the bridge grows; a bounce pad being set down gets a springy pair */
+  plank(){
+    if(sEv==='item'){tone(260,.1,'sine',.12,0,1.9);tone(390,.12,'sine',.08,.07,1.6);return;}
+    const p=sC&&sC.planks||1;sBell(mt(60+DIA[(p-1)%7]+12*Math.floor((p-1)/7)),.085,P_XY);sNz(.03,.05,'bandpass',2600,0,2);
+  },
+  splat(){sNz(.22,.2,'lowpass',700,200,.7);tone(260,.24,'sine',.13,0,.4);sNz(.12,.03,'highpass',3000,0,.7,.05);},
+  drown(){sNz(.38,.2,'bandpass',1600,450,.8);tone(420,.3,'sine',.1,0,.4);tone(520,.06,'sine',.05,.2,1.8);tone(700,.05,'sine',.04,.31,1.8);},
+  saved(i){
+    const k=i<12?i:6+i%6,f=mt(PENTA[k%6]+(k>=6?12:0)-12);sBell(f,.17,P_CHM);sBell(f*1.5,.08,[[1,1,.5],[2,.2,.3]],.08);
+    if(i===NEED-1)for(let j=0;j<3;j++)sBell(mt(84+[0,4,7][j]),.06,[[1,1,.5],[2,.25,.3]],.2+j*.07);
+  },
+  spawn(){tone(520,.09,'sine',.07,0,1.7);sNz(.03,.03,'bandpass',2200,0,2);},
+  win(){
+    [72,76,79,84].forEach((n,i)=>sBell(mt(n),.15,[[1,1,.6,'triangle'],[2,.3,.4],[3,.1,.25]],i*.11));
+    for(const n of[72,79,84,88])sBell(mt(n),.085,[[1,1,1.2,'triangle'],[2,.3,.8],[3,.1,.4]],.5);
+    sBell(mt(96),.035,P_CHM,.62);sBell(mt(100),.03,P_CHM,.72);
+  },
+  lose(){[67,63,60].forEach((n,i)=>{tone(mt(n),.5,'sine',.13,i*.22);tone(mt(n+12),.3,'sine',.03,i*.22);});tone(mt(48),.9,'sine',.09,.44);},
+  /* every control clicks a little differently; the card bar rustles like paper; map stops sing up a scale */
+  ui(){
+    if(sEv==='wait'){tone(660,.08,'triangle',.09);tone(880,.12,'triangle',.08,.1);return;}
+    const e=window.event,el=e&&e.target&&e.target.closest?e.target.closest('button'):null,id=el?el.id:'',cl=el?''+el.className:'';
+    if(cl.indexOf('skill')>=0){sNz(.07,.09,'bandpass',2200,4600,1.2,0,.01);tone(sel?880:620,.04,'triangle',.05,.01);}
+    else if(mode==='map'&&(!el||id==='mPrev'||id==='mNext')){const i=clamp((MAP.sel||0)+(id==='mNext'?1:id==='mPrev'?-1:0),0,NLV-1);sBell(mt(PENTA[i%6]-12+12*((i/6|0)%2)),.12,P_XY);}
+    else if(cl.indexOf('big')>=0){tone(523,.09,'triangle',.11);tone(784,.16,'triangle',.1,.07);}
+    else if(id==='bSpeed')tone(520+speed*140,.05,'triangle',.1);
+    else if(id==='bPause')tone(paused?520:700,.05,'triangle',.08);
+    else if(/Back|pTitle|pMap|bEndMap/.test(id))tone(700,.09,'triangle',.09,0,.72);
+    else if(/Settings|bMenu/.test(id))tone(520,.09,'triangle',.09,0,1.4);
+    else if(el&&el.parentNode&&el.parentNode.className==='seg')tone(620+[...el.parentNode.children].indexOf(el)*90,.045,'triangle',.09);
+    else if(/^(bCam|mRot|mIn|mOut|bFull)$/.test(id))sBell({bCam:880,mRot:784,mIn:1047,mOut:698,bFull:880}[id],.08,P_TIK);
+    else tone(740,.05,'triangle',.09);
+  },
+  /* bounce pad: the higher up it stands the higher it sings, with two little after-bounces */
+  boing(){const f=130+clamp((520-(sC?sC.y:300))/520,0,1)*90;tone(f,.3,'sine',.2,0,3);tone(f*2,.2,'triangle',.06,.02,2.2);tone(f*1.6,.16,'sine',.06,.17,1.5);tone(f*1.9,.12,'sine',.03,.29,1.3);},
+  /* rocket: the whoosh rises as it lights and falls away as it leaves */
+  jet(){sNz(.3,.15,'bandpass',500,2600,1.2,0,.04);sNz(.6,.13,'bandpass',2600,600,1.2,.22,.08);tone(200,.3,'sawtooth',.03,0,2.6);tone(520,.5,'sine',.035,.25,.5);},
+  pop(){
+    if(sEv==='poof'){sNz(.2,.12,'lowpass',1400,400,.7);tone(520,.16,'sine',.07,0,.6);return;}
+    tone(700,.05,'sine',.1,0,2);sNz(.03,.08,'highpass',3500,0,.7);tone(1500,.04,'sine',.03,.03);
+  },
+  /* Boom: a soft low thump and a few falling crumbs, nothing sharp */
+  boom(){tone(92,.5,'sine',.28,0,.45);tone(184,.3,'sine',.1,0,.4);sNz(.45,.3,'lowpass',420,100,.6);sNz(.12,.05,'bandpass',900,400,1);for(let i=0;i<3;i++)sNz(.04,.035,'bandpass',1200+Math.random()*1500,0,3,.15+Math.random()*.35);},
+  land(fall){const n=performance.now();if(n-landT<70)return;landT=n;const v=clamp(.03+fall*.0012,.03,.12);tone(250-Math.min(90,fall*.5),.07+Math.min(.12,fall/500),'sine',v,0,.5);sNz(.05,v*1.2,'bandpass',SURF[TC.k]||900,0,1);},
+  step(){const k=TC.k,r=.8+Math.random()*.4;if(k==='sea')tone(230*r,.045,'sine',.022,0,.75);else if(k==='moon')tone(260*r,.05,'sine',.025,0,.7);else sNz(k==='snow'?.05:.03,.06,'bandpass',(SURF[k]||900)*r*1.3,0,k==='snow'?1.6:.9);}
+};
+/* coming back to the tab: fade the mix in instead of resuming mid-wave (this listener runs before the one that resumes the context) */
+document.addEventListener('visibilitychange',()=>{if(!AC||!master||document.hidden||!lab('audFix'))return;const t=AC.currentTime;master.gain.cancelScheduledValues(t);master.gain.setValueAtTime(0,t);master.gain.linearRampToValueAtTime(.55,t+.25);});
 
 /* ---------- sim events -> juice ---------- */
 let shake=0,slow=0,flash=0;
