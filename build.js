@@ -61,7 +61,7 @@ self.addEventListener('fetch',e=>{
   const u=new URL(r.url),same=u.origin===location.origin,font=/fonts\\.(googleapis|gstatic)\\.com$/.test(u.hostname);
   if(!same&&!font)return;
   if(r.mode==='navigate'){ // page: fresh when online, cached when offline
-    e.respondWith(fetch(r).then(x=>{const cp=x.clone();caches.open(CACHE).then(c=>c.put('./',cp));return x;}).catch(()=>caches.match('./')));
+    e.respondWith(fetch(r.url,{cache:'no-store'}).then(x=>{const cp=x.clone();caches.open(CACHE).then(c=>c.put('./',cp));return x;}).catch(()=>caches.match('./')));
     return;
   }
   e.respondWith(caches.match(r).then(hit=>hit||fetch(r).then(x=>{if(x.ok||x.type==='opaque'){const cp=x.clone();caches.open(CACHE).then(c=>c.put(r,cp));}return x;})));

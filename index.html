@@ -1209,6 +1209,7 @@ window.addEventListener('keydown',e=>{
 function show(id){for(const k of ['title','map','settings','pause','end'])$(k).hidden=k!==id;}
 function toMenu(scr){
   mode='title';cine=null;menuOpen=false;paused=false;endShown=true;sel=null;$('hud').hidden=true;$('card').classList.remove('show');
+  if(window.__upd){location.reload();return;}
   resetSim();resetTerrainGfx();parts=[];show(scr);if(scr==='map')drawMap();
 }
 const LV=['Honeydew Hollow','','','',''],MP=[[62,186],[178,84],[306,168],[428,72],[540,142]];
@@ -1280,7 +1281,11 @@ $('bCam').addEventListener('click',()=>{initAudio();CFG.view=[2,0,3,1][CFG.view|
   window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;$('bInstall').hidden=false;});
   $('bInstall').addEventListener('click',()=>{if(!deferred)return;deferred.prompt();deferred=null;$('bInstall').hidden=true;});
   window.addEventListener('appinstalled',()=>{$('bInstall').hidden=true;});
-  if('serviceWorker' in navigator&&document.querySelector('link[rel=manifest]'))window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});
+  if('serviceWorker' in navigator&&document.querySelector('link[rel=manifest]')){/* installed app: look for a new version on every return to the app, and switch to it as soon as no level is running */
+    window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{const chk=()=>{reg.update().catch(()=>{});};document.addEventListener('visibilitychange',()=>{if(!document.hidden)chk();});setInterval(chk,300000);}).catch(()=>{});});
+    let had=!!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!had){had=true;return;}if(mode==='title')location.reload();else window.__upd=true;});
+  }
 }
 $('bPause').addEventListener('click',()=>{initAudio();paused=!paused;sfx('ui');toast(paused?tr(20):tr(21));syncHud(true);});
 $('bSpeed').addEventListener('click',()=>{initAudio();speed=speed%3+1;sfx('ui');syncHud(true);});
