@@ -687,8 +687,19 @@ function loadTerrain(){
 }
 const mapC=document.createElement('canvas');mapC.width=W/4;mapC.height=H/4;const mapX=mapC.getContext('2d');
 function paintMap(){
-  const mw=W/4,mh=H/4,im=mapX.createImageData(mw,mh),d=im.data;
-  for(let y=0;y<mh;y++)for(let x=0;x<mw;x++){if(!solid[y*4*W+x*4])continue;const i=(y*mw+x)*4,top=y>0&&!solid[(y*4-4)*W+x*4];d[i]=top?120:176;d[i+1]=top?200:116;d[i+2]=top?90:74;d[i+3]=255;}
+  const mw=W/4,mh=H/4,im=mapX.createImageData(mw,mh),d=im.data,r1=hexRGB(TC.rock[0]),r2=hexRGB(TC.rock[1]),t1=hexRGB(TC.turf[0]),t2=hexRGB(TC.turf[1]),so=hexRGB(TC.soil);
+  for(let y=0;y<mh;y++)for(let x=0;x<mw;x++){
+    const v=solid[y*4*W+x*4];if(!v)continue;const i=(y*mw+x)*4;let r,g,b;
+    if(v===2){r=.89;g=.66;b=.37;}
+    else{
+      const dp=depth0[y*4*W+x*4],n=vn(x*.37,y*.37),n2=vn(x*.08+5,y*.08),k=(Math.floor(y*.4+n2*6)&1)?.15:.9;
+      if(dp<5){const q=vn(x*.6,3);r=lerp(t1[0],t2[0],q);g=lerp(t1[1],t2[1],q);b=lerp(t1[2],t2[2],q);}
+      else if(dp<10){r=so[0];g=so[1];b=so[2];}
+      else{r=lerp(r1[0],r2[0],k);g=lerp(r1[1],r2[1],k);b=lerp(r1[2],r2[2],k);}
+      const sh=(.8+.32*n)*(1-Math.min(dp,30)/30*.2)*(dp<2?1.14:1);r*=sh;g*=sh;b*=sh;
+    }
+    d[i]=Math.min(255,r*255);d[i+1]=Math.min(255,g*255);d[i+2]=Math.min(255,b*255);d[i+3]=255;
+  }
   mapX.putImageData(im,0,0);
 }
 FX.carve=(x,y,w,h)=>{
@@ -1936,12 +1947,16 @@ function post(t,focus){
 
 /* ---------- render ---------- */
 function drawMini(){
-  const g=miniX,mw=mini.width,mh=mini.height,k=mw/W;
-  g.fillStyle=rgb(key3([191,232,251],[255,196,160],[70,84,150]));g.fillRect(0,0,mw,mh);g.imageSmoothingEnabled=false;g.drawImage(mapC,0,0,W/4,H/4,0,0,mw,mh);
-  g.fillStyle='rgba(58,170,214,.8)';g.fillRect(0,WATER_Y*k,mw,mh);
-  g.fillStyle='#ee5470';g.beginPath();g.arc(EXIT.x*k,(EXIT.y-12)*k,6,0,TAU);g.fill();
-  for(const c of G.buds){g.fillStyle=c.st==='stop'?'#ff5a5a':'#fff';g.strokeStyle='#5a3524';g.lineWidth=2;g.beginPath();g.arc(c.x*k,(c.y-8)*k,4,0,TAU);g.fill();g.stroke();}
-  g.strokeStyle='#ff7b6b';g.lineWidth=4;g.strokeRect(camX*k,Math.max(0,camY)*k,vw/z*k,Math.min(H,vh/z)*k);
+  const g=miniX,mw=mini.width,mh=mini.height,k=mw/W,sk=TC.sky;
+  const gr=g.createLinearGradient(0,0,0,mh);gr.addColorStop(0,rgb(key3(sk[1][0],sk[1][1],sk[1][2])));gr.addColorStop(1,rgb(key3(sk[2][0],sk[2][1],sk[2][2])));g.fillStyle=gr;g.fillRect(0,0,mw,mh);
+  g.imageSmoothingEnabled=true;g.drawImage(mapC,0,0,W/4,H/4,0,0,mw,mh);
+  {const se=key3(TC.sea[0],TC.sea[1],TC.sea[2]),wy=WATER_Y*k;g.fillStyle='rgba('+Math.round(Math.min(1,se[0]*1.5+.1)*255)+','+Math.round(Math.min(1,se[1]*1.5+.1)*255)+','+Math.round(Math.min(1,se[2]*1.5+.1)*255)+',.86)';g.fillRect(0,wy,mw,mh);g.fillStyle='rgba(255,255,255,.45)';g.fillRect(0,wy,mw,2);}
+  g.lineWidth=2;g.strokeStyle='#5a3524';
+  g.fillStyle='#d39757';g.fillRect(HATCH.x*k-7,HATCH.y*k,14,9);g.strokeRect(HATCH.x*k-7,HATCH.y*k,14,9);
+  {const ex=EXIT.x*k,ey=EXIT.y*k;g.fillStyle='#fff6e0';g.beginPath();g.moveTo(ex-8,ey);g.lineTo(ex-8,ey-9);g.lineTo(ex,ey-17);g.lineTo(ex+8,ey-9);g.lineTo(ex+8,ey);g.closePath();g.fill();g.stroke();g.fillStyle='#ee5470';g.beginPath();g.moveTo(ex-10,ey-8);g.lineTo(ex,ey-19);g.lineTo(ex+10,ey-8);g.closePath();g.fill();g.stroke();}
+  for(const it of G.items){g.fillStyle='#e8504a';g.fillRect(it.x*k-5,it.y*k-3,10,3);}
+  for(const c of G.buds){g.fillStyle=c.st==='stop'?'#ff5a5a':'#ffe27a';g.strokeStyle='#5a3524';g.lineWidth=2;g.beginPath();g.arc(c.x*k,(c.y-8)*k,4,0,TAU);g.fill();g.stroke();}
+  g.strokeStyle='#fff';g.lineWidth=5;g.strokeRect(camX*k,Math.max(0,camY)*k,vw/z*k,Math.min(H,vh/z)*k);g.strokeStyle='#ff7b6b';g.lineWidth=3;g.strokeRect(camX*k,Math.max(0,camY)*k,vw/z*k,Math.min(H,vh/z)*k);
 }
 const xrMat=new T3.MeshBasicMaterial({color:0xfff0b8,transparent:true,opacity:.42,depthFunc:T3.GreaterDepth,depthWrite:false,fog:false});
 function render(t,dt){
@@ -2015,7 +2030,7 @@ function frame(ms){
 
 /* ---------- boot ---------- */
 /* build.js raises the last number and stamps the time on every build */
-const VERSION='0.4.11',BUILT='2026-11-11 09:39 UTC';
+const VERSION='0.4.12',BUILT='2026-11-11 09:41 UTC';
 document.querySelectorAll('.verT').forEach(e=>{e.textContent='DEMO · v'+VERSION+(BUILT?' · '+BUILT:'');});
 'TUMBLEBUDS'.split('').forEach((ch,i)=>{const s=document.createElement('span');s.textContent=ch;s.style.animationDelay=(i*.09)+'s';$('logo').append(s);});
 if(/[?&]all\b/.test(location.search))SAVE.all=1;
