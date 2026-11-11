@@ -30,7 +30,7 @@ body{background:#10181d;color:var(--ink);font-family:var(--body);font-weight:700
 #fx{pointer-events:none}
 /* iOS home-screen app: the page is laid out with the wrong height, so the script pins every full-screen layer to the real screen height (--appH) */
 html.iosapp{min-height:calc(100% + env(safe-area-inset-top,0px))}
-.iosapp #cv,.iosapp #hud,.iosapp .screen,.iosapp #studio{height:var(--appH);bottom:auto}
+.iosapp #cv,.iosapp #hud,.iosapp .screen,.iosapp #studio{height:var(--appH);bottom:auto;box-sizing:border-box}
 .iosapp #toast{bottom:auto;top:calc(var(--appH) - 150px - env(safe-area-inset-bottom,0px))}
 .iosapp .foot{bottom:calc(8px + env(safe-area-inset-bottom,0px))}
 #hud > .head{display:flex;flex-direction:column;gap:8px;pointer-events:none}
@@ -1488,7 +1488,7 @@ function frame(ms){
 
 /* ---------- boot ---------- */
 /* build.js raises the last number and stamps the time on every build */
-const VERSION='0.4.1',BUILT='2026-11-11 06:10 UTC';
+const VERSION='0.4.2',BUILT='2026-11-11 06:12 UTC';
 document.querySelectorAll('.verT').forEach(e=>{e.textContent='DEMO · v'+VERSION+(BUILT?' · '+BUILT:'');});
 'TUMBLEBUDS'.split('').forEach((ch,i)=>{const s=document.createElement('span');s.textContent=ch;s.style.animationDelay=(i*.09)+'s';$('logo').append(s);});
 buildLevel();resetSim();buildSkillBar();
