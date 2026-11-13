@@ -1563,7 +1563,8 @@ let sDst=null,sVol=1;   /* where tone()/noise() play (null = straight to the mas
 let AC=null,master=null,soundOn=!!CFG.sfx,musicOn=!!CFG.music,musicTimer=null,mStep=0,mNext=0;
 function initAudio(){
   if(AC){if(AC.state!=='running')AC.resume();return;}
-  try{AC=new (window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=.55;master.connect(AC.destination);
+  /* Android: ask for a larger output buffer. The default (smallest) one runs dry whenever the device is busy drawing, which is heard as crackling */
+  try{AC=new (window.AudioContext||window.webkitAudioContext)(/Android/i.test(navigator.userAgent)?{latencyHint:.08}:undefined);master=AC.createGain();master.gain.value=.55;master.connect(AC.destination);
     /* music bus with a generated hall reverb */
     mBus=AC.createGain();mBus.gain.value=1.2;const rv=AC.createConvolver(),len=Math.floor(AC.sampleRate*3.4),ib=AC.createBuffer(2,len,AC.sampleRate);
     for(let ch=0;ch<2;ch++){const d=ib.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.4)*(i<400?i/400:1);}
@@ -2160,13 +2161,13 @@ function perfSet(lv){
 function perfStep(dt){
   if(CFG.gfx!=='auto'||document.hidden||MOVIE.on){PQ.t=0;fc=0;return;}
   PQ.t+=dt;if(++fc<90)return;fc=0;
-  if(ft>.0245&&PQ.t>1.5){const n=perfLadder().length-1;if(PQ.lv<n){if(T-PQ.upAt<10)PQ.wait=Math.min(180,PQ.wait*2);perfSet(PQ.lv+1);}PQ.t=0;ft=.016;}
+  if(ft>.0245&&PQ.t>1.5){const n=perfLadder().length-1;if(PQ.lv<n){if(T-PQ.upAt<10)PQ.wait=Math.min(180,PQ.wait*2);perfSet(PQ.lv+(ft>.036?2:1));}PQ.t=0;ft=.016;}
   else if(ft<.0178&&PQ.lv>0&&PQ.t>PQ.wait){perfSet(PQ.lv-1);PQ.upAt=T;PQ.t=0;ft=.016;}
 }
 function perfHud(){
   if(PQ.el===null){PQ.el=false;if(/[?&]perf\b/.test(location.search)){const d=PQ.el=document.createElement('div');d.style.cssText='position:fixed;left:6px;bottom:6px;z-index:99;font:11px/1.3 monospace;color:#fff;background:rgba(0,0,0,.6);padding:3px 6px;border-radius:6px;pointer-events:none;white-space:pre';document.body.append(d);}}
   if(!PQ.el||++PQ.n%20)return;
-  PQ.el.textContent=(ft*1000).toFixed(1)+' ms  '+(1/ft).toFixed(0)+' fps\n'+cv.width+'x'+cv.height+'  scale '+rscale.toFixed(2)+'\n'+(CFG.gfx==='auto'?(lab('perfAuto')?'smart':'auto'):CFG.gfx)+'  step '+PQ.lv+(lowQ?'  low':'')+(PQ.fx?'':'  no extras')+'  retry '+PQ.wait+'s';
+  PQ.el.textContent=(ft*1000).toFixed(1)+' ms  '+(1/ft).toFixed(0)+' fps\n'+cv.width+'x'+cv.height+'  scale '+rscale.toFixed(2)+'\n'+(CFG.gfx==='auto'?(lab('perfAuto')?'smart':'auto'):CFG.gfx)+'  step '+PQ.lv+(lowQ?'  low':'')+(PQ.fx?'':'  no extras')+'  retry '+PQ.wait+'s\n'+(AC?'audio '+AC.state+'  '+AC.sampleRate+' Hz  buffer '+((AC.baseLatency||0)*1000).toFixed(0)+' ms  out '+((AC.outputLatency||0)*1000).toFixed(0)+' ms':'audio not started');
 }
 /* one frame with the whole level in view, drawn while the screen is still covered, so that shaders and buffers are ready before play starts */
 function lookWarm(){
@@ -4847,7 +4848,7 @@ function frame(ms){
 
 /* ---------- boot ---------- */
 /* build.js raises the last number and stamps the time on every build */
-const VERSION='0.4.24',BUILT='2026-11-11 16:50 UTC';
+const VERSION='0.4.25',BUILT='2026-11-13 18:53 UTC';
 document.querySelectorAll('.verT').forEach(e=>{e.textContent='DEMO · v'+VERSION+(BUILT?' · '+BUILT:'');});
 'TUMBLEBUDS'.split('').forEach((ch,i)=>{const s=document.createElement('span');s.textContent=ch;s.style.animationDelay=(i*.09)+'s';$('logo').append(s);});
 if(/[?&]all\b/.test(location.search))SAVE.all=1;
