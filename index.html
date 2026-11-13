@@ -2029,7 +2029,7 @@ function resize(){
   z=clamp(z,minZ,maxZ);clampCam();
 }
 function setLow(v){if(lowQ===v)return;lowQ=v;sun.shadow.mapSize.set(v?1024:2048,v?1024:2048);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null;}}
-function applyGfx(){rscale=CFG.gfx==='low'?1:Math.min(window.devicePixelRatio||1,window.innerWidth<700?1.5:2);setLow(CFG.gfx==='low');ft=.016;fc=0;resize();PQ.r0=rscale;PQ.lv=0;PQ.t=0;PQ.fx=1;PQ.wait=12;}
+function applyGfx(){rscale=CFG.gfx==='low'?1:Math.min(window.devicePixelRatio||1,window.innerWidth<700?1.5:2);setLow(CFG.gfx==='low');ft=.016;fc=0;resize();PQ.r0=rscale;PQ.lv=0;PQ.t=0;PQ.fx=1;PQ.wait=12;if(CFG.gfx==='auto'&&lab('perfAuto')&&SAVE.pq>0)perfSet(SAVE.pq);}
 function defaultZoom(){return clamp(Math.min(vh/430,vw/300),minZ,2.2);}
 function camHi(){return H-vh/z+40/z;}
 function clampCam(){
@@ -2139,7 +2139,7 @@ function camInput(){
 const PQ={lv:0,t:0,wait:12,upAt:-99,fx:1,el:null,n:0,r0:1};
 function perfLadder(){const r0=PQ.r0,L=[[r0,0,1],[r0,0,0]];for(let r=r0-.25;r>=.999;r-=.25)L.push([Math.max(1,r),0,0]);L.push([1,1,0]);return L;}
 function perfSet(lv){
-  const L=perfLadder();PQ.lv=lv=clamp(lv,0,L.length-1);const s=L[lv];PQ.fx=s[2];setLow(!!s[1]);
+  const L=perfLadder();PQ.lv=lv=clamp(lv,0,L.length-1);if(SAVE.pq!==lv){SAVE.pq=lv;persist();}   /* remembered, so the next start begins at the step this device settled on */const s=L[lv];PQ.fx=s[2];setLow(!!s[1]);
   if(rscale!==s[0]){rscale=s[0];resize();}
 }
 function perfStep(dt){
@@ -4505,17 +4505,17 @@ function initPost(){
   PM.bright=SM('uniform sampler2D tS,tL;uniform vec2 uPx;uniform float uThr;uniform vec3 uLCol;vec3 s(vec2 o){vec2 q=v+o*uPx;return texture2D(tS,q).rgb*(1.+uLCol*texture2D(tL,q).r);}void main(){vec3 c=(s(vec2(-1.,-1.))+s(vec2(1.,-1.))+s(vec2(-1.,1.))+s(vec2(1.,1.)))*.25;float l=max(c.r,max(c.g,c.b));gl_FragColor=vec4(c*smoothstep(uThr,uThr+.3,l),1.);}',['tS','tL','uPx','uThr','uLCol']);
   PM.down=SM('uniform sampler2D tS;uniform vec2 uPx;void main(){gl_FragColor=(texture2D(tS,v+uPx*vec2(-1.,-1.))+texture2D(tS,v+uPx*vec2(1.,-1.))+texture2D(tS,v+uPx*vec2(-1.,1.))+texture2D(tS,v+uPx))*.25;}',['tS','uPx']);
   PM.blur=SM('uniform sampler2D tS;uniform vec2 uDir;void main(){vec3 c=texture2D(tS,v).rgb*.227;c+=(texture2D(tS,v+uDir*1.385).rgb+texture2D(tS,v-uDir*1.385).rgb)*.316;c+=(texture2D(tS,v+uDir*3.231).rgb+texture2D(tS,v-uDir*3.231).rgb)*.07;gl_FragColor=vec4(c,1.);}',['tS','uDir']);
-  PM.rpre=SM('uniform sampler2D tD;uniform vec2 uSun;uniform float uAsp;void main(){float sk=step(.99995,texture2D(tD,v).x);vec2 d=(v-uSun)*vec2(uAsp,1.);gl_FragColor=vec4(vec3(sk*exp(-dot(d,d)*10.)),1.);}',['tD','uSun','uAsp']);
+  PM.rpre=SM('uniform highp sampler2D tD;uniform vec2 uSun;uniform float uAsp;void main(){float sk=step(.99995,texture2D(tD,v).x);vec2 d=(v-uSun)*vec2(uAsp,1.);gl_FragColor=vec4(vec3(sk*exp(-dot(d,d)*10.)),1.);}',['tD','uSun','uAsp']);
   PM.rays=SM('uniform sampler2D tS;uniform vec2 uSun;void main(){vec2 d=(uSun-v)/30.;vec2 q=v+d*hash(v*917.3);float a=0.,w=1.;for(int i=0;i<30;i++){a+=texture2D(tS,clamp(q,0.,1.)).r*w;q+=d;w*=.95;}gl_FragColor=vec4(vec3(a*.075),1.);}',['tS','uSun']);
   // ambient occlusion from the depth buffer: contact shadows in crevices, under grass, around the buds
-  PM.ao=SM(['uniform sampler2D tD;uniform float uAsp,uFt;',LZ,
+  PM.ao=SM(['uniform highp sampler2D tD;uniform float uAsp,uFt;',LZ,
    'vec3 vp(vec2 q){float zz=lz(texture2D(tD,q).x);return vec3((q*2.-1.)*vec2(uAsp*uFt,uFt)*zz,-zz);}',
    'void main(){float d0=texture2D(tD,v).x;if(d0>.9999){gl_FragColor=vec4(1.);return;}',
    ' vec3 P=vp(v);vec3 n=normalize(cross(dFdx(P),dFdy(P)));',
    ' float rad=18./(2.*uFt*-P.z),a=hash(v*731.3)*6.283,occ=0.;',
    ' for(int i=0;i<10;i++){float fi=float(i)+.5;float r=sqrt(fi/10.)*rad;float an=a+fi*2.4;vec3 dv=vp(v+vec2(cos(an)/uAsp,sin(an))*r)-P;float dl=length(dv)+.001;occ+=max(dot(n,dv)/dl-.16,0.)/(1.+dl*dl*.004);}',
    ' gl_FragColor=vec4(vec3(clamp(1.-occ*.2,0.,1.)),1.);}'].join('\n'),['tD','uAsp','uFt']);
-  PM.comp=SM(['uniform sampler2D tS,tD,tB,tR,tF,tL,tA;uniform vec3 uRayCol,uTint,uLCol;uniform float uBloom,uRay,uFlash,uFocus,uAO,uNB;',LZ,
+  PM.comp=SM(['uniform highp sampler2D tD;uniform sampler2D tS,tB,tR,tF,tL,tA;uniform vec3 uRayCol,uTint,uLCol;uniform float uBloom,uRay,uFlash,uFocus,uAO,uNB;',LZ,
    'void main(){',
    ' vec2 c2=v-.5;float r2=dot(c2,c2);vec2 ca=c2*r2*.006;',
    ' float dz=lz(texture2D(tD,v).x);',
@@ -4596,8 +4596,8 @@ function lookAny(){return lab('lookGrade')||lab('lookTilt')||lab('lookBloom')||l
 function lookInit(){
   PM.bright2=SM('uniform sampler2D tS,tL;uniform vec2 uPx;uniform float uThr,uKnee;uniform vec3 uLCol,uWarm;vec3 s(vec2 o){vec2 q=v+o*uPx;return texture2D(tS,q).rgb*(1.+uLCol*texture2D(tL,q).r);}void main(){vec3 c=(s(vec2(-1.,-1.))+s(vec2(1.,-1.))+s(vec2(-1.,1.))+s(vec2(1.,1.)))*.25;float l=max(c.r,max(c.g,c.b)),so=clamp(l-uThr+uKnee,0.,2.*uKnee);so=so*so/(4.*uKnee+.0001);gl_FragColor=vec4(c*uWarm*clamp(max(so,l-uThr)*2.2,0.,1.4),1.);}',['tS','tL','uPx','uThr','uKnee','uLCol','uWarm']);
   PM.streak=SM('uniform sampler2D tS;uniform vec2 uDir;uniform float uThr;vec3 s(float o){return max(texture2D(tS,v+uDir*o).rgb-uThr,0.);}void main(){vec3 c=s(0.)*.2+(s(1.)+s(-1.))*.17+(s(2.)+s(-2.))*.12+(s(3.)+s(-3.))*.07+(s(4.)+s(-4.))*.04;gl_FragColor=vec4(c,1.);}',['tS','uDir','uThr']);
-  PM.rpre2=SM('uniform sampler2D tD;uniform vec2 uSun;uniform float uAsp,uTight,uMode,uT;\n'+LZ+'\nvoid main(){float dp=texture2D(tD,v).x;vec2 d=(v-uSun)*vec2(uAsp,1.);float m=step(.99995,dp)*exp(-dot(d,d)*uTight);if(uMode>.5){float an=atan(d.x,-d.y);m=smoothstep(500.,1900.,lz(dp))*exp(-dot(d,d)*uTight)*smoothstep(.3,.95,.5+.5*sin(an*31.+uT*.35)*sin(an*13.-uT*.22))*1.6;}gl_FragColor=vec4(vec3(m),1.);}',['tD','uSun','uAsp','uTight','uMode','uT']);
-  PM.focc=SM('uniform sampler2D tD;uniform vec2 uSun;uniform float uAsp;void main(){float a=0.;for(int i=0;i<3;i++)for(int j=0;j<3;j++)a+=step(.99995,texture2D(tD,uSun+vec2(float(i)-1.,(float(j)-1.)*uAsp)*.012).x);gl_FragColor=vec4(vec3(a/9.),.2);}',['tD','uSun','uAsp']);
+  PM.rpre2=SM('uniform highp sampler2D tD;uniform vec2 uSun;uniform float uAsp,uTight,uMode,uT;\n'+LZ+'\nvoid main(){float dp=texture2D(tD,v).x;vec2 d=(v-uSun)*vec2(uAsp,1.);float m=step(.99995,dp)*exp(-dot(d,d)*uTight);if(uMode>.5){float an=atan(d.x,-d.y);m=smoothstep(500.,1900.,lz(dp))*exp(-dot(d,d)*uTight)*smoothstep(.3,.95,.5+.5*sin(an*31.+uT*.35)*sin(an*13.-uT*.22))*1.6;}gl_FragColor=vec4(vec3(m),1.);}',['tD','uSun','uAsp','uTight','uMode','uT']);
+  PM.focc=SM('uniform highp sampler2D tD;uniform vec2 uSun;uniform float uAsp;void main(){float a=0.;for(int i=0;i<3;i++)for(int j=0;j<3;j++)a+=step(.99995,texture2D(tD,uSun+vec2(float(i)-1.,(float(j)-1.)*uAsp)*.012).x);gl_FragColor=vec4(vec3(a/9.),.2);}',['tD','uSun','uAsp']);
   PM.focc.transparent=true;
   /* bloom scales, the streak and the sun flare are summed at quarter size */
   PM.bcomb=SM(['uniform sampler2D tS,tH,tI,tK,tO,tX;uniform vec4 uW;uniform vec3 uFC;uniform vec2 uSun;uniform float uFl,uAsp,uXr;',
@@ -4610,7 +4610,7 @@ function lookInit(){
    '  c+=f*o;}',
    ' gl_FragColor=vec4(c,uXr>0.?texture2D(tX,v).r:0.);}'].join('\n'),['tS','tH','tI','tK','tO','tX','uW','uFC','uSun','uFl','uAsp','uXr']);
   PM.bcomb.uniforms.uW.value=new T3.Vector4(1,0,0,0);
-  PM.comp2=SM(['uniform sampler2D tS,tD,tB,tR,tF,tL,tA,tG;uniform vec3 uRayCol,uTint,uLCol,uGain,uLift,uShC,uHiC;uniform vec4 uTS;uniform vec2 uVR;',
+  PM.comp2=SM(['uniform highp sampler2D tD;uniform sampler2D tS,tB,tR,tF,tL,tA,tG;uniform vec3 uRayCol,uTint,uLCol,uGain,uLift,uShC,uHiC;uniform vec4 uTS;uniform vec2 uVR;',
    'uniform float uBloom,uRay,uFlash,uFocus,uAO,uNB,uTilt,uTK,uTF,uGr,uGam,uSat,uCon,uVig,uSkin,uXr;',LZ,
    'void main(){',
    ' vec2 c2=v-.5;float r2=dot(c2,c2);vec2 ca=c2*r2*.006;',
@@ -4665,7 +4665,7 @@ function lookInit(){
   PM.comp2.uniforms.uTS.value=new T3.Vector4(0,1,0,1);
   /* hidden Buds: their bodies are drawn again into a small mask wherever the scene depth says something stands in front of them */
   LOOK.xr=new T3.ShaderMaterial({uniforms:{tD:{value:null},uPx:{value:new T3.Vector2()}},vertexShader:'void main(){gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-   fragmentShader:'uniform sampler2D tD;uniform vec2 uPx;\n'+LZ+'\nvoid main(){if(lz(gl_FragCoord.z)<lz(texture2D(tD,gl_FragCoord.xy*uPx).x)+9.)discard;gl_FragColor=vec4(1.);}'});
+   fragmentShader:'uniform highp sampler2D tD;uniform vec2 uPx;\n'+LZ+'\nvoid main(){if(lz(gl_FragCoord.z)<lz(texture2D(tD,gl_FragCoord.xy*uPx).x)+9.)discard;gl_FragColor=vec4(1.);}'});
 }
 function lookRTs(w,h){
   const qw=Math.max(2,Math.ceil(w/4)),qh=Math.max(2,Math.ceil(h/4)),ew=Math.max(2,Math.ceil(w/8)),eh=Math.max(2,Math.ceil(h/8)),sw=Math.max(2,Math.ceil(w/16)),sh=Math.max(2,Math.ceil(h/16));
@@ -4832,7 +4832,7 @@ function frame(ms){
 
 /* ---------- boot ---------- */
 /* build.js raises the last number and stamps the time on every build */
-const VERSION='0.4.25',BUILT='2026-11-13 18:53 UTC';
+const VERSION='0.4.26',BUILT='2026-11-13 18:59 UTC';
 document.querySelectorAll('.verT').forEach(e=>{e.textContent='DEMO · v'+VERSION+(BUILT?' · '+BUILT:'');});
 'TUMBLEBUDS'.split('').forEach((ch,i)=>{const s=document.createElement('span');s.textContent=ch;s.style.animationDelay=(i*.09)+'s';$('logo').append(s);});
 if(/[?&]all\b/.test(location.search))SAVE.all=1;
