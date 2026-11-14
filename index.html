@@ -101,6 +101,7 @@ button:focus-visible{outline:3px solid var(--coral);outline-offset:2px}
 .st-sub{font-size:12px;letter-spacing:.5em;margin-right:-.5em;text-transform:uppercase;opacity:.6}
 .st-go{margin-top:22px;width:78px;height:78px;border-radius:50%;background:var(--coral);border:4px solid #f3ead6;display:grid;place-items:center;box-shadow:0 6px 0 rgba(0,0,0,.4);opacity:0;animation:stGo .5s 1.9s cubic-bezier(.3,1.8,.5,1) forwards,pulse 1.2s 2.5s ease-in-out infinite}
 .st-in .st-go svg{width:40px;height:40px;margin-left:4px}
+#studio.auto .st-go{visibility:hidden}
 @keyframes stGo{0%{opacity:0;transform:scale(.3)}100%{opacity:1;transform:none}}
 .card{max-height:100%;overflow-y:auto}
 #card i{display:block;font-style:normal;font-size:clamp(15px,3.4vw,21px);font-weight:900;margin-top:8px;text-wrap:balance}
@@ -4449,7 +4450,11 @@ $('bCam').addEventListener('click',()=>{initAudio();CFG.view=((CFG.view|0)+1)%4;
 {const st=$('studio');let done=false;
   const fin=()=>{if(done)return;done=true;st.classList.add('out');if(mode==='title'&&$('map').hidden&&$('settings').hidden){const go=()=>{show('title');$('title').classList.add('reveal');};show(null);MOVIE.play('intro',go);}setTimeout(()=>{st.hidden=true;},950);};
   if(location.hash){done=true;st.hidden=true;if(!/^#(play|lv|map|intro|ending|launch)/.test(location.hash))show('title');}
-  else{const go=()=>{initAudio();VO.pre(['m0','m1','m2','m3']);fin();};st.addEventListener('click',go);window.addEventListener('keydown',go,{once:true});}
+  else{const go=()=>{initAudio();VO.pre(['m0','m1','m2','m3']);fin();};st.addEventListener('click',go);window.addEventListener('keydown',go,{once:true});
+    /* where the browser lets sound start without a tap (the installed app on Android, desktop sites that were played before), the logo blends straight into the intro;
+       elsewhere the play button stays, because the intro would otherwise run without music and voice */
+    setTimeout(()=>{if(done)return;let pr=null;try{pr=new (window.AudioContext||window.webkitAudioContext)();if(pr.state!=='running')pr.resume().catch(()=>{});}catch(e){return;}   /* a throwaway context, only to ask whether sound may start */
+      const t0=performance.now(),end=()=>{try{pr.close();}catch(e){}},chk=()=>{if(done){end();return;}if(pr.state==='running'&&!document.hidden){end();st.classList.add('auto');setTimeout(go,Math.max(0,2700-performance.now()));}else if(performance.now()-t0<1200)setTimeout(chk,100);else end();};chk();},300);}
 }
 {const de=document.documentElement,rq=de.requestFullscreen||de.webkitRequestFullscreen,ex=document.exitFullscreen||document.webkitExitFullscreen;
   const fsEl=()=>document.fullscreenElement||document.webkitFullscreenElement,standalone=matchMedia('(display-mode:standalone),(display-mode:fullscreen)').matches||navigator.standalone;
@@ -4832,7 +4837,7 @@ function frame(ms){
 
 /* ---------- boot ---------- */
 /* build.js raises the last number and stamps the time on every build */
-const VERSION='0.4.29',BUILT='2026-11-14 09:12 UTC';
+const VERSION='0.4.30',BUILT='2026-11-14 09:21 UTC';
 document.querySelectorAll('.verT').forEach(e=>{e.textContent='DEMO · v'+VERSION+(BUILT?' · '+BUILT:'');});
 'TUMBLEBUDS'.split('').forEach((ch,i)=>{const s=document.createElement('span');s.textContent=ch;s.style.animationDelay=(i*.09)+'s';$('logo').append(s);});
 if(/[?&]all\b/.test(location.search))SAVE.all=1;
