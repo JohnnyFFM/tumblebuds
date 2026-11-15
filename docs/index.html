@@ -1674,7 +1674,7 @@ const VO={ok:!!document.querySelector('link[rel=manifest]')&&(LANG==='en'||LANG=
     const me={};if(how!==2)VO.cur=me;
     VO.load(id).then(buf=>{
       if(how!==2&&VO.cur!==me)return;
-      if(!buf||!CFG.voice){if(VO.cur===me)VO.cur=null;return;}
+      if(!buf||!CFG.voice){if(VO.cur===me){VO.cur=null;if(VO.q&&CFG.voice){const x=VO.q;VO.q=null;VO.say(x,1);}}return;}
       if(!VO.g){VO.g=AC.createGain();VO.g.gain.value=1.5;VO.g.connect(AC.destination);}
       const src=AC.createBufferSource();src.buffer=buf;src.connect(VO.g);src.start();VO.n++;musicLevel();
       if(how!==2){me.src=src;}
@@ -1682,7 +1682,14 @@ const VO={ok:!!document.querySelector('link[rel=manifest]')&&(LANG==='en'||LANG=
     });
   },
   stop(){VO.q=null;const c=VO.cur;VO.cur=null;if(c&&c.src){try{c.src.onended=null;c.src.stop();}catch(e){}VO.n=Math.max(0,VO.n-1);}musicLevel();},
-  pre(ids){if(VO.ok&&CFG.voice&&AC)for(const i of ids)VO.load(i);}};
+  pre(ids){if(VO.ok&&CFG.voice&&AC)for(const i of ids)VO.load(i);},
+  /* saves every spoken line of this language for offline play, one after the other in the background (they used to be saved only once heard) */
+  keep(){if(!VO.ok||!CFG.voice||VO.kept||!window.caches||navigator.onLine===false)return;VO.kept=true;
+    const ids=[];for(let i=0;i<33;i++)if(i!==15)ids.push('m'+i);for(let i=0;i<LT.o.length;i++)ids.push('o'+i);for(let i=0;i<LT.e.length;i++)ids.push('e'+i);
+    for(const k of['stop','build','dig','bash','float','tramp','jet','run','bomb','bub','climb'])ids.push('c_'+k);
+    (async()=>{let c;try{c=await caches.open('tumblebuds-assets');}catch(e){VO.kept=false;return;}
+      for(const id of ids){const u='voice/'+LANG+'/'+id+'.mp3';try{if(await c.match(u))continue;const r=await fetch(u);if(r.ok)await c.put(u,r);}catch(e){VO.kept=false;}}})();}};
+setTimeout(()=>VO.keep(),6000);window.addEventListener('online',()=>VO.keep());
 /* bullet time: the world winds down like a motor, a clock ticks while time stands still, then it spins back up */
 function btSound(on){
   btOn=on;musicLevel();clearInterval(btTick);btTick=null;
@@ -4430,7 +4437,7 @@ function buildSettings(){
   const onoff=[[1,'✓'],[0,'✕']];
   seg(tr(36),'sfx',onoff,()=>{soundOn=!!CFG.sfx;});
   seg(tr(44),'music',onoff,()=>{musicOn=!!CFG.music;});
-  if(VO.ok)seg(tr(76),'voice',onoff,()=>{if(!CFG.voice)VO.stop();});
+  if(VO.ok)seg(tr(76),'voice',onoff,()=>{if(!CFG.voice)VO.stop();else VO.keep();});
   seg(tr(45),'gfx',[['auto',tr(46)],['high',tr(47)],['low',tr(48)]],applyGfx);
   seg(tr(49),'view',[[0,tr(50)],[1,tr(51)],[2,tr(52)],[3,tr(61)]]);
   if(setBack==='title'){const rw=row('Story'),sg=document.createElement('div');sg.className='seg';for(const kd of['intro','launch','ending']){if(kd==='ending'&&!(SAVE.stars[NLV-1]>0)&&!SAVE.all)continue;if(kd==='launch'&&!(SAVE.stars[23]>0)&&!SAVE.all)continue;const b=document.createElement('button');b.textContent='\u25B6 '+(kd==='intro'?'Intro':kd==='launch'?'Rocket':'Finale');b.addEventListener('click',()=>{initAudio();sfx('ui');show(null);MOVIE.play(kd,()=>show('settings'));});sg.append(b);}rw.append(sg);}
@@ -4853,7 +4860,7 @@ function frame(ms){
 
 /* ---------- boot ---------- */
 /* build.js raises the last number and stamps the time on every build */
-const VERSION='0.4.30',BUILT='2026-11-14 09:21 UTC';
+const VERSION='0.4.31',BUILT='2026-11-15 19:20 UTC';
 document.querySelectorAll('.verT').forEach(e=>{e.textContent='DEMO · v'+VERSION+(BUILT?' · '+BUILT:'');});
 'TUMBLEBUDS'.split('').forEach((ch,i)=>{const s=document.createElement('span');s.textContent=ch;s.style.animationDelay=(i*.09)+'s';$('logo').append(s);});
 if(/[?&]all\b/.test(location.search))SAVE.all=1;
